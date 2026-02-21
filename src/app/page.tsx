@@ -1,67 +1,65 @@
-import Image from 'next/image';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoginForm } from '@/components/auth/login-form';
-import { SignupForm } from '@/components/auth/signup-form';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { users } from '@/lib/placeholder-data';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { UserCard } from '@/components/user-card';
 import { Logo } from '@/components/logo';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
-export default function AuthenticationPage() {
-  const heroImage = PlaceHolderImages.find(p => p.id === 'hero-image-1');
+export default function HomePage() {
+  const students = users.filter(u => u.role === 'student');
+  const professors = users.filter(u => u.role === 'professor');
 
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-6">
-          <div className="grid gap-2 text-center">
-            <Logo className="h-12" />
-            <h1 className="text-3xl font-bold font-headline mt-4">Welcome to Nexus Alumni</h1>
-            <p className="text-balance text-muted-foreground">
-              Connect, grow, and succeed with your alumni network.
-            </p>
-          </div>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Log In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
-            <TabsContent value="login">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Log In</CardTitle>
-                        <CardDescription>Enter your credentials to access your account.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <LoginForm />
-                    </CardContent>
-                </Card>
-            </TabsContent>
-            <TabsContent value="signup">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Sign Up</CardTitle>
-                        <CardDescription>Create an account to join the network.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <SignupForm />
-                    </CardContent>
-                </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-      <div className="hidden bg-muted lg:block">
-        {heroImage && (
-          <Image
-            src={heroImage.imageUrl}
-            alt={heroImage.description}
-            width="1200"
-            height="800"
-            data-ai-hint={heroImage.imageHint}
-            className="h-full w-full object-cover dark:brightness-[0.4]"
-          />
-        )}
-      </div>
+    <div className="flex min-h-screen w-full flex-col">
+       <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 justify-between z-50">
+            <Link href="/" className="flex items-center gap-2">
+                <Logo className="h-8" />
+            </Link>
+            <div className="flex gap-2">
+                <Link href="/login">
+                    <Button variant="outline">Log In</Button>
+                </Link>
+                <Link href="/login">
+                    <Button>Sign Up</Button>
+                </Link>
+            </div>
+        </header>
+        <main className="flex-1 p-4 md:p-6 lg:p-8">
+             <div className="flex items-center justify-between mb-6">
+                <h1 className="text-3xl font-bold font-headline tracking-tight">Alumni Directory</h1>
+                <Input placeholder="Search alumni..." className="w-64" />
+            </div>
+      
+            <Tabs defaultValue="all">
+                <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="students">Students</TabsTrigger>
+                <TabsTrigger value="professors">Professors</TabsTrigger>
+                </TabsList>
+                <TabsContent value="all" className="mt-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {users.map((user) => (
+                    <UserCard key={user.id} user={user} />
+                    ))}
+                </div>
+                </TabsContent>
+                <TabsContent value="students" className="mt-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {students.map((user) => (
+                    <UserCard key={user.id} user={user} />
+                    ))}
+                </div>
+                </TabsContent>
+                <TabsContent value="professors" className="mt-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {professors.map((user) => (
+                    <UserCard key={user.id} user={user} />
+                    ))}
+                </div>
+                </TabsContent>
+            </Tabs>
+        </main>
     </div>
   );
 }

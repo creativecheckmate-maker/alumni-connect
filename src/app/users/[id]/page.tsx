@@ -28,10 +28,10 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
                 <Logo className="h-8" />
             </Link>
             <div className="flex gap-2">
-                <Link href="/#login">
+                <Link href="/login">
                     <Button variant="outline">Log In</Button>
                 </Link>
-                <Link href="/#signup">
+                <Link href="/login">
                     <Button>Sign Up</Button>
                 </Link>
             </div>
@@ -39,7 +39,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
         <main className="flex-1 p-4 md:p-6 lg:p-8">
             <div className="max-w-4xl mx-auto">
                 <div className="mb-4">
-                    <Link href="/directory">
+                    <Link href="/">
                         <Button variant="ghost" className="text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Directory</Button>
                     </Link>
                 </div>
