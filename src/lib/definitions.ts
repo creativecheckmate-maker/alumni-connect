@@ -9,6 +9,7 @@ type BaseUser = {
   college: string;
   preferences?: string[];
   networkActivity?: string;
+  status?: 'active' | 'deactivated';
 };
 
 export type Student = BaseUser & {

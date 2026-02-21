@@ -86,6 +86,14 @@
           "type": "boolean",
           "description": "Indicates whether the user's profile is publicly visible in the alumni directory."
         },
+        "status": {
+          "type": "string",
+          "description": "The current status of the user's account.",
+          "enum": [
+            "active",
+            "deactivated"
+          ]
+        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp when the user profile was created in the system.",
