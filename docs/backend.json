@@ -17,9 +17,10 @@
         "userType": {
           "type": "string",
           "description": "The type of user, indicating whether they are a 'Student' or 'Professor'. This determines which specific profile fields are applicable.",
-          "items": {
-            "type": "string"
-          }
+          "enum": [
+            "student",
+            "professor"
+          ]
         },
         "firstName": {
           "type": "string",

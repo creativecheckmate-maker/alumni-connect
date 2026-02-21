@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +18,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { login } from '@/lib/actions';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -26,6 +29,7 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const [state, dispatch] = useActionState(login, undefined);
+  const { toast } = useToast();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -34,6 +38,16 @@ export function LoginForm() {
       password: '',
     },
   });
+
+  useEffect(() => {
+    if (state?.message) {
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: state.message,
+        })
+    }
+  },[state, toast]);
 
   return (
     <Form {...form}>

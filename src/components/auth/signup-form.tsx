@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { signup } from '@/lib/actions';
 import { Loader2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -46,8 +48,9 @@ const formSchema = z.object({
 });
 
 
-export function SignupForm() {
+export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void }) {
   const [state, dispatch] = useActionState(signup, undefined);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -59,11 +62,27 @@ export function SignupForm() {
       college: '',
       role: 'student',
       major: '',
-      graduationYear: '' as any,
+      graduationYear: undefined,
       department: '',
       researchInterests: '',
     },
   });
+
+  useEffect(() => {
+    if (state?.success) {
+      toast({
+        title: "Account Created!",
+        description: state.message,
+      });
+      onSignupSuccess();
+    } else if (state?.message) {
+      toast({
+        variant: "destructive",
+        title: "Signup Failed",
+        description: state.message,
+      });
+    }
+  }, [state, toast, onSignupSuccess]);
 
   const role = form.watch('role');
 
@@ -220,9 +239,9 @@ export function SignupForm() {
               name="researchInterests"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Research Interests (optional)</FormLabel>
+                  <FormLabel>Research Interests (comma-separated)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Signal Processing" {...field} />
+                    <Input placeholder="e.g. Signal Processing, AI" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -9,9 +9,11 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 
 export default function AuthenticationPage() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero-image-1');
+  const [activeTab, setActiveTab] = useState('login');
 
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
@@ -24,7 +26,7 @@ export default function AuthenticationPage() {
               Connect, grow, and succeed with your alumni network.
             </p>
           </div>
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Log In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -47,7 +49,7 @@ export default function AuthenticationPage() {
                         <CardDescription>Create an account to join the network.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <SignupForm />
+                        <SignupForm onSignupSuccess={() => setActiveTab('login')} />
                     </CardContent>
                 </Card>
             </TabsContent>

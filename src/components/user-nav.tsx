@@ -12,18 +12,30 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
+import { useUser, useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 export function UserNav() {
-  // In a real app, you'd get the user from a session
-  const user = {
-    name: 'Alice Johnson',
-    email: 'alice@example.com',
-    avatar: 'https://picsum.photos/seed/101/200/200',
+  const { user } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
   };
 
   const getInitials = (name: string) => {
     const names = name.split(' ');
-    return names.map((n) => n[0]).join('');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[names.length - 1][0]}`;
+    }
+    return names[0].substring(0, 2);
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (
@@ -31,15 +43,15 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.avatar} alt={`@${user.name}`} />
-            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+            {user.photoURL && <AvatarImage src={user.photoURL} alt={`@${user.displayName}`} />}
+            <AvatarFallback>{user.displayName ? getInitials(user.displayName) : 'U'}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
+            <p className="text-sm font-medium leading-none">{user.displayName}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
@@ -47,7 +59,7 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <Link href="/profile">
+          <Link href="/profile" passHref>
             <DropdownMenuItem>
               Profile
             </DropdownMenuItem>
@@ -57,11 +69,9 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <Link href="/">
-            <DropdownMenuItem>
-                Log out
-            </DropdownMenuItem>
-        </Link>
+        <DropdownMenuItem onClick={handleLogout}>
+            Log out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

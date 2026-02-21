@@ -104,7 +104,7 @@ service cloud.firestore {
      *   conditional read access for a public directory feature.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || (isSignedIn() && resource.data.isVisibleInDirectory == true);
+      allow get: if isOwner(userId) || resource.data.isVisibleInDirectory == true;
       allow list: if isSignedIn(); // Allows querying the user directory. Client MUST filter with `where('isVisibleInDirectory', '==', true)`.
       allow create: if isOwner(userId) && request.resource.data.externalAuthId == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.externalAuthId == resource.data.externalAuthId;
