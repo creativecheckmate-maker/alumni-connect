@@ -1,9 +1,13 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
+import { useUser } from '@/firebase';
+import { UserNav } from '@/components/user-nav';
 
 const getPlaceholderImage = (id: string) => {
     const img = PlaceHolderImages.find(p => p.id === id);
@@ -15,6 +19,7 @@ const getPlaceholderImage = (id: string) => {
 }
 
 export default function HomePage() {
+  const { user } = useUser();
   const heroImage = getPlaceholderImage('hero-home');
   const manuscriptImage = getPlaceholderImage('article-manuscripts');
   const researchImage = getPlaceholderImage('article-research');
@@ -35,13 +40,19 @@ export default function HomePage() {
               <Button variant="link" className="text-white/80 hover:text-white" asChild><Link href="#">News</Link></Button>
               <Button variant="link" className="text-white/80 hover:text-white" asChild><Link href="#">Community</Link></Button>
             </nav>
-            <div className="flex items-center gap-2">
-              <Link href="/login">
-                <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">Login</Button>
-              </Link>
-              <Link href="/login">
-                <Button variant="default">Join Today</Button>
-              </Link>
+            <div className="flex items-center gap-4">
+              {user ? (
+                <UserNav />
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">Login</Button>
+                  </Link>
+                  <Link href="/login">
+                    <Button variant="default">Join Today</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
