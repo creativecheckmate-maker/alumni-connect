@@ -53,7 +53,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if isOwner(userId) || resource.data.isVisibleInDirectory == true || isAdmin();
-      allow list: if isSignedIn();
+      allow list: if true;
       allow create: if isOwner(userId) && request.resource.data.externalAuthId == userId;
       allow update: if (isExistingOwner(userId) && request.resource.data.externalAuthId == resource.data.externalAuthId) || isAdmin();
       allow delete: if isExistingOwner(userId) || isAdmin();
