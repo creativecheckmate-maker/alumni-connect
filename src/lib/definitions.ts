@@ -20,7 +20,7 @@ export type Student = BaseUser & {
 export type Professor = BaseUser & {
   role: 'professor';
   department: string;
-  researchInterests: string;
+  researchInterests: string[];
 };
 
 export type User = Student | Professor;

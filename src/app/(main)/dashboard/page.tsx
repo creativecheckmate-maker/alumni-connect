@@ -5,7 +5,7 @@ import {
   PersonalizedRecommendationsInput,
 } from '@/ai/flows/recommendation-engine';
 import { PageHeader } from '@/components/page-header';
-import { events, jobPosts, mentors } from '@/lib/placeholder-data';
+import { events, jobPosts, mentors, users } from '@/lib/placeholder-data';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Loader2 } from 'lucide-react';

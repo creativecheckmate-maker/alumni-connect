@@ -21,7 +21,7 @@ const PersonalizedRecommendationsInputSchema = z.object({
     major: z.string().optional().describe('Major of the student, if applicable.'),
     graduationYear: z.number().optional().describe('Graduation year of the student, if applicable.'),
     department: z.string().optional().describe('Department of the professor, if applicable.'),
-    researchInterests: z.string().optional().describe('Research interests of the professor, if applicable.'),
+    researchInterests: z.array(z.string()).optional().describe('Research interests of the professor, if applicable.'),
     preferences: z.array(z.string()).optional().describe('User indicated preferences (e.g., networking, career development, specific industries).'),
   }).describe('The user\'s profile information.'),
   engagementData: z.object({
@@ -98,7 +98,7 @@ User Profile:
 {{#if userProfile.major}}- Major: {{{userProfile.major}}}{{/if}}
 {{#if userProfile.graduationYear}}- Graduation Year: {{{userProfile.graduationYear}}}{{/if}}
 {{#if userProfile.department}}- Department: {{{userProfile.department}}}{{/if}}
-{{#if userProfile.researchInterests}}- Research Interests: {{{userProfile.researchInterests}}}{{/if}}
+{{#if userProfile.researchInterests}}- Research Interests: {{#each userProfile.researchInterests}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}
 {{#if userProfile.preferences}}- Preferences: {{#each userProfile.preferences}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}
 
 {{#if engagementData.networkActivity}}
