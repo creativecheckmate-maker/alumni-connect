@@ -54,7 +54,7 @@ export default function AuthenticationPage() {
           </Tabs>
           <div className="mt-4">
             <Link href="/" passHref>
-              <Button variant="outline" className="w-full">View Public Directory</Button>
+              <Button variant="outline" className="w-full">Public View</Button>
             </Link>
           </div>
         </div>
