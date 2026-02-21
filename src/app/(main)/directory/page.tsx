@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import type { User } from '@/lib/definitions';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 const UserCard = ({ user }: { user: User }) => {
   const getInitials = (name: string) => {
@@ -34,7 +35,9 @@ const UserCard = ({ user }: { user: User }) => {
             </>
           )}
           <div className="pt-2">
-            <Button size="sm" variant="outline">View Profile</Button>
+            <Link href={`/users/${user.id}`} passHref>
+              <Button size="sm" variant="outline">View Profile</Button>
+            </Link>
           </div>
         </div>
         <Badge variant={user.role === 'student' ? 'secondary' : 'outline'} className="capitalize">{user.role}</Badge>
