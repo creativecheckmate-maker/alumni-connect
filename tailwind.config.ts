@@ -12,6 +12,7 @@ export default {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
         headline: ['Space Grotesk', 'sans-serif'],
+        serif: ['Lora', 'serif'],
         code: ['monospace'],
       },
       colors: {
@@ -65,6 +66,9 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+        'brand-blue': 'hsl(var(--brand-blue))',
+        'brand-blue-dark': 'hsl(var(--brand-blue-dark))',
+        'brand-red': 'hsl(var(--brand-red))',
       },
       borderRadius: {
         lg: 'var(--radius)',

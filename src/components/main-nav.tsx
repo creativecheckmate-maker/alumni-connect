@@ -44,6 +44,7 @@ export function MainNav() {
   const router = useRouter();
 
   const handleLogout = async () => {
+    if (!auth) return;
     await signOut(auth);
     router.push('/login');
   };
@@ -51,7 +52,7 @@ export function MainNav() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <Logo className="h-8" />
+        <Logo className="h-10 [&_div]:border-sidebar-foreground [&_svg]:text-sidebar-foreground [&_span]:text-sidebar-foreground" />
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
