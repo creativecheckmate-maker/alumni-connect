@@ -34,7 +34,6 @@ export default function ProfilePage() {
       
       reset({
         ...currentUser,
-        name: currentUser.name || `${currentUser.firstName} ${currentUser.lastName}`,
         preferences: preferencesString as any,
         researchInterests: researchInterestsString as any,
       });
@@ -44,24 +43,16 @@ export default function ProfilePage() {
   const onSubmit = async (data: Partial<User>) => {
     if (!userDocRef) return;
     
-    const [firstName, ...lastNameParts] = data.name!.split(' ');
-    const lastName = lastNameParts.join(' ');
-
     const updatedData = {
       ...data,
-      firstName,
-      lastName,
       preferences: (data.preferences as any)?.split(',').map((p: string) => p.trim()) || [],
       researchInterests: (data.researchInterests as any)?.split(',').map((p: string) => p.trim()) || [],
       updatedAt: serverTimestamp(),
     };
     
-    delete updatedData.name;
     delete updatedData.id;
     delete updatedData.role;
-    delete updatedData.userType;
     delete updatedData.email;
-
 
     updateDocumentNonBlocking(userDocRef, updatedData);
 

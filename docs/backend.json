@@ -14,7 +14,7 @@
           "type": "string",
           "description": "Identifier from the external authentication system (e.g., Firebase Auth UID). This ID establishes the link between an authenticated user and their profile data. (Relationship: UserProfile 1:1 ExternalAuthUser)"
         },
-        "userType": {
+        "role": {
           "type": "string",
           "description": "The type of user, indicating whether they are a 'Student' or 'Professor'. This determines which specific profile fields are applicable.",
           "enum": [
@@ -22,13 +22,9 @@
             "professor"
           ]
         },
-        "firstName": {
+        "name": {
           "type": "string",
-          "description": "The first name of the user."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The last name of the user."
+          "description": "The full name of the user."
         },
         "email": {
           "type": "string",
@@ -39,7 +35,7 @@
           "type": "string",
           "description": "The contact phone number of the user."
         },
-        "profilePictureUrl": {
+        "avatarUrl": {
           "type": "string",
           "description": "URL to the user's profile picture or avatar.",
           "format": "uri"
@@ -55,19 +51,19 @@
         },
         "major": {
           "type": "string",
-          "description": "The academic major pursued by the student (applicable if userType is 'Student')."
+          "description": "The academic major pursued by the student (applicable if role is 'Student')."
         },
         "graduationYear": {
           "type": "number",
-          "description": "The year the student graduated or expects to graduate (applicable if userType is 'Student')."
+          "description": "The year the student graduated or expects to graduate (applicable if role is 'Student')."
         },
         "department": {
           "type": "string",
-          "description": "The academic department the professor is affiliated with (applicable if userType is 'Professor')."
+          "description": "The academic department the professor is affiliated with (applicable if role is 'Professor')."
         },
         "researchInterests": {
           "type": "array",
-          "description": "A list of research areas or topics the professor is interested in or specializes in (applicable if userType is 'Professor').",
+          "description": "A list of research areas or topics the professor is interested in or specializes in (applicable if role is 'Professor').",
           "items": {
             "type": "string"
           }
@@ -104,9 +100,8 @@
       "required": [
         "id",
         "externalAuthId",
-        "userType",
-        "firstName",
-        "lastName",
+        "role",
+        "name",
         "email",
         "isVisibleInDirectory",
         "createdAt",

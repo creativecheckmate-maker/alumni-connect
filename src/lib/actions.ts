@@ -72,16 +72,12 @@ export async function signup(prevState: any, formData: FormData) {
 
         await updateProfile(user, { displayName: name });
 
-        const [firstName, ...lastNameParts] = name.split(' ');
-        const lastName = lastNameParts.join(' ');
-
         const userProfileForDb = {
             id: user.uid,
             externalAuthId: user.uid,
-            firstName: firstName,
-            lastName: lastName,
+            name: name,
             email: user.email,
-            userType: role,
+            role: role,
             university: profileData.university,
             college: profileData.college,
             isVisibleInDirectory: true,
@@ -91,7 +87,7 @@ export async function signup(prevState: any, formData: FormData) {
             graduationYear: role === 'student' ? profileData.graduationYear : null,
             department: role === 'professor' ? profileData.department : null,
             researchInterests: role === 'professor' ? (profileData.researchInterests?.split(',').map(i => i.trim()) || []) : [],
-            profilePictureUrl: `https://picsum.photos/seed/${user.uid}/200/200`,
+            avatarUrl: `https://picsum.photos/seed/${user.uid}/200/200`,
         };
         
         await setDoc(doc(firestore, 'users', user.uid), userProfileForDb);
