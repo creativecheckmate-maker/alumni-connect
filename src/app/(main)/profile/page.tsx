@@ -27,6 +27,14 @@ export default function ProfilePage() {
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" defaultValue={currentUser.email} />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="university">University</Label>
+            <Input id="university" defaultValue={currentUser.university} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="college">College</Label>
+            <Input id="college" defaultValue={currentUser.college} />
+          </div>
 
           {currentUser.role === 'student' && (
             <>

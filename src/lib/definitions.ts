@@ -5,6 +5,8 @@ type BaseUser = {
   name: string;
   email: string;
   avatarUrl: string;
+  university: string;
+  college: string;
   preferences?: string[];
   networkActivity?: string;
 };
@@ -30,6 +32,8 @@ export type Event = {
   description: string;
   image: ImagePlaceholder;
   tags?: string[];
+  university?: string;
+  college?: string;
 };
 
 export type JobPost = {
@@ -40,6 +44,7 @@ export type JobPost = {
   description: string;
   industry?: string;
   companyLogoUrl: string;
+  university?: string;
 };
 
 export type Mentor = {

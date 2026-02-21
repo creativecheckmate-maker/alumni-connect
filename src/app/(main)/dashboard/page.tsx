@@ -7,6 +7,7 @@ import { users, events, jobPosts, mentors } from '@/lib/placeholder-data';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import type { User } from '@/lib/definitions';
 
 export default async function DashboardPage() {
   // In a real app, you'd get the logged-in user's data
@@ -16,23 +17,37 @@ export default async function DashboardPage() {
     userProfile: {
       userId: currentUser.id,
       userType: currentUser.role,
+      university: currentUser.university,
+      college: currentUser.college,
       major: currentUser.role === 'student' ? currentUser.major : undefined,
       graduationYear: currentUser.role === 'student' ? currentUser.graduationYear : undefined,
+      department: currentUser.role === 'professor' ? currentUser.department : undefined,
+      researchInterests: currentUser.role === 'professor' ? currentUser.researchInterests : undefined,
       preferences: currentUser.preferences,
     },
     engagementData: {
       networkActivity: currentUser.networkActivity,
     },
-    availableEvents: events.map(e => ({ id: e.id, name: e.name, description: e.description, tags: e.tags })),
-    availableJobOpportunities: jobPosts.map(j => ({ id: j.id, title: j.title, company: j.company, description: j.description, industry: j.industry })),
-    availableMentors: mentors.map(m => ({ id: m.id, name: m.name, expertise: m.expertise, industry: m.industry })),
+    availableEvents: events.map(e => ({ id: e.id, name: e.name, description: e.description, tags: e.tags, university: e.university, college: e.college })),
+    availableJobOpportunities: jobPosts.map(j => ({ id: j.id, title: j.title, company: j.company, description: j.description, industry: j.industry, university: j.university })),
+    availableMentors: mentors.map(m => {
+        const mentorUser = users.find(u => u.name === m.name);
+        return { 
+            id: m.id, 
+            name: m.name, 
+            expertise: m.expertise, 
+            industry: m.industry,
+            university: mentorUser?.university || '',
+            college: mentorUser?.college || '',
+        }
+    }),
   };
 
   const recommendations = await getPersonalizedRecommendations(recommendationInput);
 
   return (
     <>
-      <PageHeader title={`Welcome back, ${currentUser.name}!`} />
+      <PageHeader title={`Welcome to ${currentUser.college}, ${currentUser.name}!`} />
       
       <div className="space-y-8">
         <section>

@@ -23,12 +23,13 @@ export const UserCard = ({ user }: { user: User }) => {
           {user.role === 'student' ? (
             <>
               <p className="text-sm text-muted-foreground">{user.major}</p>
+              <p className="text-xs text-muted-foreground">{user.university}</p>
               <p className="text-xs text-muted-foreground">Class of {user.graduationYear}</p>
             </>
           ) : (
             <>
               <p className="text-sm text-muted-foreground">{user.department}</p>
-              <p className="text-xs text-muted-foreground">{user.researchInterests}</p>
+              <p className="text-xs text-muted-foreground">{user.university}</p>
             </>
           )}
           <div className="pt-2">

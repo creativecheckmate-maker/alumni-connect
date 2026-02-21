@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit } from 'lucide-react';
+import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School } from 'lucide-react';
 import { Logo } from '@/components/logo';
 
 const getInitials = (name: string) => {
@@ -52,6 +52,7 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
                   </Avatar>
                   <div className="space-y-1">
                     <CardTitle className="text-3xl font-bold font-headline">{user.name}</CardTitle>
+                    <CardDescription>{user.college} at {user.university}</CardDescription>
                     <Badge variant={user.role === 'student' ? 'secondary' : 'outline'} className="capitalize !mt-2 text-sm">{user.role}</Badge>
                   </div>
                 </CardHeader>
@@ -62,6 +63,15 @@ export default function UserProfilePage({ params }: { params: { id: string } }) 
                            <div>
                                 <h3 className="font-semibold text-muted-foreground">Email</h3>
                                 <a href={`mailto:${user.email}`} className="text-primary hover:underline">{user.email}</a>
+                           </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                           <School className="h-5 w-5 text-muted-foreground mt-1" />
+                           <div>
+                                <h3 className="font-semibold text-muted-foreground">Education</h3>
+                                <p>{user.university}</p>
+                                <p className="text-muted-foreground">{user.college}</p>
                            </div>
                         </div>
 

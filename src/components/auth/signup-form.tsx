@@ -24,6 +24,8 @@ const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(8, { message: 'Password must be at least 8 characters.' }),
+  university: z.string().min(2, { message: 'University is required.' }),
+  college: z.string().min(2, { message: 'College is required.' }),
   role: z.enum(['student', 'professor'], { required_error: 'Please select a role.' }),
   major: z.string().optional(),
   graduationYear: z.coerce.number().optional(),
@@ -53,6 +55,8 @@ export function SignupForm() {
       name: '',
       email: '',
       password: '',
+      university: '',
+      college: '',
       role: 'student',
     },
   });
@@ -99,6 +103,32 @@ export function SignupForm() {
               <FormLabel>Password</FormLabel>
               <FormControl>
                 <Input type="password" placeholder="••••••••" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+         <FormField
+          control={form.control}
+          name="university"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>University</FormLabel>
+              <FormControl>
+                <Input placeholder="Nexus University" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+         <FormField
+          control={form.control}
+          name="college"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>College</FormLabel>
+              <FormControl>
+                <Input placeholder="College of Engineering" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
