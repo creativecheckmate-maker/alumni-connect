@@ -33,9 +33,9 @@ export default function UserProfilePage() {
   const firestore = useFirestore();
 
   const userDocRef = useMemoFirebase(() => {
-    if (isAuthLoading || !firestore || !userId) return null;
+    if (!firestore || !userId) return null;
     return doc(firestore, 'users', userId);
-  }, [firestore, userId, isAuthLoading]);
+  }, [firestore, userId]);
   
   const { data: user, isLoading: isDocLoading } = useDoc<User>(userDocRef);
 
