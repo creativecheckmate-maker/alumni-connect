@@ -28,8 +28,8 @@ const getInitials = (name: string) => {
 
 interface UserCardProps {
     user: User;
-    isAdmin: boolean;
-    handleDeleteUser: (userId: string) => void;
+    isAdmin?: boolean;
+    handleDeleteUser?: (userId: string) => void;
 }
 
 export const UserCard = ({ user, isAdmin, handleDeleteUser }: UserCardProps) => {
@@ -44,13 +44,13 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser }: UserCardProps) => 
           <h3 className="text-lg font-semibold">{user.name}</h3>
           {user.role === 'student' ? (
             <>
-              <p className="text-sm text-muted-foreground">{(user as any).major}</p>
+              <p className="text-sm text-muted-foreground">{user.major}</p>
               <p className="text-xs text-muted-foreground">{user.university}</p>
-              <p className="text-xs text-muted-foreground">Class of {(user as any).graduationYear}</p>
+              <p className="text-xs text-muted-foreground">Class of {user.graduationYear}</p>
             </>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">{(user as any).department}</p>
+              <p className="text-sm text-muted-foreground">{user.department}</p>
               <p className="text-xs text-muted-foreground">{user.university}</p>
             </>
           )}
@@ -63,27 +63,29 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser }: UserCardProps) => 
                  <Link href={`/users/${user.id}`}>
                     <Button size="sm" variant="ghost"><Edit className="h-4 w-4" /></Button>
                  </Link>
-                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete {user.name}'s profile data.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteUser(user.id)} className="bg-destructive hover:bg-destructive/90">
-                            Delete
-                        </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                 {handleDeleteUser && (
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete {user.name}'s profile data.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteUser(user.id)} className="bg-destructive hover:bg-destructive/90">
+                                Delete
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                 )}
               </>
             )}
           </div>
