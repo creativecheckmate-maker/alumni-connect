@@ -5,6 +5,8 @@ import { LoginForm } from '@/components/auth/login-form';
 import { SignupForm } from '@/components/auth/signup-form';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Logo } from '@/components/logo';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function AuthenticationPage() {
   const heroImage = PlaceHolderImages.find(p => p.id === 'hero-image-1');
@@ -48,6 +50,11 @@ export default function AuthenticationPage() {
                 </Card>
             </TabsContent>
           </Tabs>
+          <div className="mt-4">
+            <Link href="/" passHref>
+              <Button variant="outline" className="w-full">View Public Homepage</Button>
+            </Link>
+          </div>
         </div>
       </div>
       <div className="hidden bg-muted lg:block">
