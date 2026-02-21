@@ -4,7 +4,7 @@ import { useFormStatus } from 'react-dom';
 import { useActionState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -142,7 +142,7 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
               <FormControl>
                 <RadioGroup
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value}
                   className="flex space-x-4"
                 >
                   <FormItem className="flex items-center space-x-2 space-y-0">
@@ -159,6 +159,7 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
                   </FormItem>
                 </RadioGroup>
               </FormControl>
+              <input type="hidden" name={field.name} value={field.value} />
               <FormMessage />
             </FormItem>
           )}
