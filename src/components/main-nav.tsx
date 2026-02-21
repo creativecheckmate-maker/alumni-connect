@@ -20,8 +20,10 @@ import {
   LogOut,
 } from 'lucide-react';
 import { Logo } from './logo';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
@@ -38,6 +40,13 @@ const bottomMenuItems = [
 
 export function MainNav() {
   const pathname = usePathname();
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/login');
+  };
 
   return (
     <Sidebar>
@@ -77,12 +86,10 @@ export function MainNav() {
                 </SidebarMenuItem>
             ))}
              <SidebarMenuItem>
-                <Link href="/">
-                    <SidebarMenuButton tooltip="Log Out">
-                        <LogOut />
-                        <span>Log Out</span>
-                    </SidebarMenuButton>
-                </Link>
+                <SidebarMenuButton tooltip="Log Out" onClick={handleLogout}>
+                    <LogOut />
+                    <span>Log Out</span>
+                </SidebarMenuButton>
             </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
