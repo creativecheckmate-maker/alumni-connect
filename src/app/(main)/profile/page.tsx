@@ -2,7 +2,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDoc, useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { User, Student, Professor } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EditProfileForm } from '@/components/profile/edit-profile-form';
+import { CldUploadWidget } from 'next-cloudinary';
+import { useToast } from '@/hooks/use-toast';
 
 const getInitials = (name: string) => {
     if (!name) return '';
@@ -25,6 +27,7 @@ const getInitials = (name: string) => {
 export default function ProfilePage() {
   const { user: authUser } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !authUser?.uid) return null;
@@ -32,6 +35,21 @@ export default function ProfilePage() {
   }, [firestore, authUser?.uid]);
 
   const { data: currentUser, isLoading: isUserLoading } = useDoc<User>(userDocRef);
+
+  const handleUploadSuccess = (result: any) => {
+    if (result.event === 'success' && result.info?.secure_url) {
+      if (!userDocRef) return;
+      
+      const newAvatarUrl = result.info.secure_url;
+  
+      updateDocumentNonBlocking(userDocRef, { avatarUrl: newAvatarUrl });
+  
+      toast({
+        title: "Profile Picture Updated",
+        description: "Your new picture has been saved.",
+      });
+    }
+  };
 
   if (isUserLoading || !currentUser) {
     return (
@@ -77,10 +95,22 @@ export default function ProfilePage() {
         <Card className="overflow-hidden">
             <CardHeader className="relative flex flex-col items-center justify-center space-y-4 bg-card p-6 text-center">
                 <div className="absolute top-0 left-0 w-full h-24 bg-primary/10 -z-1"></div>
-                <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-background bg-background shadow-md">
-                <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
-                <AvatarFallback className="text-4xl">{getInitials(currentUser.name)}</AvatarFallback>
-                </Avatar>
+                <CldUploadWidget
+                  uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!}
+                  onSuccess={handleUploadSuccess}
+                >
+                  {({ open }) => (
+                    <div className="relative group cursor-pointer" onClick={() => open()}>
+                      <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-background bg-background shadow-md">
+                        <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
+                        <AvatarFallback className="text-4xl">{getInitials(currentUser.name)}</AvatarFallback>
+                      </Avatar>
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center rounded-full transition-all duration-200">
+                          <Edit className="h-8 w-8 text-white opacity-0 group-hover:opacity-100" />
+                      </div>
+                    </div>
+                  )}
+                </CldUploadWidget>
                 <div className="space-y-1">
                 <CardTitle className="text-3xl font-bold font-headline">{currentUser.name}</CardTitle>
                 <CardDescription>{currentUser.college} at {currentUser.university}</CardDescription>
