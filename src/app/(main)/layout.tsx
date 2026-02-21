@@ -3,7 +3,7 @@
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Menu, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -74,6 +74,10 @@ export default function MainLayout({
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="flex flex-col p-0 w-full max-w-xs">
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Main navigation menu with links to dashboard, directory, events, and more.
+                </SheetDescription>
                 <MainNav />
               </SheetContent>
             </Sheet>
