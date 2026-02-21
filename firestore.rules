@@ -1,0 +1,174 @@
+/**
+ * @file firestore.rules
+ * @description Security rules for the Nexus Alumni Firestore database.
+ *
+ * @version 2
+ *
+ * Core Philosophy:
+ * This ruleset enforces a user-centric security model. Users have full control
+ * over their own profile document, which is keyed by their authentication UID.
+ * Public-facing content, like events and job postings, is readable by any
+ * authenticated user but can only be modified by its original creator. Private,
+ * relational data, such as mentorship connections, is strictly confined to the
+ * participants involved. Unauthenticated access is denied system-wide.
+ *
+ * Data Structure:
+ * The data is organized into flat, top-level collections (users, events,
+ * jobPostings, mentorshipConnections). This structure simplifies security rules
+ * and enables efficient, secure queries without complex hierarchical lookups.
+ *
+ * Key Security Decisions:
+ * - Denormalization for Authorization: To ensure performant and secure access
+ *   control, authorization data (e.g., organizerId, posterId, mentorId) is
+ *   denormalized directly onto the documents being secured. This eliminates the
+ *   need for slow, costly, and sometimes impossible `get()` calls in rules.
+ * - Path-Based Ownership: A user's profile is stored at `/users/{userId}`,
+ *   where `{userId}` is the user's Firebase Auth UID. This creates an unbreakable
+ *   and efficient link between a user's identity and their data.
+ * - Query-Based Security: For list operations on collections containing private
+ *   or mixed-visibility data (like mentorships or the user directory), the rules
+ *   permit listing for authenticated users, with the strict expectation that the
+ *   client application will apply the necessary `where()` clauses to filter
+ *   results appropriately (e.g., `where('mentorId', '==', auth.uid)`).
+ * - Immutability of Critical Fields: Key relational identifiers, like a user's
+ *   `externalAuthId`, are enforced as immutable after creation to maintain
+ *   data integrity and prevent unauthorized re-linking of documents.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns true if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the authenticated user's UID matches the provided userId.
+     * This is the primary check for document ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Returns true if the document exists and the user is the owner.
+     * Used for safe update and delete operations.
+     */
+    function isExistingOwner(ownerId) {
+      return isOwner(ownerId) && resource != null;
+    }
+
+    /**
+     * Validates that the user creating a document is the designated owner.
+     * The owner field (e.g., 'posterId') must be provided in the new data.
+     */
+    function isCreator(ownerField) {
+      return isSignedIn() && request.resource.data[ownerField] == request.auth.uid;
+    }
+
+    /**
+     * Checks if the authenticated user is one of the two participants
+     * (mentor or mentee) in a mentorship connection.
+     */
+    function isParticipant(mentorId, menteeId) {
+      return isSignedIn() && (request.auth.uid == mentorId || request.auth.uid == menteeId);
+    }
+
+    /**
+     * Checks if the document exists and the user is a participant.
+     * Used for safe updates and deletes on mentorship connections.
+     */
+    function isExistingParticipant(mentorId, menteeId) {
+      return isParticipant(mentorId, menteeId) && resource != null;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection: users
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Rules for user profiles. Users can fully manage their own
+     *   profile. Other authenticated users can view a profile only if it is
+     *   marked as visible in the directory.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user creating their own profile document.
+     * @deny (update) A user trying to modify another user's profile.
+     * @principle Restricts access to a user's own data tree and provides
+     *   conditional read access for a public directory feature.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || (isSignedIn() && resource.data.isVisibleInDirectory == true);
+      allow list: if isSignedIn(); // Allows querying the user directory. Client MUST filter with `where('isVisibleInDirectory', '==', true)`.
+      allow create: if isOwner(userId) && request.resource.data.externalAuthId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.externalAuthId == resource.data.externalAuthId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection: events
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Rules for event documents. All authenticated users can read
+     *   events, but only the original organizer can create, update, or delete them.
+     * @path /events/{eventId}
+     * @allow (create) An authenticated user creating a new event, setting themselves as the 'organizerId'.
+     * @deny (update) A user trying to modify an event they did not organize.
+     * @principle Implements a "Public Read, Owner Write" model using a denormalized 'organizerId' field for authorization.
+     */
+    match /events/{eventId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isCreator('organizerId');
+      allow update: if isExistingOwner(resource.data.organizerId);
+      allow delete: if isExistingOwner(resource.data.organizerId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection: jobPostings
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Rules for job postings. All authenticated users can read job
+     *   postings, but only the user who posted the job can modify or delete it.
+     * @path /jobPostings/{jobPostingId}
+     * @allow (get) Any authenticated user reading a job posting.
+     * @deny (delete) A user trying to delete a job posting they did not create.
+     * @principle Implements a "Public Read, Owner Write" model using a denormalized 'posterId' field for authorization.
+     */
+    match /jobPostings/{jobPostingId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isCreator('posterId');
+      allow update: if isExistingOwner(resource.data.posterId);
+      allow delete: if isExistingOwner(resource.data.posterId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection: mentorshipConnections
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Rules for mentorship connections. Access is strictly limited
+     *   to the two users involved: the mentor and the mentee.
+     * @path /mentorshipConnections/{connectionId}
+     * @allow (get) The mentor or mentee reading their connection document.
+     * @deny (get) A third-party user trying to read a private connection document.
+     * @principle Enforces shared access for a closed set of collaborators (mentor and mentee) identified by denormalized fields.
+     */
+    match /mentorshipConnections/{connectionId} {
+      allow get: if isParticipant(resource.data.mentorId, resource.data.menteeId);
+      allow list: if isSignedIn(); // Allows users to query for their own connections. Client MUST use `where('mentorId', '==', auth.uid)` or `where('menteeId', '==', auth.uid)`.
+      allow create: if isParticipant(request.resource.data.mentorId, request.resource.data.menteeId);
+      allow update: if isExistingParticipant(resource.data.mentorId, resource.data.menteeId);
+      allow delete: if isExistingParticipant(resource.data.mentorId, resource.data.menteeId);
+    }
+  }
+}

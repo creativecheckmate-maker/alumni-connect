@@ -1,0 +1,402 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's profile within the Nexus Alumni system, whether a student or a professor, linking to an external authentication system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "externalAuthId": {
+          "type": "string",
+          "description": "Identifier from the external authentication system (e.g., Firebase Auth UID). This ID establishes the link between an authenticated user and their profile data. (Relationship: UserProfile 1:1 ExternalAuthUser)"
+        },
+        "userType": {
+          "type": "string",
+          "description": "The type of user, indicating whether they are a 'Student' or 'Professor'. This determines which specific profile fields are applicable.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The primary email address of the user, used for contact and potentially as a unique identifier for external systems.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The contact phone number of the user."
+        },
+        "profilePictureUrl": {
+          "type": "string",
+          "description": "URL to the user's profile picture or avatar.",
+          "format": "uri"
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biographical description or 'about me' section provided by the user."
+        },
+        "linkedInUrl": {
+          "type": "string",
+          "description": "URL to the user's LinkedIn profile for professional networking.",
+          "format": "uri"
+        },
+        "major": {
+          "type": "string",
+          "description": "The academic major pursued by the student (applicable if userType is 'Student')."
+        },
+        "graduationYear": {
+          "type": "number",
+          "description": "The year the student graduated or expects to graduate (applicable if userType is 'Student')."
+        },
+        "department": {
+          "type": "string",
+          "description": "The academic department the professor is affiliated with (applicable if userType is 'Professor')."
+        },
+        "researchInterests": {
+          "type": "array",
+          "description": "A list of research areas or topics the professor is interested in or specializes in (applicable if userType is 'Professor').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "interests": {
+          "type": "array",
+          "description": "General personal or professional interests of the user, used for recommendations and connections.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "careerGoals": {
+          "type": "array",
+          "description": "Career aspirations and goals of the user, used for mentorship matching and job recommendations.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isVisibleInDirectory": {
+          "type": "boolean",
+          "description": "Indicates whether the user's profile is publicly visible in the alumni directory."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was created in the system.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was last updated in the system.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "externalAuthId",
+        "userType",
+        "firstName",
+        "lastName",
+        "email",
+        "isVisibleInDirectory",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Event": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Event",
+      "type": "object",
+      "description": "Represents an alumni event, such as a reunion, career fair, or networking opportunity, displayed in the events calendar.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Event entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title or name of the event."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the event, including agenda, speakers, and other relevant information."
+        },
+        "location": {
+          "type": "string",
+          "description": "The physical address or virtual meeting link where the event will take place."
+        },
+        "startDateTime": {
+          "type": "string",
+          "description": "The precise start date and time of the event.",
+          "format": "date-time"
+        },
+        "endDateTime": {
+          "type": "string",
+          "description": "The precise end date and time of the event.",
+          "format": "date-time"
+        },
+        "organizerId": {
+          "type": "string",
+          "description": "Reference to the UserProfile of the individual or organization responsible for organizing the event. (Relationship: UserProfile 1:N Event)"
+        },
+        "registrationUrl": {
+          "type": "string",
+          "description": "URL for external event registration, if applicable.",
+          "format": "uri"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL to an image, banner, or flyer associated with the event.",
+          "format": "uri"
+        },
+        "attendeeIds": {
+          "type": "array",
+          "description": "An array of UserProfile IDs representing attendees who have registered for or are planning to attend the event. (Relationship: Event N:N UserProfile)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the event record was created in the system.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the event record was last updated in the system.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "location",
+        "startDateTime",
+        "endDateTime",
+        "organizerId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "JobPosting": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "JobPosting",
+      "type": "object",
+      "description": "Represents a job opportunity posted on the alumni job board, allowing users to search and apply for positions.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the JobPosting entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title or designation of the job opening."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the job, including responsibilities, duties, and company culture."
+        },
+        "companyName": {
+          "type": "string",
+          "description": "The name of the company offering the job opportunity."
+        },
+        "location": {
+          "type": "string",
+          "description": "The geographical location of the job (e.g., city, state, country, or 'Remote')."
+        },
+        "employmentType": {
+          "type": "string",
+          "description": "The type of employment offered (e.g., 'Full-time', 'Part-time', 'Internship', 'Contract').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "salaryRange": {
+          "type": "string",
+          "description": "The estimated salary range for the position (e.g., '$60,000 - $80,000 P.A.' or 'Competitive')."
+        },
+        "requirements": {
+          "type": "array",
+          "description": "A list of required skills, qualifications, or experience for the job.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "applicationDeadline": {
+          "type": "string",
+          "description": "The deadline for submitting job applications.",
+          "format": "date"
+        },
+        "applicationUrl": {
+          "type": "string",
+          "description": "The URL where candidates can apply for the job.",
+          "format": "uri"
+        },
+        "posterId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who posted this job opening. (Relationship: UserProfile 1:N JobPosting)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the job posting was created in the system.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the job posting was last updated in the system.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "companyName",
+        "location",
+        "employmentType",
+        "applicationUrl",
+        "posterId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MentorshipConnection": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MentorshipConnection",
+      "type": "object",
+      "description": "Represents an established or requested mentorship connection between a mentor and a mentee.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MentorshipConnection entity."
+        },
+        "mentorId": {
+          "type": "string",
+          "description": "Reference to the UserProfile acting as the mentor in this connection. (Relationship: UserProfile 1:N MentorshipConnection)"
+        },
+        "menteeId": {
+          "type": "string",
+          "description": "Reference to the UserProfile acting as the mentee in this connection. (Relationship: UserProfile 1:N MentorshipConnection)"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the mentorship connection (e.g., 'Pending', 'Active', 'Completed', 'Rejected').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requestedAt": {
+          "type": "string",
+          "description": "Timestamp when the mentorship connection was initially requested by the mentee.",
+          "format": "date-time"
+        },
+        "acceptedAt": {
+          "type": "string",
+          "description": "Timestamp when the mentorship request was accepted by the mentor.",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "description": "Timestamp when the mentorship connection was officially marked as completed.",
+          "format": "date-time"
+        },
+        "initialMessage": {
+          "type": "string",
+          "description": "The initial message sent by the mentee when requesting the mentorship connection."
+        }
+      },
+      "required": [
+        "id",
+        "mentorId",
+        "menteeId",
+        "status",
+        "requestedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores individual user profiles. The document ID (`{userId}`) for each profile corresponds directly to the user's Firebase Authentication UID (which is also the `externalAuthId` field), enabling path-based ownership. Includes denormalized `isVisibleInDirectory` for public directory access control and simplified list queries.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user profile, which is the Firebase Authentication User ID (UID)."
+            }
+          ]
+        }
+      },
+      {
+        "path": "events/{eventId}",
+        "definition": {
+          "entityName": "Event",
+          "schema": {
+            "$ref": "#/backend/entities/Event"
+          },
+          "description": "Contains details about various alumni events. Read access is available to all authenticated users. Write access is restricted to the `organizerId` specified within the document. Includes denormalized `organizerId` for authorization independence.",
+          "params": [
+            {
+              "name": "eventId",
+              "description": "The unique identifier for an event."
+            }
+          ]
+        }
+      },
+      {
+        "path": "jobPostings/{jobPostingId}",
+        "definition": {
+          "entityName": "JobPosting",
+          "schema": {
+            "$ref": "#/backend/entities/JobPosting"
+          },
+          "description": "Stores job opportunities posted on the alumni job board. Read access is available to all authenticated users. Write access is restricted to the `posterId` specified within the document. Includes denormalized `posterId` for authorization independence.",
+          "params": [
+            {
+              "name": "jobPostingId",
+              "description": "The unique identifier for a job posting."
+            }
+          ]
+        }
+      },
+      {
+        "path": "mentorshipConnections/{connectionId}",
+        "definition": {
+          "entityName": "MentorshipConnection",
+          "schema": {
+            "$ref": "#/backend/entities/MentorshipConnection"
+          },
+          "description": "Manages mentorship connections between alumni. Read and write access is restricted to either the `mentorId` or `menteeId` explicitly defined within the document. Includes denormalized `mentorId` and `menteeId` for authorization independence.",
+          "params": [
+            {
+              "name": "connectionId",
+              "description": "The unique identifier for a mentorship connection."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The proposed Firestore structure for the Nexus Alumni system prioritizes Authorization Independence, Structural Segregation, and consistent Access Modeling to ensure secure, scalable, and debuggable security rules. Each top-level collection (`users`, `events`, `jobPostings`, `mentorshipConnections`) is designed with a homogeneous security posture, meaning all documents within a given collection share similar access patterns.\n\n**Authorization Independence:** This is critically achieved through denormalization. Instead of relying on `get()` calls in security rules to fetch data from parent documents or related entities for authorization, all necessary authorization context is stored directly within the document being accessed. For instance:\n\n*   **User Profiles (`/users/{userId}`):** The user's Firebase Authentication UID (`request.auth.uid`) is used as the document ID (`{userId}`). This inherently makes ownership checks (`request.auth.uid == userId`) authorization-independent and highly efficient.\n*   **Events (`/events/{eventId}`):** The `organizerId` is stored directly within each `Event` document. Rules can check `request.auth.uid == resource.data.organizerId` for write permissions, eliminating the need to look up the organizer's profile.\n*   **Job Postings (`/jobPostings/{jobPostingId}`):** Similarly, the `posterId` is denormalized into each `JobPosting` document, allowing for direct ownership checks.\n*   **Mentorship Connections (`/mentorshipConnections/{connectionId}`):** Both `mentorId` and `menteeId` are included in the `MentorshipConnection` document, enabling rules to verify `request.auth.uid == resource.data.mentorId || request.auth.uid == resource.data.menteeId` for read/write access.\n\nThis denormalization strategy significantly simplifies security rules, makes them more robust against data inconsistencies, and allows for atomic operations (like creating a document without needing to pre-check parent permissions).\n\n**QAPs (Query as Authorization Predicate) Support:** The structure inherently supports secure `list` operations (queries) because access rules are applied consistently across all documents in a collection and leverage fields directly present in the queried documents.\n\n*   **Alumni Directory:** The `/users` collection, in conjunction with the `isVisibleInDirectory` field on `UserProfile`, allows for public `list` queries of visible profiles. Security rules will permit reading specific fields only when `resource.data.isVisibleInDirectory == true`, effectively making `list` queries secure and efficient. Client-side queries would include `where('isVisibleInDirectory', '==', true)`. \n*   **Events Calendar & Job Board:** Both `/events` and `/jobPostings` are designed for broad read access for all authenticated users, facilitating easy `list` queries by date, location, or other criteria without complex authorization logic.\n*   **Mentorship Program:** Users can efficiently query for their own mentorship connections using `where('mentorId', '==', request.auth.uid)` or `where('menteeId', '==', request.auth.uid)`, as these IDs are directly available in the documents.\n\nOverall, the design adheres to the core principles, ensuring clarity of intent, reliable authorization, and optimal performance for typical alumni system operations."
+  }
+}
