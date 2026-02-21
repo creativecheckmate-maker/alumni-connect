@@ -58,6 +58,10 @@ export function SignupForm() {
       university: '',
       college: '',
       role: 'student',
+      major: '',
+      graduationYear: '' as any,
+      department: '',
+      researchInterests: '',
     },
   });
 
