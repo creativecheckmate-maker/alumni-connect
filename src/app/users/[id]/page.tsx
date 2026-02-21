@@ -29,19 +29,20 @@ export default function UserProfilePage() {
   const params = useParams();
   const userId = params.id as string;
 
-  const { user: authUser } = useUser();
+  const { user: authUser, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
 
   const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !userId) return null;
+    if (isAuthLoading || !firestore || !userId) return null;
     return doc(firestore, 'users', userId);
-  }, [firestore, userId]);
+  }, [firestore, userId, isAuthLoading]);
   
-  const { data: user, isLoading } = useDoc<User>(userDocRef);
+  const { data: user, isLoading: isDocLoading } = useDoc<User>(userDocRef);
 
   const isAdmin = authUser?.email === ADMIN_EMAIL;
   const isOwnProfile = authUser?.uid === userId;
 
+  const isLoading = isAuthLoading || isDocLoading;
 
   if (isLoading) {
       return (

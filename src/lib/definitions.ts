@@ -10,6 +10,7 @@ type BaseUser = {
   preferences?: string[];
   networkActivity?: string;
   status?: 'active' | 'deactivated';
+  isVisibleInDirectory?: boolean;
 };
 
 export type Student = BaseUser & {
