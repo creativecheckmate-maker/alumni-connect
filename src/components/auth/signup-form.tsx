@@ -21,39 +21,15 @@ import { signup } from '@/lib/actions';
 import { Loader2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-
-const formSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z.string().min(8, { message: 'Password must be at least 8 characters.' }),
-  university: z.string().min(2, { message: 'University is required.' }),
-  college: z.string().min(2, { message: 'College is required.' }),
-  role: z.enum(['student', 'professor'], { required_error: 'Please select a role.' }),
-  major: z.string().optional(),
-  graduationYear: z.coerce.number().optional(),
-  department: z.string().optional(),
-  researchInterests: z.string().optional(),
-}).refine(data => {
-    if (data.role === 'student') return !!data.major && !!data.graduationYear;
-    return true;
-}, {
-    message: "Major and graduation year are required for students.",
-    path: ['major']
-}).refine(data => {
-    if (data.role === 'professor') return !!data.department;
-    return true;
-}, {
-    message: "Department is required for professors.",
-    path: ['department']
-});
+import { signupSchema } from '@/lib/schemas';
 
 
 export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void }) {
   const [state, dispatch] = useActionState(signup, undefined);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<z.infer<typeof signupSchema>>({
+    resolver: zodResolver(signupSchema),
     defaultValues: {
       name: '',
       email: '',
@@ -62,7 +38,7 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
       college: '',
       role: 'student',
       major: '',
-      graduationYear: '' as any,
+      graduationYear: undefined,
       department: '',
       researchInterests: '',
     },

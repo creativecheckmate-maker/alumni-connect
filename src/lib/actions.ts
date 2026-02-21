@@ -6,6 +6,7 @@ import { getApps, initializeApp, getApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
+import { signupSchema } from '@/lib/schemas';
 
 // Initialize Firebase App
 let firebaseApp;
@@ -44,23 +45,11 @@ export async function login(prevState: any, formData: FormData) {
   }
 }
 
-const signupSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z.string().min(8, { message: 'Password must be at least 8 characters.' }),
-  university: z.string().min(2, { message: 'University is required.' }),
-  college: z.string().min(2, { message: 'College is required.' }),
-  role: z.enum(['student', 'professor']),
-  major: z.string().optional(),
-  graduationYear: z.coerce.number().optional(),
-  department: z.string().optional(),
-  researchInterests: z.string().optional(),
-});
-
 export async function signup(prevState: any, formData: FormData) {
     const validatedFields = signupSchema.safeParse(Object.fromEntries(formData));
 
     if (!validatedFields.success) {
+        console.error('Signup validation failed:', validatedFields.error.flatten().fieldErrors);
         return { message: 'Invalid form data. Please check all fields.' };
     }
     
@@ -88,6 +77,8 @@ export async function signup(prevState: any, formData: FormData) {
             department: role === 'professor' ? profileData.department : null,
             researchInterests: role === 'professor' ? (profileData.researchInterests?.split(',').map(i => i.trim()) || []) : [],
             avatarUrl: `https://picsum.photos/seed/${user.uid}/200/200`,
+            preferences: [],
+            networkActivity: '',
         };
         
         await setDoc(doc(firestore, 'users', user.uid), userProfileForDb);
