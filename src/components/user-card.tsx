@@ -33,7 +33,7 @@ export const UserCard = ({ user }: { user: User }) => {
             </>
           )}
           <div className="pt-2">
-            <Link href={`/users/${user.id}`} passHref>
+            <Link href={`/users/${user.id}`}>
               <Button size="sm" variant="outline">View Profile</Button>
             </Link>
           </div>
