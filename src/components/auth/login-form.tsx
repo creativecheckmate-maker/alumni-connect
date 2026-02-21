@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,18 @@ import { Input } from '@/components/ui/input';
 import { useAuth, useFirestore } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -33,6 +45,8 @@ export function LoginForm() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -62,10 +76,12 @@ export function LoginForm() {
             title: 'Account Deactivated',
             description: 'Your account has been deactivated. Please contact support to reactivate.',
         });
+        setIsLoading(false);
         return;
       }
-
+      
       router.push('/profile');
+
     } catch (error: any) {
       let message = 'An unknown error occurred. Please try again.';
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
@@ -77,10 +93,38 @@ export function LoginForm() {
         description: message,
       });
       console.error('Login error:', error);
-    } finally {
       setIsLoading(false);
     }
   }
+
+  async function handlePasswordReset() {
+    if (!resetEmail) {
+      toast({
+        variant: 'destructive',
+        title: 'Email required',
+        description: 'Please enter your email address.',
+      });
+      return;
+    }
+    setIsResettingPassword(true);
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      toast({
+        title: 'Password Reset Email Sent',
+        description: `If an account exists for ${resetEmail}, a password reset link has been sent.`,
+      });
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      // For security, show the same message even if the email doesn't exist
+      toast({
+        title: 'Password Reset Email Sent',
+        description: `If an account exists for ${resetEmail}, a password reset link has been sent.`,
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  }
+
 
   return (
     <Form {...form}>
@@ -103,7 +147,41 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <div className="flex items-center">
+                <FormLabel>Password</FormLabel>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="link" className="ml-auto text-sm font-normal px-0 underline">
+                      Forgot password?
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Reset Password</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Enter your email address and we'll send you a link to reset your password.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="grid gap-2 py-2">
+                      <Label htmlFor="reset-email">Email</Label>
+                      <Input
+                        id="reset-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                      />
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handlePasswordReset} disabled={isResettingPassword}>
+                        {isResettingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Send Reset Link
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
               <FormControl>
                 <Input type="password" placeholder="••••••••" {...field} />
               </FormControl>
