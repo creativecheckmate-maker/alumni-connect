@@ -1,7 +1,7 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp } from 'firebase/firestore';
 import type { User, Student, Professor } from '@/lib/definitions';
 import { useForm } from 'react-hook-form';
@@ -19,14 +19,13 @@ import {
 } from "@/components/ui/form"
 
 export function EditProfileForm({ currentUser }: { currentUser: User }) {
-  const { user: authUser } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
   const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !authUser?.uid) return null;
-    return doc(firestore, 'users', authUser.uid);
-  }, [firestore, authUser?.uid]);
+    if (!firestore || !currentUser?.id) return null;
+    return doc(firestore, 'users', currentUser.id);
+  }, [firestore, currentUser?.id]);
   
   const form = useForm<Partial<User>>({
     defaultValues: currentUser,

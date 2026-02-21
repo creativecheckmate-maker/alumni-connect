@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useAuth, useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useAuth, useFirestore } from '@/firebase';
 import { doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
+import { ADMIN_EMAIL } from '@/lib/config';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +33,8 @@ export default function SettingsPage() {
 
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   const handleDeactivateAccount = async () => {
     if (!user || !firestore || !auth) {
@@ -74,6 +77,22 @@ export default function SettingsPage() {
       setIsDeleting(false);
     }
   };
+
+  if (isAdmin) {
+    return (
+        <>
+            <PageHeader title="Settings" />
+            <Card>
+                <CardHeader>
+                    <CardTitle>Admin Account</CardTitle>
+                    <CardDescription>
+                        Account management options are disabled for the admin user.
+                    </CardDescription>
+                </CardHeader>
+            </Card>
+        </>
+    )
+  }
 
   return (
     <>
