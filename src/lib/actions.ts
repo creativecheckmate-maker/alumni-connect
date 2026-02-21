@@ -1,9 +1,8 @@
 'use server';
 
 import { z } from 'zod';
-import { redirect } from 'next/navigation';
 import { getApps, initializeApp, getApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 import { signupSchema } from '@/lib/schemas';
@@ -19,31 +18,6 @@ if (!getApps().length) {
 const auth = getAuth(firebaseApp);
 const firestore = getFirestore(firebaseApp);
 
-
-export async function login(prevState: any, formData: FormData) {
-  const schema = z.object({
-    email: z.string().email(),
-    password: z.string().min(1),
-  });
-  const validatedFields = schema.safeParse(Object.fromEntries(formData));
-
-  if (!validatedFields.success) {
-      return { message: 'Invalid email or password.' };
-  }
-  
-  const { email, password } = validatedFields.data;
-
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-  } catch (error: any) {
-    if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
-        return { message: 'Invalid email or password.' };
-    }
-    console.error('Login error:', error);
-    return { message: 'An unknown error occurred. Please try again.' };
-  }
-  redirect('/profile');
-}
 
 export async function signup(prevState: any, formData: FormData) {
     const validatedFields = signupSchema.safeParse(Object.fromEntries(formData));

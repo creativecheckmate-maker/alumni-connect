@@ -1,11 +1,11 @@
 'use client';
 
-import { useFormStatus } from 'react-dom';
-import { useActionState } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useEffect } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,9 +17,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { login } from '@/lib/actions';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/firebase';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
@@ -28,9 +27,11 @@ const formSchema = z.object({
 });
 
 export function LoginForm() {
-  const [state, dispatch] = useActionState(login, undefined);
+  const router = useRouter();
+  const auth = useAuth();
   const { toast } = useToast();
-  
+  const [isLoading, setIsLoading] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -39,22 +40,30 @@ export function LoginForm() {
     },
   });
 
-  useEffect(() => {
-    if (state?.message) {
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: state.message,
-        })
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      router.push('/profile');
+    } catch (error: any) {
+      let message = 'An unknown error occurred. Please try again.';
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        message = 'Invalid email or password.';
+      }
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: message,
+      });
+      console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
     }
-  },[state, toast]);
+  }
 
   return (
     <Form {...form}>
-      <form
-        action={dispatch}
-        className="space-y-4"
-      >
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="email"
@@ -81,19 +90,11 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        <SubmitButton />
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Log In
+        </Button>
       </form>
     </Form>
-  );
-}
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-
-  return (
-    <Button type="submit" className="w-full" disabled={pending}>
-      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Log In
-    </Button>
   );
 }
