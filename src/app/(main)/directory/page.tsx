@@ -7,25 +7,32 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import type { User } from '@/lib/definitions';
 import { UserCard } from '@/components/user-card';
 import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, deleteDoc, query, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ADMIN_EMAIL } from '@/lib/config';
 
 export default function DirectoryPage() {
   const { user: authUser } = useUser();
   const firestore = useFirestore();
+  const isAdmin = authUser?.email === ADMIN_EMAIL;
   
   const usersCollectionRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'users') : null),
-    [firestore]
+    () => {
+        if (!firestore) return null;
+        const baseQuery = collection(firestore, 'users');
+        // Admins see all users; regular users only see those who are visible in the directory.
+        if (isAdmin) {
+            return baseQuery;
+        }
+        return query(baseQuery, where('isVisibleInDirectory', '==', true));
+    },
+    [firestore, isAdmin]
   );
   
   const { data: users, isLoading } = useCollection<User>(usersCollectionRef);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
-
-  const isAdmin = authUser?.email === ADMIN_EMAIL;
 
   const handleDeleteUser = async (userId: string) => {
     if (!firestore || !isAdmin) return;
@@ -37,8 +44,7 @@ export default function DirectoryPage() {
   const filteredUsers = users
     ? users.filter(user =>
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        (activeTab === 'all' || user.role === activeTab) &&
-        (isAdmin || user.isVisibleInDirectory) // Admins see all, others see visible
+        (activeTab === 'all' || user.role === activeTab)
       )
     : [];
 
@@ -64,6 +70,9 @@ export default function DirectoryPage() {
     );
   };
 
+  const students = filteredUsers.filter(u => u.role === 'student');
+  const professors = filteredUsers.filter(u => u.role === 'professor');
+
   return (
     <>
       <PageHeader title="Alumni Directory">
@@ -82,13 +91,13 @@ export default function DirectoryPage() {
           <TabsTrigger value="professor">Professors</TabsTrigger>
         </TabsList>
         <TabsContent value="all" className="mt-6">
-          {renderUserGrid(filteredUsers.filter(u => activeTab === 'all'))}
+          {renderUserGrid(filteredUsers)}
         </TabsContent>
         <TabsContent value="student" className="mt-6">
-          {renderUserGrid(filteredUsers.filter(u => u.role === 'student'))}
+          {renderUserGrid(students)}
         </TabsContent>
         <TabsContent value="professor" className="mt-6">
-          {renderUserGrid(filteredUsers.filter(u => u.role === 'professor'))}
+          {renderUserGrid(professors)}
         </TabsContent>
       </Tabs>
     </>
