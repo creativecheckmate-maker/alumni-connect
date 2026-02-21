@@ -42,7 +42,7 @@ export async function login(prevState: any, formData: FormData) {
     console.error('Login error:', error);
     return { message: 'An unknown error occurred. Please try again.' };
   }
-  redirect('/dashboard');
+  redirect('/profile');
 }
 
 export async function signup(prevState: any, formData: FormData) {
@@ -101,7 +101,7 @@ export async function signup(prevState: any, formData: FormData) {
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
                 department,
-                researchInterests: researchInterests?.split(',').map(i => i.trim()) || [],
+                researchInterests: researchInterests?.split(',').map(i => i.trim()).filter(Boolean) || [],
                 major: null,
                 graduationYear: null,
                 avatarUrl: `https://picsum.photos/seed/${user.uid}/200/200`,
