@@ -1,43 +1,33 @@
 import { z } from 'zod';
 
-export const signupSchema = z.object({
+const baseSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(8, { message: 'Password must be at least 8 characters.' }),
   university: z.string().min(2, { message: 'University is required.' }),
   college: z.string().min(2, { message: 'College is required.' }),
-  role: z.enum(['student', 'professor'], { required_error: 'Please select a role.' }),
-  major: z.string().optional(),
+});
+
+const studentSchema = baseSchema.extend({
+  role: z.literal('student'),
+  major: z.string({ required_error: 'Major is required.' }).min(1, { message: 'Major is required.' }),
   graduationYear: z.preprocess(
     (val) => (val === '' ? undefined : val),
-    z.coerce.number({invalid_type_error: 'Please enter a valid year.'}).optional()
+    z.coerce.number({ required_error: 'Graduation year is required.', invalid_type_error: 'Please enter a valid year.' })
   ),
   department: z.string().optional(),
   researchInterests: z.string().optional(),
-}).superRefine((data, ctx) => {
-    if (data.role === 'student') {
-        if (!data.major || data.major.trim() === '') {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: 'Major is required.',
-                path: ['major'],
-            });
-        }
-        if (data.graduationYear === undefined) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: 'Graduation year is required.',
-                path: ['graduationYear'],
-            });
-        }
-    }
-    if (data.role === 'professor') {
-        if (!data.department || data.department.trim() === '') {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: 'Department is required.',
-                path: ['department'],
-            });
-        }
-    }
 });
+
+const professorSchema = baseSchema.extend({
+  role: z.literal('professor'),
+  department: z.string({ required_error: 'Department is required.' }).min(1, { message: 'Department is required.' }),
+  researchInterests: z.string().optional(),
+  major: z.string().optional(),
+  graduationYear: z.any().optional(),
+});
+
+export const signupSchema = z.discriminatedUnion('role', [
+  studentSchema,
+  professorSchema,
+]);

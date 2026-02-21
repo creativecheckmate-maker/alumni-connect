@@ -49,11 +49,14 @@ export async function signup(prevState: any, formData: FormData) {
     const validatedFields = signupSchema.safeParse(Object.fromEntries(formData));
 
     if (!validatedFields.success) {
-        console.error('Signup validation failed:', validatedFields.error.flatten().fieldErrors);
-        return { message: 'Invalid form data. Please check all fields.' };
+        const fieldErrors = validatedFields.error.flatten().fieldErrors;
+        const firstError = Object.values(fieldErrors)[0]?.[0];
+        const errorMessage = firstError || 'Invalid form data. Please check all fields.';
+        console.error('Signup validation failed:', fieldErrors);
+        return { message: errorMessage };
     }
     
-    const { name, email, password, role, ...profileData } = validatedFields.data;
+    const { name, email, password, role } = validatedFields.data;
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -61,25 +64,51 @@ export async function signup(prevState: any, formData: FormData) {
 
         await updateProfile(user, { displayName: name });
 
-        const userProfileForDb = {
-            id: user.uid,
-            externalAuthId: user.uid,
-            name: name,
-            email: user.email,
-            role: role,
-            university: profileData.university,
-            college: profileData.college,
-            isVisibleInDirectory: true,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-            major: role === 'student' ? profileData.major : null,
-            graduationYear: role === 'student' ? profileData.graduationYear : null,
-            department: role === 'professor' ? profileData.department : null,
-            researchInterests: role === 'professor' ? (profileData.researchInterests?.split(',').map(i => i.trim()) || []) : [],
-            avatarUrl: `https://picsum.photos/seed/${user.uid}/200/200`,
-            preferences: [],
-            networkActivity: '',
-        };
+        let userProfileForDb: any;
+
+        if (validatedFields.data.role === 'student') {
+            const { university, college, major, graduationYear } = validatedFields.data;
+            userProfileForDb = {
+                id: user.uid,
+                externalAuthId: user.uid,
+                name: name,
+                email: user.email,
+                role: role,
+                university,
+                college,
+                isVisibleInDirectory: true,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                major,
+                graduationYear,
+                department: null,
+                researchInterests: [],
+                avatarUrl: `https://picsum.photos/seed/${user.uid}/200/200`,
+                preferences: [],
+                networkActivity: '',
+            };
+        } else { // professor
+            const { university, college, department, researchInterests } = validatedFields.data;
+            userProfileForDb = {
+                id: user.uid,
+                externalAuthId: user.uid,
+                name: name,
+                email: user.email,
+                role: role,
+                university,
+                college,
+                isVisibleInDirectory: true,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                department,
+                researchInterests: researchInterests?.split(',').map(i => i.trim()) || [],
+                major: null,
+                graduationYear: null,
+                avatarUrl: `https://picsum.photos/seed/${user.uid}/200/200`,
+                preferences: [],
+                networkActivity: '',
+            };
+        }
         
         await setDoc(doc(firestore, 'users', user.uid), userProfileForDb);
         
