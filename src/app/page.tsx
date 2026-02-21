@@ -89,16 +89,16 @@ export default function HomePage() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                   <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="students">Students</TabsTrigger>
-                  <TabsTrigger value="professors">Professors</TabsTrigger>
+                  <TabsTrigger value="student">Students</TabsTrigger>
+                  <TabsTrigger value="professor">Professors</TabsTrigger>
                 </TabsList>
                 <TabsContent value="all" className="mt-6">
                   {renderUserGrid(filteredUsers)}
                 </TabsContent>
-                <TabsContent value="students" className="mt-6">
+                <TabsContent value="student" className="mt-6">
                   {renderUserGrid(students)}
                 </TabsContent>
-                <TabsContent value="professors" className="mt-6">
+                <TabsContent value="professor" className="mt-6">
                   {renderUserGrid(professors)}
                 </TabsContent>
             </Tabs>
