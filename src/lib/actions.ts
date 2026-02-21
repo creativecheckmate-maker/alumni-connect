@@ -35,7 +35,6 @@ export async function login(prevState: any, formData: FormData) {
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    redirect('/dashboard');
   } catch (error: any) {
     if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
         return { message: 'Invalid email or password.' };
@@ -43,6 +42,7 @@ export async function login(prevState: any, formData: FormData) {
     console.error('Login error:', error);
     return { message: 'An unknown error occurred. Please try again.' };
   }
+  redirect('/dashboard');
 }
 
 export async function signup(prevState: any, formData: FormData) {
