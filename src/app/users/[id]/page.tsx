@@ -103,8 +103,8 @@ export default function UserProfilePage() {
         <main className="flex-1 p-4 md:p-6 lg:p-8">
             <div className="max-w-4xl mx-auto">
                 <div className="mb-4 flex justify-between items-center">
-                    <Link href="/directory">
-                        <Button variant="ghost" className="text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Directory</Button>
+                    <Link href={authUser ? "/directory" : "/"}>
+                        <Button variant="ghost" className="text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> Back to {authUser ? "Directory" : "Homepage"}</Button>
                     </Link>
                     {isAdmin && !isOwnProfile && (
                         <Dialog>
