@@ -38,7 +38,7 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
       college: '',
       role: 'student',
       major: '',
-      graduationYear: undefined,
+      graduationYear: '' as any,
       department: '',
       researchInterests: '',
     },
