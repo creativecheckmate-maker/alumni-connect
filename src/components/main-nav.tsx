@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -75,16 +74,17 @@ export function MainNav() {
           </div>
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.href} className="mb-1">
-              <Link href={item.href}>
-                <SidebarMenuButton
-                  isActive={pathname === item.href}
-                  className="h-11 px-4 rounded-xl transition-all duration-200"
-                  tooltip={item.label}
-                >
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === item.href}
+                className="h-11 px-4 rounded-xl transition-all duration-200"
+                tooltip={item.label}
+              >
+                <Link href={item.href}>
                   <item.icon className={`h-5 w-5 ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
                   <span className={`font-bold text-sm ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`}>{item.label}</span>
-                </SidebarMenuButton>
-              </Link>
+                </Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
           
@@ -93,31 +93,40 @@ export function MainNav() {
           </div>
           {frontPageOptions.map((item) => (
             <SidebarMenuItem key={item.label} className="mb-1">
-              <Link href={item.href}>
-                <SidebarMenuButton
-                  className="h-11 px-4 rounded-xl transition-all duration-200"
-                  tooltip={item.label}
-                >
+              <SidebarMenuButton
+                asChild
+                className="h-11 px-4 rounded-xl transition-all duration-200"
+                tooltip={item.label}
+              >
+                <Link href={item.href}>
                   <item.icon className="h-5 w-5 text-muted-foreground" />
                   <span className="font-bold text-sm text-muted-foreground">{item.label}</span>
-                </SidebarMenuButton>
-              </Link>
+                </Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-6 pt-0">
         <div className="space-y-3">
-          <Link href="/profile">
-            <Button variant="ghost" className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 font-bold">
+          <Button 
+            asChild
+            variant="ghost" 
+            className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 font-bold"
+          >
+            <Link href="/profile">
               <UserIcon className="h-5 w-5" /> My Profile
-            </Button>
-          </Link>
-          <Link href="/settings">
-            <Button variant="ghost" className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 font-bold">
+            </Link>
+          </Button>
+          <Button 
+            asChild
+            variant="ghost" 
+            className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 font-bold"
+          >
+            <Link href="/settings">
               <Settings className="h-5 w-5" /> Settings
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <Button 
             variant="default" 
             className="w-full justify-between h-12 rounded-xl shadow-lg shadow-primary/20"
