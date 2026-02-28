@@ -1,99 +1,106 @@
 
-import type { User, Event, JobPost, Mentor } from './definitions';
+import type { User, Event, JobPost, FeedPost, Notification, NewsUpdate } from './definitions';
 import { PlaceHolderImages } from './placeholder-images';
 
 const findImage = (id: string) => {
   const img = PlaceHolderImages.find(p => p.id === id);
-  if (!img) throw new Error(`Image with id ${id} not found`);
+  if (!img) return { imageUrl: 'https://picsum.photos/seed/1/400/300', description: 'Placeholder', imageHint: 'placeholder' };
   return img;
 };
+
+export const news: NewsUpdate[] = [
+  {
+    id: 'n1',
+    title: 'College Conducted Successful Workshop on AI',
+    description: 'Expert talks on Artificial Intelligence and Machine Learning gathered huge interest from students.',
+    imageUrl: 'https://picsum.photos/seed/n1/600/400',
+    category: 'Workshop'
+  },
+  {
+    id: 'n2',
+    title: 'Kaur Finishes Her CSE Journey',
+    description: 'Meet the student who topped her batch with record-breaking project innovations.',
+    imageUrl: 'https://picsum.photos/seed/n2/600/400',
+    category: 'Achievement'
+  }
+];
+
+export const feedPosts: FeedPost[] = [
+  {
+    id: 'f1',
+    authorName: 'Ramanjot Singh',
+    authorAvatar: 'https://picsum.photos/seed/p1/200/200',
+    authorRole: 'Software Developer at Digital Labs',
+    content: 'Insightful event held at Chandigarh Computer Club on Importance of Virtual Safety. Great networking opportunity!',
+    imageUrl: 'https://picsum.photos/seed/f1/800/400',
+    likes: 24,
+    comments: 5,
+    createdAt: '3d ago'
+  },
+  {
+    id: 'f2',
+    authorName: 'Abhay Singh',
+    authorAvatar: 'https://picsum.photos/seed/p2/200/200',
+    authorRole: 'UI/UX Designer at Innovate',
+    content: 'Just finished my new case study on sustainable urban design. Looking forward to feedback from the community!',
+    imageUrl: 'https://picsum.photos/seed/f2/800/400',
+    likes: 12,
+    comments: 2,
+    createdAt: '1d ago'
+  }
+];
+
+export const notifications: Notification[] = [
+  {
+    id: 'nt1',
+    type: 'event',
+    message: 'New event posted by "Department of CSE"',
+    timestamp: '1hr',
+    read: false
+  },
+  {
+    id: 'nt2',
+    type: 'connection',
+    message: 'Samara Patel accepted your connect request',
+    timestamp: '4hr',
+    read: true
+  },
+  {
+    id: 'nt3',
+    type: 'general',
+    message: 'Event Reminder for Webinar hosted by SBI',
+    timestamp: '5hr',
+    read: false
+  }
+];
 
 export const users: User[] = [
   {
     id: '1',
-    name: 'Alice Johnson',
-    email: 'alice@example.com',
-    avatarUrl: findImage('profile-1').imageUrl,
+    name: 'Ramanjot Singh',
+    email: 'raman@example.com',
+    avatarUrl: 'https://picsum.photos/seed/raman/200/200',
     university: 'Nexus University',
-    college: 'College of Engineering',
+    college: 'BTech (ME) 2019',
     role: 'student',
-    major: 'Computer Science',
-    graduationYear: 2024,
+    major: 'Mechanical Engineering',
+    graduationYear: 2019,
+    branch: 'ME',
+    batch: '2019',
     feedbackRating: 95,
-    preferences: ['networking', 'career development', 'software engineering'],
-    networkActivity: 'Attended a tech talk on AI and connected with 3 engineers.',
   },
   {
     id: '2',
-    name: 'Dr. Bob Smith',
-    email: 'bob@example.com',
-    avatarUrl: findImage('profile-2').imageUrl,
+    name: 'Samara Patel',
+    email: 'samara@example.com',
+    avatarUrl: 'https://picsum.photos/seed/samara/200/200',
     university: 'Nexus University',
-    college: 'College of Engineering',
-    role: 'professor',
-    department: 'Electrical Engineering',
-    researchInterests: 'Signal Processing, Machine Learning',
-    feedbackRating: 88,
-    preferences: ['mentorship', 'research collaboration'],
-    networkActivity: 'Posted a research paper on signal processing.',
-  },
-  {
-    id: '3',
-    name: 'Charlie Brown',
-    email: 'charlie@example.com',
-    avatarUrl: findImage('profile-3').imageUrl,
-    university: 'Nexus University',
-    college: 'College of Business',
+    college: 'BTech (CSE) 2022',
     role: 'student',
-    major: 'Business Administration',
-    graduationYear: 2025,
-    feedbackRating: 75,
-  },
-  {
-    id: '4',
-    name: 'Diana Prince',
-    email: 'diana@example.com',
-    avatarUrl: findImage('profile-4').imageUrl,
-    university: 'Apollo University',
-    college: 'College of Fine Arts',
-    role: 'student',
-    major: 'Fine Arts',
-    graduationYear: 2023,
-    feedbackRating: 92,
-  },
-  {
-    id: '5',
-    name: 'Dr. Edward Nygma',
-    email: 'edward@example.com',
-    avatarUrl: findImage('profile-5').imageUrl,
-    university: 'Nexus University',
-    college: 'College of Arts and Sciences',
-    role: 'professor',
-    department: 'Psychology',
-    researchInterests: 'Cognitive Behavioral Therapy',
-    feedbackRating: 85,
-  },
-  {
-    id: '6',
-    name: 'Fiona Glenanne',
-    email: 'fiona@example.com',
-    avatarUrl: findImage('profile-6').imageUrl,
-    university: 'Apollo University',
-    college: 'College of Engineering',
-    role: 'student',
-    major: 'Mechanical Engineering',
+    major: 'Computer Science',
     graduationYear: 2022,
-    feedbackRating: 80,
-  },
-  {
-    id: '7',
-    name: 'Marcus Holloway',
-    email: 'marcus@example.com',
-    avatarUrl: findImage('profile-2').imageUrl,
-    university: 'Nexus University',
-    college: 'Administration',
-    role: 'non-teaching-staff',
-    department: 'IT Services',
+    branch: 'CSE',
+    batch: '2022',
     feedbackRating: 98,
   }
 ];
@@ -101,88 +108,30 @@ export const users: User[] = [
 export const events: Event[] = [
   {
     id: 'evt1',
-    name: 'Annual Alumni Gala',
-    date: '2024-10-26T18:00:00Z',
-    description: 'Join us for a night of celebration and networking with fellow alumni.',
+    name: 'Annual Convocation Ceremony',
+    date: 'August 12',
+    description: 'The 10th Annual Convocation will be held in the main auditorium.',
     image: findImage('event-1'),
-    tags: ['networking', 'social'],
+    tags: ['Ceremony'],
     university: 'Nexus University',
-  },
-  {
-    id: 'evt2',
-    name: 'Tech Career Fair',
-    date: '2024-11-15T10:00:00Z',
-    description: 'Connect with top tech companies looking to hire our alumni.',
-    image: findImage('event-3'),
-    tags: ['career development', 'software engineering'],
-    university: 'Nexus University',
-    college: 'College of Engineering',
-  },
-  {
-    id: 'evt3',
-    name: 'AI in Modern Research',
-    date: '2024-12-05T14:00:00Z',
-    description: 'A seminar by Dr. Eva Rostova on the impact of AI in various research fields.',
-    image: findImage('event-2'),
-    tags: ['research collaboration', 'AI'],
-    university: 'Apollo University',
-  },
+  }
 ];
 
 export const jobPosts: JobPost[] = [
   {
     id: 'job1',
-    title: 'Software Engineer',
-    company: 'Innovate Inc.',
+    title: 'Swift Developer Intern',
+    company: 'Apple Inc.',
     location: 'Remote',
-    description: 'Seeking a talented software engineer to join our dynamic team.',
-    industry: 'Technology',
-    companyLogoUrl: findImage('job-logo-1').imageUrl,
+    description: 'Looking for a passionate iOS developer.',
+    companyLogoUrl: 'https://picsum.photos/seed/apple/100/100',
   },
   {
     id: 'job2',
-    title: 'Financial Analyst',
-    company: 'Capital Investments',
-    location: 'New York, NY',
-    description: 'Analyze financial data and provide strategic recommendations.',
-    industry: 'Finance',
-    companyLogoUrl: findImage('job-logo-2').imageUrl,
-  },
-  {
-    id: 'job3',
-    title: 'Product Manager',
-    company: 'Innovate Inc.',
-    location: 'San Francisco, CA',
-    description: 'Lead the development of our new flagship product.',
-    industry: 'Technology',
-    companyLogoUrl: findImage('job-logo-1').imageUrl,
-    university: 'Nexus University',
-  },
-];
-
-export const mentors: Mentor[] = [
-  {
-    id: 'men1',
-    name: 'John Doe',
-    title: 'Senior Software Engineer at Google',
-    avatarUrl: findImage('profile-5').imageUrl,
-    expertise: 'Software Architecture, Cloud Computing',
-    industry: 'Technology',
-  },
-  {
-    id: 'men2',
-    name: 'Jane Smith',
-    title: 'Marketing Director at P&G',
-    avatarUrl: findImage('profile-1').imageUrl,
-    expertise: 'Brand Management, Digital Marketing',
-    industry: 'Consumer Goods',
-  },
-  {
-    id: 'men3',
-    name: 'Dr. Bob Smith',
-    title: 'Professor of Electrical Engineering',
-    avatarUrl: findImage('profile-2').imageUrl,
-    expertise: 'Signal Processing, Machine Learning',
-    industry: 'Academia',
-  },
+    title: 'UI/UX Designer',
+    company: 'Figma',
+    location: 'New York',
+    description: 'Passionate about design systems?',
+    companyLogoUrl: 'https://picsum.photos/seed/figma/100/100',
+  }
 ];

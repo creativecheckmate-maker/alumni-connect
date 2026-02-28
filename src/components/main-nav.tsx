@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -8,36 +9,36 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
   LayoutGrid,
   Users,
-  Calendar,
+  Rss,
   Briefcase,
-  HeartHandshake,
-  User,
+  Bell,
   Settings,
   LogOut,
   Home,
+  Heart,
+  MessageCircle,
 } from 'lucide-react';
 import { Logo } from './logo';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { Button } from './ui/button';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
-  { href: '/directory', label: 'Directory', icon: Users },
-  { href: '/events', label: 'Events', icon: Calendar },
-  { href: '/jobs', label: 'Job Board', icon: Briefcase },
-  { href: '/mentorship', label: 'Mentorship', icon: HeartHandshake },
+  { href: '/directory', label: 'Alumni Directory', icon: Users },
+  { href: '/feed', label: 'Feed', icon: Rss },
+  { href: '/mentorship', label: 'Job and Mentorship', icon: Briefcase },
+  { href: '/notifications', label: 'News and Updates', icon: Bell },
+  { href: '/donate', label: 'Donate', icon: Heart },
+  { href: '/messages', label: 'Messages', icon: MessageCircle },
 ];
-
-const bottomMenuItems = [
-    { href: '/profile', label: 'Profile', icon: User },
-    { href: '/settings', label: 'Settings', icon: Settings },
-]
 
 export function MainNav() {
   const pathname = usePathname();
@@ -51,60 +52,44 @@ export function MainNav() {
   };
 
   return (
-    <Sidebar>
-      <SidebarHeader>
-        <Logo className="h-10 [&_div]:border-sidebar-foreground [&_svg]:text-sidebar-foreground [&_span]:text-sidebar-foreground" />
+    <Sidebar className="border-r-0 shadow-xl">
+      <SidebarHeader className="p-6">
+        <Logo />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-3">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <Link href="/">
-              <SidebarMenuButton
-                isActive={pathname === '/'}
-                tooltip="Home"
-              >
-                <Home />
-                <span>Public Home</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
           {menuItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
+            <SidebarMenuItem key={item.href} className="mb-1">
               <Link href={item.href}>
                 <SidebarMenuButton
                   isActive={pathname === item.href}
+                  className="h-11 px-4 rounded-xl transition-all duration-200"
                   tooltip={item.label}
                 >
-                  <item.icon />
-                  <span>{item.label}</span>
+                  <item.icon className={`h-5 w-5 ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span className={`font-bold text-sm ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`}>{item.label}</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-            {bottomMenuItems.map((item) => (
-                 <SidebarMenuItem key={item.href}>
-                    <Link href={item.href}>
-                        <SidebarMenuButton
-                        isActive={pathname === item.href}
-                        tooltip={item.label}
-                        >
-                        <item.icon />
-                        <span>{item.label}</span>
-                        </SidebarMenuButton>
-                    </Link>
-                </SidebarMenuItem>
-            ))}
-             <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Log Out" onClick={handleLogout}>
-                    <LogOut />
-                    <span>Log Out</span>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarFooter className="p-6">
+        <div className="space-y-3">
+          <Link href="/settings">
+            <Button variant="ghost" className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 font-bold">
+              <Settings className="h-5 w-5" /> Settings
+            </Button>
+          </Link>
+          <Button 
+            variant="default" 
+            className="w-full justify-between h-12 rounded-xl shadow-lg shadow-primary/20"
+            onClick={handleLogout}
+          >
+            <span className="font-bold">Sign Out</span>
+            <LogOut className="h-5 w-5" />
+          </Button>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

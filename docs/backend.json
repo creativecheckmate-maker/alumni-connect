@@ -2,353 +2,59 @@
 {
   "entities": {
     "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Represents a user's profile within the Nexus Alumni system, whether a student, professor, or staff, linking to an external authentication system.",
+      "description": "Represents a user's profile with branch and batch information.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserProfile entity."
-        },
-        "externalAuthId": {
-          "type": "string",
-          "description": "Identifier from the external authentication system (e.g., Firebase Auth UID). This ID establishes the link between an authenticated user and their profile data. (Relationship: UserProfile 1:1 ExternalAuthUser)"
-        },
-        "role": {
-          "type": "string",
-          "description": "The type of user, indicating whether they are a 'Student', 'Professor', or 'Non-Teaching Staff'. This determines which specific profile fields are applicable.",
-          "enum": [
-            "student",
-            "professor",
-            "non-teaching-staff"
-          ]
-        },
-        "name": {
-          "type": "string",
-          "description": "The full name of the user."
-        },
-        "email": {
-          "type": "string",
-          "description": "The primary email address of the user, used for contact and potentially as a unique identifier for external systems.",
-          "format": "email"
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "The contact phone number of the user."
-        },
-        "avatarUrl": {
-          "type": "string",
-          "description": "URL to the user's profile picture or avatar.",
-          "format": "uri"
-        },
-        "bio": {
-          "type": "string",
-          "description": "A short biographical description or 'about me' section provided by the user."
-        },
-        "linkedInUrl": {
-          "type": "string",
-          "description": "URL to the user's LinkedIn profile for professional networking.",
-          "format": "uri"
-        },
-        "major": {
-          "type": "string",
-          "description": "The academic major pursued by the student (applicable if role is 'Student')."
-        },
-        "graduationYear": {
-          "type": "number",
-          "description": "The year the student graduated or expects to graduate (applicable if role is 'Student')."
-        },
-        "department": {
-          "type": "string",
-          "description": "The academic department the professor or staff is affiliated with."
-        },
-        "researchInterests": {
-          "type": "array",
-          "description": "A list of research areas or topics the professor is interested in or specializes in (applicable if role is 'Professor').",
-          "items": {
-            "type": "string"
-          }
-        },
-        "feedbackRating": {
-          "type": "number",
-          "description": "A rating out of 100 based on community feedback.",
-          "minimum": 0,
-          "maximum": 100
-        },
-        "feedbackCount": {
-          "type": "number",
-          "description": "The total number of feedback entries received."
-        },
-        "totalFeedbackPoints": {
-          "type": "number",
-          "description": "The sum of all feedback points received."
-        },
-        "interests": {
-          "type": "array",
-          "description": "General personal or professional interests of the user, used for recommendations and connections.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "careerGoals": {
-          "type": "array",
-          "description": "Career aspirations and goals of the user, used for mentorship matching and job recommendations.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "isVisibleInDirectory": {
-          "type": "boolean",
-          "description": "Indicates whether the user's profile is publicly visible in the alumni directory."
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the user's account.",
-          "enum": [
-            "active",
-            "deactivated"
-          ]
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the user profile was created in the system.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the user profile was last updated in the system.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "externalAuthId": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "professor", "non-teaching-staff"] },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "avatarUrl": { "type": "string", "format": "uri" },
+        "branch": { "type": "string", "description": "Academic branch (e.g. CSE, ME)" },
+        "batch": { "type": "string", "description": "Graduation year or batch name" },
+        "university": { "type": "string" },
+        "college": { "type": "string" },
+        "feedbackRating": { "type": "number" },
+        "isVisibleInDirectory": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["active", "deactivated"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "externalAuthId",
-        "role",
-        "name",
-        "email",
-        "isVisibleInDirectory",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "externalAuthId", "role", "name", "email", "isVisibleInDirectory", "createdAt", "updatedAt"]
     },
-    "Event": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Event",
+    "FeedPost": {
+      "title": "FeedPost",
       "type": "object",
-      "description": "Represents an alumni event, such as a reunion, career fair, or networking opportunity, displayed in the events calendar.",
+      "description": "A social post in the alumni feed.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Event entity."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title or name of the event."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the event, including agenda, speakers, and other relevant information."
-        },
-        "location": {
-          "type": "string",
-          "description": "The physical address or virtual meeting link where the event will take place."
-        },
-        "startDateTime": {
-          "type": "string",
-          "description": "The precise start date and time of the event.",
-          "format": "date-time"
-        },
-        "endDateTime": {
-          "type": "string",
-          "description": "The precise end date and time of the event.",
-          "format": "date-time"
-        },
-        "organizerId": {
-          "type": "string",
-          "description": "Reference to the UserProfile of the individual or organization responsible for organizing the event. (Relationship: UserProfile 1:N Event)"
-        },
-        "registrationUrl": {
-          "type": "string",
-          "description": "URL for external event registration, if applicable.",
-          "format": "uri"
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL to an image, banner, or flyer associated with the event.",
-          "format": "uri"
-        },
-        "attendeeIds": {
-          "type": "array",
-          "description": "An array of UserProfile IDs representing attendees who have registered for or are planning to attend the event. (Relationship: Event N:N UserProfile)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the event record was created in the system.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the event record was last updated in the system.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "authorId": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string", "format": "uri" },
+        "likes": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "title",
-        "description",
-        "location",
-        "startDateTime",
-        "endDateTime",
-        "organizerId",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "authorId", "content", "createdAt"]
     },
-    "JobPosting": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "JobPosting",
+    "Notification": {
+      "title": "Notification",
       "type": "object",
-      "description": "Represents a job opportunity posted on the alumni job board, allowing users to search and apply for positions.",
+      "description": "User notification for events, connections, or general updates.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the JobPosting entity."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title or designation of the job opening."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the job, including responsibilities, duties, and company culture."
-        },
-        "companyName": {
-          "type": "string",
-          "description": "The name of the company offering the job opportunity."
-        },
-        "location": {
-          "type": "string",
-          "description": "The geographical location of the job (e.g., city, state, country, or 'Remote')."
-        },
-        "employmentType": {
-          "type": "string",
-          "description": "The type of employment offered (e.g., 'Full-time', 'Part-time', 'Internship', 'Contract').",
-          "items": {
-            "type": "string"
-          }
-        },
-        "salaryRange": {
-          "type": "string",
-          "description": "The estimated salary range for the position (e.g., '$60,000 - $80,000 P.A.' or 'Competitive')."
-        },
-        "requirements": {
-          "type": "array",
-          "description": "A list of required skills, qualifications, or experience for the job.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "applicationDeadline": {
-          "type": "string",
-          "description": "The deadline for submitting job applications.",
-          "format": "date"
-        },
-        "applicationUrl": {
-          "type": "string",
-          "description": "The URL where candidates can apply for the job.",
-          "format": "uri"
-        },
-        "posterId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who posted this job opening. (Relationship: UserProfile 1:N JobPosting)"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the job posting was created in the system.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the job posting was last updated in the system.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["connection", "event", "general"] },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "title",
-        "description",
-        "companyName",
-        "location",
-        "employmentType",
-        "applicationUrl",
-        "posterId",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "MentorshipConnection": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "MentorshipConnection",
-      "type": "object",
-      "description": "Represents an established or requested mentorship connection between a mentor and a mentee.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the MentorshipConnection entity."
-        },
-        "mentorId": {
-          "type": "string",
-          "description": "Reference to the UserProfile acting as the mentor in this connection. (Relationship: UserProfile 1:N MentorshipConnection)"
-        },
-        "menteeId": {
-          "type": "string",
-          "description": "Reference to the UserProfile acting as the mentee in this connection. (Relationship: UserProfile 1:N MentorshipConnection)"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the mentorship connection (e.g., 'Pending', 'Active', 'Completed', 'Rejected').",
-          "items": {
-            "type": "string"
-          }
-        },
-        "requestedAt": {
-          "type": "string",
-          "description": "Timestamp when the mentorship connection was initially requested by the mentee.",
-          "format": "date-time"
-        },
-        "acceptedAt": {
-          "type": "string",
-          "description": "Timestamp when the mentorship request was accepted by the mentor.",
-          "format": "date-time"
-        },
-        "completedAt": {
-          "type": "string",
-          "description": "Timestamp when the mentorship connection was officially marked as completed.",
-          "format": "date-time"
-        },
-        "initialMessage": {
-          "type": "string",
-          "description": "The initial message sent by the mentee when requesting the mentorship connection."
-        }
-      },
-      "required": [
-        "id",
-        "mentorId",
-        "menteeId",
-        "status",
-        "requestedAt"
-      ]
+      "required": ["id", "userId", "type", "message", "read", "createdAt"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "google"]
   },
   "firestore": {
     "structure": [
@@ -356,64 +62,31 @@
         "path": "users/{userId}",
         "definition": {
           "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores individual user profiles. Includes feedbackRating for ranking.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user profile."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/UserProfile" },
+          "description": "Stores individual user profiles."
+        }
+      },
+      {
+        "path": "feed/{postId}",
+        "definition": {
+          "entityName": "FeedPost",
+          "schema": { "$ref": "#/backend/entities/FeedPost" },
+          "description": "Social posts for the community feed."
+        }
+      },
+      {
+        "path": "notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": { "$ref": "#/backend/entities/Notification" },
+          "description": "In-app notifications."
         }
       },
       {
         "path": "events/{eventId}",
         "definition": {
           "entityName": "Event",
-          "schema": {
-            "$ref": "#/backend/entities/Event"
-          },
-          "description": "Contains details about various alumni events.",
-          "params": [
-            {
-              "name": "eventId",
-              "description": "The unique identifier for an event."
-            }
-          ]
-        }
-      },
-      {
-        "path": "jobPostings/{jobPostingId}",
-        "definition": {
-          "entityName": "JobPosting",
-          "schema": {
-            "$ref": "#/backend/entities/JobPosting"
-          },
-          "description": "Stores job opportunities posted on the alumni job board.",
-          "params": [
-            {
-              "name": "jobPostingId",
-              "description": "The unique identifier for a job posting."
-            }
-          ]
-        }
-      },
-      {
-        "path": "mentorshipConnections/{connectionId}",
-        "definition": {
-          "entityName": "MentorshipConnection",
-          "schema": {
-            "$ref": "#/backend/entities/MentorshipConnection"
-          },
-          "description": "Manages mentorship connections between alumni.",
-          "params": [
-            {
-              "name": "connectionId",
-              "description": "The unique identifier for a mentorship connection."
-            }
-          ]
+          "description": "Details about alumni events."
         }
       }
     ]
