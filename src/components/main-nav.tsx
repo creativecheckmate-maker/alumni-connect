@@ -9,7 +9,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
   LayoutGrid,
@@ -19,9 +18,10 @@ import {
   Bell,
   Settings,
   LogOut,
-  Home,
-  Heart,
+  Calendar,
+  GraduationCap,
   MessageCircle,
+  User as UserIcon,
 } from 'lucide-react';
 import { Logo } from './logo';
 import { usePathname, useRouter } from 'next/navigation';
@@ -33,10 +33,11 @@ import { Button } from './ui/button';
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
   { href: '/directory', label: 'Alumni Directory', icon: Users },
-  { href: '/feed', label: 'Feed', icon: Rss },
-  { href: '/mentorship', label: 'Job and Mentorship', icon: Briefcase },
-  { href: '/notifications', label: 'News and Updates', icon: Bell },
-  { href: '/donate', label: 'Donate', icon: Heart },
+  { href: '/feed', label: 'Community Feed', icon: Rss },
+  { href: '/events', label: 'Upcoming Events', icon: Calendar },
+  { href: '/jobs', label: 'Job Board', icon: Briefcase },
+  { href: '/mentorship', label: 'Mentorship', icon: GraduationCap },
+  { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/messages', label: 'Messages', icon: MessageCircle },
 ];
 
@@ -74,8 +75,13 @@ export function MainNav() {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="p-6">
+      <SidebarFooter className="p-6 pt-0">
         <div className="space-y-3">
+          <Link href="/profile">
+            <Button variant="ghost" className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 font-bold">
+              <UserIcon className="h-5 w-5" /> My Profile
+            </Button>
+          </Link>
           <Link href="/settings">
             <Button variant="ghost" className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 font-bold">
               <Settings className="h-5 w-5" /> Settings
