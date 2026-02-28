@@ -1,10 +1,11 @@
+
 {
   "entities": {
     "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Represents a user's profile within the Nexus Alumni system, whether a student or a professor, linking to an external authentication system.",
+      "description": "Represents a user's profile within the Nexus Alumni system, whether a student, professor, or staff, linking to an external authentication system.",
       "properties": {
         "id": {
           "type": "string",
@@ -16,10 +17,11 @@
         },
         "role": {
           "type": "string",
-          "description": "The type of user, indicating whether they are a 'Student' or 'Professor'. This determines which specific profile fields are applicable.",
+          "description": "The type of user, indicating whether they are a 'Student', 'Professor', or 'Non-Teaching Staff'. This determines which specific profile fields are applicable.",
           "enum": [
             "student",
-            "professor"
+            "professor",
+            "non-teaching-staff"
           ]
         },
         "name": {
@@ -59,7 +61,7 @@
         },
         "department": {
           "type": "string",
-          "description": "The academic department the professor is affiliated with (applicable if role is 'Professor')."
+          "description": "The academic department the professor or staff is affiliated with."
         },
         "researchInterests": {
           "type": "array",
@@ -67,6 +69,12 @@
           "items": {
             "type": "string"
           }
+        },
+        "feedbackRating": {
+          "type": "number",
+          "description": "A rating out of 100 based on community feedback.",
+          "minimum": 0,
+          "maximum": 100
         },
         "interests": {
           "type": "array",
@@ -343,11 +351,11 @@
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores individual user profiles. The document ID (`{userId}`) for each profile corresponds directly to the user's Firebase Authentication UID (which is also the `externalAuthId` field), enabling path-based ownership. Includes denormalized `isVisibleInDirectory` for public directory access control and simplified list queries.",
+          "description": "Stores individual user profiles. Includes feedbackRating for ranking.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user profile, which is the Firebase Authentication User ID (UID)."
+              "description": "The unique identifier for the user profile."
             }
           ]
         }
@@ -359,7 +367,7 @@
           "schema": {
             "$ref": "#/backend/entities/Event"
           },
-          "description": "Contains details about various alumni events. Read access is available to all authenticated users. Write access is restricted to the `organizerId` specified within the document. Includes denormalized `organizerId` for authorization independence.",
+          "description": "Contains details about various alumni events.",
           "params": [
             {
               "name": "eventId",
@@ -375,7 +383,7 @@
           "schema": {
             "$ref": "#/backend/entities/JobPosting"
           },
-          "description": "Stores job opportunities posted on the alumni job board. Read access is available to all authenticated users. Write access is restricted to the `posterId` specified within the document. Includes denormalized `posterId` for authorization independence.",
+          "description": "Stores job opportunities posted on the alumni job board.",
           "params": [
             {
               "name": "jobPostingId",
@@ -391,7 +399,7 @@
           "schema": {
             "$ref": "#/backend/entities/MentorshipConnection"
           },
-          "description": "Manages mentorship connections between alumni. Read and write access is restricted to either the `mentorId` or `menteeId` explicitly defined within the document. Includes denormalized `mentorId` and `menteeId` for authorization independence.",
+          "description": "Manages mentorship connections between alumni.",
           "params": [
             {
               "name": "connectionId",
@@ -400,7 +408,6 @@
           ]
         }
       }
-    ],
-    "reasoning": "The proposed Firestore structure for the Nexus Alumni system prioritizes Authorization Independence, Structural Segregation, and consistent Access Modeling to ensure secure, scalable, and debuggable security rules. Each top-level collection (`users`, `events`, `jobPostings`, `mentorshipConnections`) is designed with a homogeneous security posture, meaning all documents within a given collection share similar access patterns.\n\n**Authorization Independence:** This is critically achieved through denormalization. Instead of relying on `get()` calls in security rules to fetch data from parent documents or related entities for authorization, all necessary authorization context is stored directly within the document being accessed. For instance:\n\n*   **User Profiles (`/users/{userId}`):** The user's Firebase Authentication UID (`request.auth.uid`) is used as the document ID (`{userId}`). This inherently makes ownership checks (`request.auth.uid == userId`) authorization-independent and highly efficient.\n*   **Events (`/events/{eventId}`):** The `organizerId` is stored directly within each `Event` document. Rules can check `request.auth.uid == resource.data.organizerId` for write permissions, eliminating the need to look up the organizer's profile.\n*   **Job Postings (`/jobPostings/{jobPostingId}`):** Similarly, the `posterId` is denormalized into each `JobPosting` document, allowing for direct ownership checks.\n*   **Mentorship Connections (`/mentorshipConnections/{connectionId}`):** Both `mentorId` and `menteeId` are included in the `MentorshipConnection` document, enabling rules to verify `request.auth.uid == resource.data.mentorId || request.auth.uid == resource.data.menteeId` for read/write access.\n\nThis denormalization strategy significantly simplifies security rules, makes them more robust against data inconsistencies, and allows for atomic operations (like creating a document without needing to pre-check parent permissions).\n\n**QAPs (Query as Authorization Predicate) Support:** The structure inherently supports secure `list` operations (queries) because access rules are applied consistently across all documents in a collection and leverage fields directly present in the queried documents.\n\n*   **Alumni Directory:** The `/users` collection, in conjunction with the `isVisibleInDirectory` field on `UserProfile`, allows for public `list` queries of visible profiles. Security rules will permit reading specific fields only when `resource.data.isVisibleInDirectory == true`, effectively making `list` queries secure and efficient. Client-side queries would include `where('isVisibleInDirectory', '==', true)`. \n*   **Events Calendar & Job Board:** Both `/events` and `/jobPostings` are designed for broad read access for all authenticated users, facilitating easy `list` queries by date, location, or other criteria without complex authorization logic.\n*   **Mentorship Program:** Users can efficiently query for their own mentorship connections using `where('mentorId', '==', request.auth.uid)` or `where('menteeId', '==', request.auth.uid)`, as these IDs are directly available in the documents.\n\nOverall, the design adheres to the core principles, ensuring clarity of intent, reliable authorization, and optimal performance for typical alumni system operations."
+    ]
   }
 }

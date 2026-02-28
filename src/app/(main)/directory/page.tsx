@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -20,7 +21,6 @@ export default function DirectoryPage() {
     () => {
         if (!firestore) return null;
         const baseQuery = collection(firestore, 'users');
-        // Admins see all users; regular users only see those who are visible in the directory.
         if (isAdmin) {
             return baseQuery;
         }
@@ -38,7 +38,6 @@ export default function DirectoryPage() {
     if (!firestore || !isAdmin) return;
     const userDocRef = doc(firestore, 'users', userId);
     await deleteDoc(userDocRef);
-    // Note: This does not delete the user from Firebase Authentication
   };
 
   const filteredUsers = users
@@ -70,9 +69,6 @@ export default function DirectoryPage() {
     );
   };
 
-  const students = filteredUsers.filter(u => u.role === 'student');
-  const professors = filteredUsers.filter(u => u.role === 'professor');
-
   return (
     <>
       <PageHeader title="Alumni Directory">
@@ -89,15 +85,19 @@ export default function DirectoryPage() {
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="student">Students</TabsTrigger>
           <TabsTrigger value="professor">Professors</TabsTrigger>
+          <TabsTrigger value="non-teaching-staff">Staff</TabsTrigger>
         </TabsList>
         <TabsContent value="all" className="mt-6">
           {renderUserGrid(filteredUsers)}
         </TabsContent>
         <TabsContent value="student" className="mt-6">
-          {renderUserGrid(students)}
+          {renderUserGrid(filteredUsers.filter(u => u.role === 'student'))}
         </TabsContent>
         <TabsContent value="professor" className="mt-6">
-          {renderUserGrid(professors)}
+          {renderUserGrid(filteredUsers.filter(u => u.role === 'professor'))}
+        </TabsContent>
+        <TabsContent value="non-teaching-staff" className="mt-6">
+          {renderUserGrid(filteredUsers.filter(u => u.role === 'non-teaching-staff'))}
         </TabsContent>
       </Tabs>
     </>

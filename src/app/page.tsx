@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -5,9 +6,16 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { UserNav } from '@/components/user-nav';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Star, GraduationCap, Briefcase, Users } from 'lucide-react';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import type { User } from '@/lib/definitions';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 
 const getPlaceholderImage = (id: string) => {
     const img = PlaceHolderImages.find(p => p.id === id);
@@ -17,12 +25,61 @@ const getPlaceholderImage = (id: string) => {
     return img;
 }
 
+function UserRatingCard({ user }: { user: User }) {
+  return (
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-4 mb-4">
+          <Avatar className="h-14 w-14 border-2 border-primary/20">
+            <AvatarImage src={user.avatarUrl} alt={user.name} />
+            <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <h4 className="font-bold text-lg leading-none">{user.name}</h4>
+            <p className="text-sm text-muted-foreground mt-1">{user.college}</p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center text-sm font-semibold">
+            <span>Feedback Rating</span>
+            <span className="text-primary flex items-center gap-1">
+              {user.feedbackRating || 0}/100 <Star className="h-3 w-3 fill-current" />
+            </span>
+          </div>
+          <Progress value={user.feedbackRating || 0} className="h-2" />
+        </div>
+        <div className="mt-4">
+             <Link href={`/users/${user.id}`}>
+                <Button variant="outline" size="sm" className="w-full">View Profile</Button>
+             </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function HomePage() {
-  const { user } = useUser();
+  const { user: authUser } = useUser();
+  const firestore = useFirestore();
+
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'users'),
+      where('isVisibleInDirectory', '==', true)
+    );
+  }, [firestore]);
+
+  const { data: allUsers, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
+
   const heroImage = getPlaceholderImage('hero-home');
   const manuscriptImage = getPlaceholderImage('article-manuscripts');
   const researchImage = getPlaceholderImage('article-research');
   const professorImage = getPlaceholderImage('professor-portrait');
+
+  const students = allUsers?.filter(u => u.role === 'student').sort((a, b) => (b.feedbackRating || 0) - (a.feedbackRating || 0)).slice(0, 3) || [];
+  const professors = allUsers?.filter(u => u.role === 'professor').sort((a, b) => (b.feedbackRating || 0) - (a.feedbackRating || 0)).slice(0, 3) || [];
+  const staff = allUsers?.filter(u => u.role === 'non-teaching-staff').sort((a, b) => (b.feedbackRating || 0) - (a.feedbackRating || 0)).slice(0, 3) || [];
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -40,7 +97,7 @@ export default function HomePage() {
               <Link href="#" className="text-white/80 hover:text-white transition-colors text-sm">Community</Link>
             </nav>
             <div className="flex items-center gap-4">
-              {user ? (
+              {authUser ? (
                 <div className="flex items-center gap-4">
                     <Link href="/dashboard" className="hidden sm:block">
                         <Button variant="outline" className="text-white border-white/20 bg-white/10 hover:bg-white/20">Go to Dashboard</Button>
@@ -64,7 +121,7 @@ export default function HomePage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative h-[70vh] min-h-[500px] w-full">
+        <section className="relative h-[60vh] min-h-[500px] w-full">
           <Image
             src={heroImage.imageUrl}
             alt={heroImage.description}
@@ -82,7 +139,7 @@ export default function HomePage() {
               Join thousands of alumni who have shaped their careers and legacy through the Nexus University network.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4">
-              {user ? (
+              {authUser ? (
                 <Link href="/dashboard">
                     <Button size="lg" className="h-14 px-8 text-lg">
                         Go to Dashboard <ArrowRight className="ml-2 h-5 w-5" />
@@ -102,68 +159,83 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Content Section */}
-        <section className="py-16 md:py-24">
-          <div className="container mx-auto grid grid-cols-1 gap-16 md:grid-cols-3">
-            {/* Articles */}
-            <div className="md:col-span-2 grid grid-cols-1 gap-12 sm:grid-cols-2">
-                <div className="group cursor-pointer">
-                    <div className="relative overflow-hidden rounded-lg mb-6">
-                        <Image 
-                            src={manuscriptImage.imageUrl} 
-                            alt={manuscriptImage.description} 
-                            width={600} 
-                            height={400} 
-                            className="w-full object-cover aspect-[3/2] transition-transform duration-500 group-hover:scale-105" 
-                            data-ai-hint={manuscriptImage.imageHint} 
-                        />
-                    </div>
-                    <h3 className="font-serif text-2xl font-bold mb-3 group-hover:text-primary transition-colors">A day trip to the University's Manuscripts and Special Collections</h3>
-                    <p className="text-muted-foreground leading-relaxed">Aliquam varius semper odio, mollis dictum metus. Praesent ut nibh eget dui bibendum porttitor. Duis nec eros vitae arcu porta vestibulum.</p>
-                    <Button variant="link" className="text-primary p-0 h-auto mt-4 font-semibold">Read More &raquo;</Button>
+        {/* Community Section - Ranked by Rating */}
+        <section className="py-20 bg-secondary/20">
+            <div className="container mx-auto px-4">
+                <div className="text-center mb-12">
+                    <h2 className="font-serif text-4xl font-bold mb-4">Meet Our Community</h2>
+                    <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Discover top-rated members of our university, recognized for their contributions and excellence.</p>
                 </div>
-                 <div className="group cursor-pointer">
-                    <div className="relative overflow-hidden rounded-lg mb-6">
-                        <Image 
-                            src={researchImage.imageUrl} 
-                            alt={researchImage.description} 
-                            width={600} 
-                            height={400} 
-                            className="w-full object-cover aspect-[3/2] transition-transform duration-500 group-hover:scale-105" 
-                            data-ai-hint={researchImage.imageHint}
-                        />
-                    </div>
-                    <h3 className="font-serif text-2xl font-bold mb-3 group-hover:text-primary transition-colors">Night thesis paper - Research papers</h3>
-                    <p className="text-muted-foreground leading-relaxed">Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas, auris placerat eleifend leo.</p>
-                    <Button variant="link" className="text-primary p-0 h-auto mt-4 font-semibold">Read More &raquo;</Button>
-                </div>
-            </div>
 
-            {/* Stats */}
-            <div className="bg-brand-blue-dark text-white p-10 rounded-xl flex flex-col justify-center gap-12 shadow-xl border border-white/5">
-                <div className="text-center">
-                    <p className="font-headline text-6xl font-bold text-primary">82%</p>
-                    <p className="mt-2 text-sm opacity-80 uppercase tracking-widest font-semibold">of 2023 Graduates Employed</p>
-                </div>
-                <div className="text-center">
-                    <p className="font-headline text-6xl font-bold text-primary">87%</p>
-                    <p className="mt-2 text-sm opacity-80 uppercase tracking-widest font-semibold">Hold a Position Related to Degree</p>
-                </div>
-                <div className="text-center">
-                    <p className="font-headline text-6xl font-bold text-primary">4.0</p>
-                    <p className="mt-2 text-sm opacity-80 uppercase tracking-widest font-semibold">Average Student-Athlete GPA</p>
+                {isUsersLoading ? (
+                    <div className="grid gap-8 md:grid-cols-3">
+                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full rounded-xl" />)}
+                    </div>
+                ) : (
+                    <Tabs defaultValue="students" className="w-full">
+                        <div className="flex justify-center mb-8">
+                            <TabsList className="grid w-full max-w-lg grid-cols-3">
+                                <TabsTrigger value="students" className="flex items-center gap-2">
+                                    <GraduationCap className="h-4 w-4" /> Students
+                                </TabsTrigger>
+                                <TabsTrigger value="professors" className="flex items-center gap-2">
+                                    <Users className="h-4 w-4" /> Professors
+                                </TabsTrigger>
+                                <TabsTrigger value="staff" className="flex items-center gap-2">
+                                    <Briefcase className="h-4 w-4" /> Staff
+                                </TabsTrigger>
+                            </TabsList>
+                        </div>
+                        
+                        <TabsContent value="students">
+                            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                                {students.length > 0 ? (
+                                    students.map(u => <UserRatingCard key={u.id} user={u} />)
+                                ) : (
+                                    <p className="text-center col-span-full text-muted-foreground py-10">No students found.</p>
+                                )}
+                            </div>
+                        </TabsContent>
+                        
+                        <TabsContent value="professors">
+                            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                                {professors.length > 0 ? (
+                                    professors.map(u => <UserRatingCard key={u.id} user={u} />)
+                                ) : (
+                                    <p className="text-center col-span-full text-muted-foreground py-10">No professors found.</p>
+                                )}
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="staff">
+                            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                                {staff.length > 0 ? (
+                                    staff.map(u => <UserRatingCard key={u.id} user={u} />)
+                                ) : (
+                                    <p className="text-center col-span-full text-muted-foreground py-10">No staff found.</p>
+                                )}
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                )}
+                
+                <div className="text-center mt-12">
+                    <Link href="/directory">
+                        <Button size="lg" variant="link" className="text-primary font-bold">
+                            View Full Directory <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                    </Link>
                 </div>
             </div>
-          </div>
         </section>
 
         {/* Ranking Section */}
-        <section className="bg-secondary/30 py-16 md:py-24 border-y">
-            <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+        <section className="bg-brand-blue-dark text-white py-20 border-y">
+            <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center px-4">
                 <div className="max-w-xl">
                     <h2 className="font-serif text-4xl md:text-5xl font-bold leading-tight">We're Ranked Within the Top 5 University's for Teaching Excellence</h2>
-                    <p className="mt-6 text-lg text-muted-foreground leading-relaxed">Etiam rhoncus, massa sed suscipit dignissim, dolor libero lacinia nulla dimentum justo. Nulla vel malesuada turpis. Fusce nulla arcu, uismod neget dui vitae, imperdiet convallis metus.</p>
-                    <Button size="lg" className="mt-8">Our Academic Excellence</Button>
+                    <p className="mt-6 text-lg text-white/70 leading-relaxed">Etiam rhoncus, massa sed suscipit dignissim, dolor libero lacinia nulla dimentum justo. Nulla vel malesuada turpis. Fusce nulla arcu, uismod neget dui vitae, imperdiet convallis metus.</p>
+                    <Button size="lg" className="mt-8 bg-primary text-white hover:bg-primary/90">Our Academic Excellence</Button>
                 </div>
                 <div className="flex justify-center">
                     <div className="relative">

@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -38,52 +39,32 @@ export async function signup(prevState: any, formData: FormData) {
 
         await updateProfile(user, { displayName: name });
 
-        let userProfileForDb: any;
+        let userProfileForDb: any = {
+            id: user.uid,
+            externalAuthId: user.uid,
+            name: name,
+            email: user.email,
+            role: role,
+            university: validatedFields.data.university,
+            college: validatedFields.data.college,
+            isVisibleInDirectory: true,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            status: 'active',
+            feedbackRating: Math.floor(Math.random() * 41) + 60, // Default random rating between 60-100 for MVP
+            avatarUrl: `https://picsum.photos/seed/${user.uid}/200/200`,
+            preferences: [],
+            networkActivity: '',
+        };
 
         if (validatedFields.data.role === 'student') {
-            const { university, college, major, graduationYear } = validatedFields.data;
-            userProfileForDb = {
-                id: user.uid,
-                externalAuthId: user.uid,
-                name: name,
-                email: user.email,
-                role: role,
-                university,
-                college,
-                isVisibleInDirectory: true,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-                status: 'active',
-                major,
-                graduationYear,
-                department: null,
-                researchInterests: [],
-                avatarUrl: `https://picsum.photos/seed/${user.uid}/200/200`,
-                preferences: [],
-                networkActivity: '',
-            };
-        } else { // professor
-            const { university, college, department, researchInterests } = validatedFields.data;
-            userProfileForDb = {
-                id: user.uid,
-                externalAuthId: user.uid,
-                name: name,
-                email: user.email,
-                role: role,
-                university,
-                college,
-                isVisibleInDirectory: true,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-                status: 'active',
-                department,
-                researchInterests: researchInterests?.split(',').map(i => i.trim()).filter(Boolean) || [],
-                major: null,
-                graduationYear: null,
-                avatarUrl: `https://picsum.photos/seed/${user.uid}/200/200`,
-                preferences: [],
-                networkActivity: '',
-            };
+            userProfileForDb.major = validatedFields.data.major;
+            userProfileForDb.graduationYear = validatedFields.data.graduationYear;
+        } else if (validatedFields.data.role === 'professor') {
+            userProfileForDb.department = validatedFields.data.department;
+            userProfileForDb.researchInterests = validatedFields.data.researchInterests?.split(',').map(i => i.trim()).filter(Boolean) || [];
+        } else if (validatedFields.data.role === 'non-teaching-staff') {
+            userProfileForDb.department = validatedFields.data.department;
         }
         
         await setDoc(doc(firestore, 'users', user.uid), userProfileForDb);

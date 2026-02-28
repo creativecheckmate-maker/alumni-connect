@@ -1,3 +1,4 @@
+
 import type { User, Event, JobPost, Mentor } from './definitions';
 import { PlaceHolderImages } from './placeholder-images';
 
@@ -18,6 +19,7 @@ export const users: User[] = [
     role: 'student',
     major: 'Computer Science',
     graduationYear: 2024,
+    feedbackRating: 95,
     preferences: ['networking', 'career development', 'software engineering'],
     networkActivity: 'Attended a tech talk on AI and connected with 3 engineers.',
   },
@@ -31,6 +33,7 @@ export const users: User[] = [
     role: 'professor',
     department: 'Electrical Engineering',
     researchInterests: 'Signal Processing, Machine Learning',
+    feedbackRating: 88,
     preferences: ['mentorship', 'research collaboration'],
     networkActivity: 'Posted a research paper on signal processing.',
   },
@@ -44,6 +47,7 @@ export const users: User[] = [
     role: 'student',
     major: 'Business Administration',
     graduationYear: 2025,
+    feedbackRating: 75,
   },
   {
     id: '4',
@@ -55,6 +59,7 @@ export const users: User[] = [
     role: 'student',
     major: 'Fine Arts',
     graduationYear: 2023,
+    feedbackRating: 92,
   },
   {
     id: '5',
@@ -66,6 +71,7 @@ export const users: User[] = [
     role: 'professor',
     department: 'Psychology',
     researchInterests: 'Cognitive Behavioral Therapy',
+    feedbackRating: 85,
   },
   {
     id: '6',
@@ -77,7 +83,19 @@ export const users: User[] = [
     role: 'student',
     major: 'Mechanical Engineering',
     graduationYear: 2022,
+    feedbackRating: 80,
   },
+  {
+    id: '7',
+    name: 'Marcus Holloway',
+    email: 'marcus@example.com',
+    avatarUrl: findImage('profile-2').imageUrl,
+    university: 'Nexus University',
+    college: 'Administration',
+    role: 'non-teaching-staff',
+    department: 'IT Services',
+    feedbackRating: 98,
+  }
 ];
 
 export const events: Event[] = [

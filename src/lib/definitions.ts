@@ -1,3 +1,4 @@
+
 import type { ImagePlaceholder } from './placeholder-images';
 
 type BaseUser = {
@@ -11,6 +12,7 @@ type BaseUser = {
   networkActivity?: string;
   status?: 'active' | 'deactivated';
   isVisibleInDirectory?: boolean;
+  feedbackRating?: number;
 };
 
 export type Student = BaseUser & {
@@ -25,7 +27,12 @@ export type Professor = BaseUser & {
   researchInterests: string[];
 };
 
-export type User = Student | Professor;
+export type NonTeachingStaff = BaseUser & {
+  role: 'non-teaching-staff';
+  department: string;
+};
+
+export type User = Student | Professor | NonTeachingStaff;
 
 export type Event = {
   id: string;

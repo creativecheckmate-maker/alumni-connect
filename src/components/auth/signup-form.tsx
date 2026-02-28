@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormStatus } from 'react-dom';
@@ -143,7 +144,7 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
                 <RadioGroup
                   onValueChange={field.onChange}
                   value={field.value}
-                  className="flex space-x-4"
+                  className="flex flex-wrap gap-4"
                 >
                   <FormItem className="flex items-center space-x-2 space-y-0">
                     <FormControl>
@@ -156,6 +157,12 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
                       <RadioGroupItem value="professor" />
                     </FormControl>
                     <FormLabel className="font-normal">Professor</FormLabel>
+                  </FormItem>
+                   <FormItem className="flex items-center space-x-2 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="non-teaching-staff" />
+                    </FormControl>
+                    <FormLabel className="font-normal">Non-Teaching Staff</FormLabel>
                   </FormItem>
                 </RadioGroup>
               </FormControl>
@@ -196,35 +203,36 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
           </>
         )}
 
+        {(role === 'professor' || role === 'non-teaching-staff') && (
+          <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Department</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g. Electrical Engineering" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         {role === 'professor' && (
-          <>
-            <FormField
-              control={form.control}
-              name="department"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Department</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Electrical Engineering" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="researchInterests"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Research Interests (comma-separated)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. Signal Processing, AI" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </>
+          <FormField
+            control={form.control}
+            name="researchInterests"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Research Interests (comma-separated)</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g. Signal Processing, AI" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         )}
         
         <SubmitButton />
