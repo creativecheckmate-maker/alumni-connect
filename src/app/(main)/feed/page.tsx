@@ -7,25 +7,51 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical } from 'lucide-react';
-import { feedPosts } from '@/lib/placeholder-data';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import type { FeedPost } from '@/lib/definitions';
 import Image from 'next/image';
+import { useState } from 'react';
 
 export default function FeedPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const [content, setContent] = useState('');
+
+  const feedQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'feed'), orderBy('createdAt', 'desc'));
+  }, [firestore]);
+
+  const { data: posts } = useCollection<FeedPost>(feedQuery);
+
+  const handlePost = async () => {
+    if (!firestore || !user || !content.trim()) return;
+    await addDoc(collection(firestore, 'feed'), {
+      authorId: user.uid,
+      content,
+      likes: 0,
+      createdAt: serverTimestamp(),
+    });
+    setContent('');
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <PageHeader title="Community Feed" />
 
-      {/* Create Post */}
       <Card>
         <CardContent className="p-4 space-y-4">
           <div className="flex gap-4">
             <Avatar className="h-10 w-10">
-              <AvatarImage src="https://picsum.photos/seed/raman/200/200" />
-              <AvatarFallback>RS</AvatarFallback>
+              <AvatarImage src={user?.photoURL || ''} />
+              <AvatarFallback>{user?.displayName?.[0] || 'U'}</AvatarFallback>
             </Avatar>
             <Textarea 
                 placeholder="Share an update or a memory with the community..." 
                 className="min-h-[100px] border-none focus-visible:ring-0 bg-muted/20 resize-none p-4 text-sm"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
             />
           </div>
           <div className="flex items-center justify-between border-t pt-3">
@@ -33,34 +59,29 @@ export default function FeedPage() {
               <ImageIcon className="h-4 w-4 text-primary" />
               <span className="text-xs">Add Photo</span>
             </Button>
-            <Button size="sm" className="rounded-full px-6">
+            <Button size="sm" className="rounded-full px-6" onClick={handlePost}>
               Post <Send className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Feed List */}
       <div className="space-y-6 pb-10">
-        {feedPosts.map((post) => (
+        {posts?.map((post) => (
           <Card key={post.id} className="overflow-hidden">
             <CardHeader className="p-4 flex flex-row items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={post.authorAvatar} />
-                  <AvatarFallback>{post.authorName[0]}</AvatarFallback>
+                  <AvatarFallback>U</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold">{post.authorName}</span>
-                  <span className="text-[10px] text-muted-foreground">{post.authorRole}</span>
+                  <span className="text-sm font-bold">Author</span>
+                  <span className="text-[10px] text-muted-foreground">{post.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground">{post.createdAt}</span>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent className="p-0">
               <div className="px-4 pb-4">
@@ -68,12 +89,7 @@ export default function FeedPage() {
               </div>
               {post.imageUrl && (
                 <div className="relative h-64 w-full bg-muted">
-                  <Image 
-                    src={post.imageUrl} 
-                    alt="Post media" 
-                    fill 
-                    className="object-cover"
-                  />
+                  <Image src={post.imageUrl} alt="Post media" fill className="object-cover" />
                 </div>
               )}
             </CardContent>
@@ -82,7 +98,7 @@ export default function FeedPage() {
                 <ThumbsUp className="h-4 w-4" /> {post.likes}
               </Button>
               <Button variant="ghost" size="sm" className="flex-1 text-xs gap-2">
-                <MessageSquare className="h-4 w-4" /> {post.comments}
+                <MessageSquare className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="sm" className="flex-1 text-xs gap-2">
                 <Share2 className="h-4 w-4" /> Share

@@ -8,14 +8,24 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, UserPlus, Calendar, Info } from 'lucide-react';
-import { notifications } from '@/lib/placeholder-data';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import type { Notification } from '@/lib/definitions';
 
 export default function NotificationsPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [filter, setFilter] = useState('all');
 
-  const filteredNotifications = filter === 'all' 
-    ? notifications 
-    : notifications.filter(n => n.type === filter);
+  const notificationsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    let q = query(collection(firestore, 'notifications'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
+    return q;
+  }, [firestore, user]);
+
+  const { data: notifications } = useCollection<Notification>(notificationsQuery);
+
+  const filteredNotifications = notifications?.filter(n => filter === 'all' || n.type === filter) || [];
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -47,7 +57,7 @@ export default function NotificationsPage() {
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center justify-between">
                     <p className={`text-sm ${!n.read ? 'font-bold' : 'font-medium'}`}>{n.message}</p>
-                    <span className="text-[10px] text-muted-foreground">{n.timestamp}</span>
+                    <span className="text-[10px] text-muted-foreground">{n.createdAt?.toDate?.()?.toLocaleDateString()}</span>
                   </div>
                   {!n.read && <Badge variant="default" className="text-[10px] h-4">New</Badge>}
                 </div>

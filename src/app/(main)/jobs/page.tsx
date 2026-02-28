@@ -1,8 +1,8 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
-import { jobPosts } from '@/lib/placeholder-data';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,23 +13,49 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { Search, Briefcase, Plus, MapPin, Building2, ExternalLink } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import type { JobPosting } from '@/lib/definitions';
 
 export default function JobsPage() {
+  const { user } = useUser();
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handlePostJob = (e: React.FormEvent) => {
+  const jobsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'jobPostings'));
+  }, [firestore]);
+
+  const { data: jobs } = useCollection<JobPosting>(jobsQuery);
+
+  const handlePostJob = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!firestore || !user) return;
+    
+    const formData = new FormData(e.currentTarget);
+    const jobData = {
+      title: formData.get('title') as string,
+      company: formData.get('company') as string,
+      location: formData.get('location') as string,
+      description: formData.get('description') as string,
+      posterId: user.uid,
+      createdAt: serverTimestamp(),
+    };
+
+    await addDoc(collection(firestore, 'jobPostings'), jobData);
+
     toast({
       title: "Job Posted Successfully",
-      description: "Your job posting has been submitted and will be live after a quick review.",
+      description: "Your job posting has been submitted.",
     });
   };
 
-  const filteredJobs = jobPosts.filter(job => 
+  const filteredJobs = jobs?.filter(job => 
     job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     job.company.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) || [];
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -56,28 +82,28 @@ export default function JobsPage() {
                     <Briefcase className="h-5 w-5 text-primary" /> Post New Opportunity
                 </DialogTitle>
                 <DialogDescription>
-                  Help fellow alumni by sharing career opportunities at your organization.
+                  Help fellow alumni by sharing career opportunities.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handlePostJob} className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="title" className="text-xs font-bold uppercase text-muted-foreground">Job Title</Label>
-                  <Input id="title" placeholder="e.g. Senior Product Designer" required />
+                  <Label htmlFor="title">Job Title</Label>
+                  <Input id="title" name="title" placeholder="e.g. Senior Product Designer" required />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="company" className="text-xs font-bold uppercase text-muted-foreground">Company Name</Label>
-                  <Input id="company" placeholder="e.g. Google, Nexus Tech" required />
+                  <Label htmlFor="company">Company Name</Label>
+                  <Input id="company" name="company" placeholder="e.g. Google, Nexus Tech" required />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="location" className="text-xs font-bold uppercase text-muted-foreground">Location</Label>
-                  <Input id="location" placeholder="e.g. Remote / New York, NY" required />
+                  <Label htmlFor="location">Location</Label>
+                  <Input id="location" name="location" placeholder="e.g. Remote / New York, NY" required />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="description" className="text-xs font-bold uppercase text-muted-foreground">Job Description</Label>
-                  <Textarea id="description" placeholder="Key responsibilities and requirements..." className="min-h-[100px]" required />
+                  <Label htmlFor="description">Job Description</Label>
+                  <Textarea id="description" name="description" placeholder="Key responsibilities..." required />
                 </div>
                 <DialogFooter className="pt-4">
-                  <Button type="submit" className="w-full">Submit for Approval</Button>
+                  <Button type="submit" className="w-full">Submit</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -91,12 +117,12 @@ export default function JobsPage() {
             <Card key={job.id} className="group border-none shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col">
               <CardHeader className="p-5">
                   <div className="flex items-start gap-4">
-                      <Avatar className="h-14 w-14 rounded-xl border-2 border-muted bg-white shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                      <Avatar className="h-14 w-14 rounded-xl border-2 border-muted bg-white shrink-0 shadow-sm">
                           <AvatarImage src={job.companyLogoUrl} alt={job.company} className="object-contain p-2" />
                           <AvatarFallback className="bg-primary/5 text-primary text-sm font-bold uppercase">{job.company.substring(0, 2)}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0 space-y-1">
-                          <CardTitle className="text-lg font-bold leading-none truncate group-hover:text-primary transition-colors">{job.title}</CardTitle>
+                          <CardTitle className="text-lg font-bold leading-none truncate">{job.title}</CardTitle>
                           <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                               <Building2 className="h-3 w-3" />
                               <span className="truncate">{job.company}</span>
@@ -112,30 +138,17 @@ export default function JobsPage() {
                 <p className="text-xs leading-relaxed text-muted-foreground line-clamp-4 italic mb-4">
                   "{job.description}"
                 </p>
-                <div className="flex flex-wrap gap-2">
-                    {job.industry && <Badge variant="secondary" className="text-[10px] bg-primary/5 text-primary border-none">{job.industry}</Badge>}
-                    <Badge variant="outline" className="text-[10px]">Full-time</Badge>
-                </div>
               </CardContent>
               <CardFooter className="p-5 pt-0 mt-auto">
-                <Button 
-                    className="w-full h-10 gap-2 font-bold shadow-md shadow-primary/10 group-hover:bg-primary group-hover:text-white transition-all" 
-                    onClick={() => toast({ title: "Application Initialized", description: `We are opening the application portal for ${job.company}.` })}
-                >
+                <Button className="w-full h-10 gap-2 font-bold" onClick={() => toast({ title: "Applied", description: "Your application interest has been sent." })}>
                   Apply Now <ExternalLink className="h-3.5 w-3.5" />
                 </Button>
               </CardFooter>
             </Card>
           ))
         ) : (
-          <div className="col-span-full py-20 text-center space-y-4">
-            <div className="h-20 w-20 bg-muted/50 rounded-full flex items-center justify-center mx-auto">
-                <Search className="h-10 w-10 text-muted-foreground" />
-            </div>
-            <div>
-                <h3 className="text-lg font-bold">No jobs found</h3>
-                <p className="text-sm text-muted-foreground">Try adjusting your search terms or filters.</p>
-            </div>
+          <div className="col-span-full py-20 text-center">
+            <h3 className="text-lg font-bold">No jobs found</h3>
           </div>
         )}
       </div>

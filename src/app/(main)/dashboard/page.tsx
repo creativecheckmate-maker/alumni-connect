@@ -1,18 +1,15 @@
 
 'use client';
 
-import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bell, Search, ArrowRight, Calendar as CalendarIcon, MapPin } from 'lucide-react';
-import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { users, events, news } from '@/lib/placeholder-data';
-import type { User } from '@/lib/definitions';
-import Image from 'next/image';
+import { Bell, ArrowRight } from 'lucide-react';
+import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, query, limit, orderBy } from 'firebase/firestore';
+import type { User, Event } from '@/lib/definitions';
 import Link from 'next/link';
 
 export default function DashboardPage() {
@@ -26,9 +23,22 @@ export default function DashboardPage() {
 
   const { data: currentUser } = useDoc<User>(userDocRef);
 
+  const recentUsersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'users'), limit(10));
+  }, [firestore]);
+
+  const { data: users } = useCollection<User>(recentUsersQuery);
+
+  const upcomingEventsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'events'), limit(3));
+  }, [firestore]);
+
+  const { data: events } = useCollection<Event>(upcomingEventsQuery);
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-10">
-      {/* Header Profile Section */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Avatar className="h-14 w-14 ring-2 ring-primary/20 ring-offset-2">
@@ -37,7 +47,7 @@ export default function DashboardPage() {
           </Avatar>
           <div>
             <h1 className="text-2xl font-bold font-headline leading-tight">Hello {currentUser?.name?.split(' ')[0]}</h1>
-            <p className="text-sm text-muted-foreground">Stay connected with your alma mater!</p>
+            <p className="text-sm text-muted-foreground">Stay connected with your alumni network!</p>
           </div>
         </div>
         <Button variant="ghost" size="icon" className="relative">
@@ -46,99 +56,56 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* Alumni Spotlights */}
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold font-headline text-primary">Alumni Spotlights</h2>
-          <Button variant="link" size="sm" className="text-muted-foreground p-0">View All</Button>
+          <Link href="/directory">
+            <Button variant="link" size="sm" className="text-muted-foreground p-0">View All</Button>
+          </Link>
         </div>
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-4 pb-4">
-            {users.map((u) => (
-              <div key={u.id} className="flex flex-col items-center gap-2 group cursor-pointer">
+            {users?.map((u) => (
+              <Link key={u.id} href={`/users/${u.id}`} className="flex flex-col items-center gap-2 group cursor-pointer">
                 <Avatar className="h-16 w-16 border-2 border-transparent group-hover:border-primary transition-all">
                   <AvatarImage src={u.avatarUrl} />
                   <AvatarFallback>{u.name[0]}</AvatarFallback>
                 </Avatar>
                 <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">{u.name.split(' ')[0]}</span>
-              </div>
+              </Link>
             ))}
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </section>
 
-      {/* Connect with Batchmates */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold font-headline text-primary">Connect with your Batchmates</h2>
-          <Button variant="link" size="sm" className="text-muted-foreground p-0">See all</Button>
-        </div>
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-4 pb-4">
-            {users.map((u) => (
-              <Card key={u.id} className="min-w-[140px] text-center p-4 hover:shadow-md transition-shadow">
-                <Avatar className="h-16 w-16 mx-auto mb-3">
-                  <AvatarImage src={u.avatarUrl} />
-                  <AvatarFallback>{u.name[0]}</AvatarFallback>
-                </Avatar>
-                <h3 className="text-sm font-bold truncate">{u.name}</h3>
-                <p className="text-[10px] text-muted-foreground mb-3">{u.college}</p>
-                <Button size="sm" className="h-7 text-[10px] px-4 rounded-full">Connect</Button>
-              </Card>
-            ))}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
-      </section>
-
-      {/* News and Updates */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold font-headline text-primary">News and Updates</h2>
-          <Button variant="link" size="sm" className="text-muted-foreground p-0">More News</Button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {news.map((item) => (
-            <Card key={item.id} className="overflow-hidden group cursor-pointer">
-              <div className="relative h-40 w-full overflow-hidden">
-                <Image 
-                    src={item.imageUrl} 
-                    alt={item.title} 
-                    fill 
-                    className="object-cover group-hover:scale-105 transition-transform duration-300" 
-                />
-                <Badge className="absolute top-2 left-2 bg-primary/90">{item.category}</Badge>
-              </div>
-              <CardHeader className="p-4 space-y-1">
-                <CardTitle className="text-sm font-bold line-clamp-1">{item.title}</CardTitle>
-                <CardDescription className="text-xs line-clamp-2">{item.description}</CardDescription>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* Upcoming Events */}
       <section>
         <h2 className="text-lg font-bold font-headline text-primary mb-4">Upcoming Events</h2>
-        {events.map((event) => (
-          <Card key={event.id} className="p-4 bg-muted/30 border-none">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex flex-col items-center justify-center text-primary border border-primary/20 shrink-0">
-                <span className="text-[10px] font-bold uppercase">Aug</span>
-                <span className="text-xl font-bold leading-none">12</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold truncate">{event.name}</h3>
-                <p className="text-[11px] text-muted-foreground truncate">{event.description}</p>
-              </div>
-              <Button size="icon" variant="ghost" className="text-primary hover:text-primary/80 shrink-0">
-                <ArrowRight className="h-5 w-5" />
-              </Button>
-            </div>
-          </Card>
-        ))}
+        <div className="space-y-4">
+          {events && events.length > 0 ? (
+            events.map((event) => (
+              <Card key={event.id} className="p-4 bg-muted/30 border-none">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex flex-col items-center justify-center text-primary border border-primary/20 shrink-0">
+                    <span className="text-[10px] font-bold uppercase">{event.date.split(' ')[0]}</span>
+                    <span className="text-xl font-bold leading-none">{event.date.split(' ')[1]}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold truncate">{event.name}</h3>
+                    <p className="text-[11px] text-muted-foreground truncate">{event.description}</p>
+                  </div>
+                  <Link href="/events">
+                    <Button size="icon" variant="ghost" className="text-primary hover:text-primary/80 shrink-0">
+                      <ArrowRight className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">No upcoming events scheduled.</p>
+          )}
+        </div>
       </section>
     </div>
   );

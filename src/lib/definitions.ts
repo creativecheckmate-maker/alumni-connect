@@ -1,79 +1,73 @@
 
-import type { ImagePlaceholder } from './placeholder-images';
-
 export type UserRole = 'student' | 'professor' | 'non-teaching-staff';
 
-type BaseUser = {
+export type UserProfile = {
   id: string;
+  externalAuthId: string;
+  role: UserRole;
   name: string;
   email: string;
-  avatarUrl: string;
-  university: string;
-  college: string;
+  avatarUrl?: string;
   branch?: string;
   batch?: string;
-  preferences?: string[];
-  networkActivity?: string;
-  status?: 'active' | 'deactivated';
-  isVisibleInDirectory?: boolean;
+  university: string;
+  college: string;
   feedbackRating?: number;
   feedbackCount?: number;
   totalFeedbackPoints?: number;
+  isVisibleInDirectory: boolean;
+  status: 'active' | 'deactivated';
+  createdAt: any;
+  updatedAt: any;
+  major?: string; // for students
+  graduationYear?: number; // for students
+  department?: string; // for staff/professors
+  researchInterests?: string[]; // for professors
+  preferences?: string[];
+  networkActivity?: string;
 };
 
-export type Student = BaseUser & { role: 'student'; major: string; graduationYear: number; };
-export type Professor = BaseUser & { role: 'professor'; department: string; researchInterests: string[]; };
-export type NonTeachingStaff = BaseUser & { role: 'non-teaching-staff'; department: string; };
-
-export type User = Student | Professor | NonTeachingStaff;
+// Alias for convenience
+export type User = UserProfile;
 
 export type FeedPost = {
   id: string;
-  authorName: string;
-  authorAvatar: string;
-  authorRole: string;
+  authorId: string;
   content: string;
   imageUrl?: string;
   likes: number;
-  comments: number;
-  createdAt: string;
+  createdAt: any;
 };
 
 export type Notification = {
   id: string;
+  userId: string;
   type: 'connection' | 'event' | 'general';
   message: string;
-  description?: string;
-  timestamp: string;
   read: boolean;
-};
-
-export type NewsUpdate = {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  category: string;
+  createdAt: any;
 };
 
 export type Event = {
   id: string;
   name: string;
-  date: string;
   description: string;
-  image: ImagePlaceholder;
+  date: string;
+  organizerId: string;
   tags?: string[];
   university?: string;
   college?: string;
+  imageUrl?: string;
 };
 
-export type JobPost = {
+export type JobPosting = {
   id: string;
   title: string;
   company: string;
   location: string;
   description: string;
   industry?: string;
-  companyLogoUrl: string;
+  posterId: string;
+  companyLogoUrl?: string;
   university?: string;
 };
