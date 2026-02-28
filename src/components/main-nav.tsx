@@ -18,6 +18,7 @@ import {
   User,
   Settings,
   LogOut,
+  Home,
 } from 'lucide-react';
 import { Logo } from './logo';
 import { usePathname, useRouter } from 'next/navigation';
@@ -56,6 +57,17 @@ export function MainNav() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <Link href="/">
+              <SidebarMenuButton
+                isActive={pathname === '/'}
+                tooltip="Home"
+              >
+                <Home />
+                <span>Public Home</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <Link href={item.href}>

@@ -37,13 +37,14 @@ export default function UserProfilePage() {
     return doc(firestore, 'users', userId);
   }, [firestore, userId]);
   
-  const { data: user, isLoading: isDocLoading } = useDoc<User>(userDocRef);
+  const { data: user, isLoading: isDocLoading, error } = useDoc<User>(userDocRef);
 
   const isAdmin = authUser?.email === ADMIN_EMAIL;
   const isOwnProfile = authUser?.uid === userId;
 
   const isLoading = isAuthLoading || isDocLoading;
 
+  // Prioritize showing a skeleton while any part of the page is loading
   if (isLoading) {
       return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -73,9 +74,17 @@ export default function UserProfilePage() {
       )
   }
 
-  if (!user) {
+  // Handle errors (like Permission Denied) which will be caught by the listener
+  if (error) {
+      throw error;
+  }
+
+  // Only call notFound() if we are definitely not loading and the user data is null
+  if (!user && !isDocLoading) {
     notFound();
   }
+
+  if (!user) return null;
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -124,69 +133,81 @@ export default function UserProfilePage() {
                         </Dialog>
                     )}
                 </div>
-              <Card className="overflow-hidden">
-                <CardHeader className="relative flex flex-col items-center justify-center space-y-4 bg-card p-6 text-center">
-                    <div className="absolute top-0 left-0 w-full h-24 bg-primary/10 -z-1"></div>
-                  <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-background bg-background shadow-md">
+              <Card className="overflow-hidden shadow-lg border-none">
+                <CardHeader className="relative flex flex-col items-center justify-center space-y-4 bg-card p-10 text-center">
+                    <div className="absolute top-0 left-0 w-full h-32 bg-primary/10 -z-1"></div>
+                  <Avatar className="h-32 w-32 md:h-40 md:w-40 border-8 border-background bg-background shadow-xl">
                     <AvatarImage src={user.avatarUrl} alt={user.name} />
-                    <AvatarFallback className="text-4xl">{getInitials(user.name)}</AvatarFallback>
+                    <AvatarFallback className="text-5xl bg-muted">{getInitials(user.name)}</AvatarFallback>
                   </Avatar>
-                  <div className="space-y-1">
-                    <CardTitle className="text-3xl font-bold font-headline">{user.name}</CardTitle>
-                    <CardDescription>{user.college} at {user.university}</CardDescription>
-                    <Badge variant={user.role === 'student' ? 'secondary' : 'outline'} className="capitalize !mt-2 text-sm">{user.role}</Badge>
+                  <div className="space-y-2">
+                    <CardTitle className="text-4xl font-bold font-headline">{user.name}</CardTitle>
+                    <CardDescription className="text-lg">{user.college} — {user.university}</CardDescription>
+                    <Badge variant={user.role === 'student' ? 'secondary' : 'outline'} className="capitalize mt-2 px-4 py-1 text-sm font-semibold">{user.role}</Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6 grid gap-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                        <div className="flex items-start gap-3">
-                           <Mail className="h-5 w-5 text-muted-foreground mt-1" />
+                <CardContent className="p-10 grid gap-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 text-base">
+                        <div className="flex items-start gap-4">
+                           <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                             <Mail className="h-6 w-6" />
+                           </div>
                            <div>
-                                <h3 className="font-semibold text-muted-foreground">Email</h3>
-                                <a href={`mailto:${user.email}`} className="text-primary hover:underline">{user.email}</a>
+                                <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Email Contact</h3>
+                                <a href={`mailto:${user.email}`} className="text-primary hover:underline font-medium text-lg">{user.email}</a>
                            </div>
                         </div>
 
-                        <div className="flex items-start gap-3">
-                           <School className="h-5 w-5 text-muted-foreground mt-1" />
+                        <div className="flex items-start gap-4">
+                           <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                             <School className="h-6 w-6" />
+                           </div>
                            <div>
-                                <h3 className="font-semibold text-muted-foreground">Education</h3>
-                                <p>{user.university}</p>
+                                <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Institution</h3>
+                                <p className="font-medium text-lg">{user.university}</p>
                                 <p className="text-muted-foreground">{user.college}</p>
                            </div>
                         </div>
 
                         {user.role === 'student' ? (
                         <>
-                            <div className="flex items-start gap-3">
-                                <GraduationCap className="h-5 w-5 text-muted-foreground mt-1" />
+                            <div className="flex items-start gap-4">
+                                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                  <GraduationCap className="h-6 w-6" />
+                                </div>
                                 <div>
-                                    <h3 className="font-semibold text-muted-foreground">Major</h3>
-                                    <p>{(user as Student).major}</p>
+                                    <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Major Field of Study</h3>
+                                    <p className="font-medium text-lg">{(user as Student).major}</p>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-3">
-                                <GraduationCap className="h-5 w-5 text-muted-foreground mt-1" />
+                            <div className="flex items-start gap-4">
+                                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                  <GraduationCap className="h-6 w-6" />
+                                </div>
                                 <div>
-                                    <h3 className="font-semibold text-muted-foreground">Class of</h3>
-                                    <p>{(user as Student).graduationYear}</p>
+                                    <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Graduation</h3>
+                                    <p className="font-medium text-lg">Class of {(user as Student).graduationYear}</p>
                                 </div>
                             </div>
                         </>
                         ) : (
                         <>
-                            <div className="flex items-start gap-3">
-                                <Briefcase className="h-5 w-5 text-muted-foreground mt-1" />
+                            <div className="flex items-start gap-4">
+                                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                  <Briefcase className="h-6 w-6" />
+                                </div>
                                 <div>
-                                    <h3 className="font-semibold text-muted-foreground">Department</h3>
-                                    <p>{(user as Professor).department}</p>
+                                    <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Department</h3>
+                                    <p className="font-medium text-lg">{(user as Professor).department}</p>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-3">
-                               <BrainCircuit className="h-5 w-5 text-muted-foreground mt-1" />
+                            <div className="flex items-start gap-4">
+                                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                  <BrainCircuit className="h-6 w-6" />
+                                </div>
                                 <div>
-                                    <h3 className="font-semibold text-muted-foreground">Research Interests</h3>
-                                    <p>{(user as Professor).researchInterests?.join(', ')}</p>
+                                    <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Research Specialization</h3>
+                                    <p className="font-medium text-lg">{(user as Professor).researchInterests?.join(', ')}</p>
                                 </div>
                             </div>
                         </>
@@ -194,19 +215,19 @@ export default function UserProfilePage() {
                     </div>
         
                     {user.preferences && user.preferences.length > 0 && (
-                         <div>
-                            <h3 className="font-semibold text-base mb-2">Interests & Preferences</h3>
+                         <div className="pt-6 border-t">
+                            <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-4">Interests & Academic Preferences</h3>
                             <div className="flex flex-wrap gap-2">
                                 {user.preferences.map(preference => (
-                                    <Badge key={preference} variant="secondary">{preference}</Badge>
+                                    <Badge key={preference} variant="secondary" className="px-3 py-1">{preference}</Badge>
                                 ))}
                             </div>
                         </div>
                     )}
                      {user.networkActivity && (
-                         <div>
-                            <h3 className="font-semibold text-base mb-2">Recent Activity</h3>
-                            <p className="text-sm text-muted-foreground italic">"{user.networkActivity}"</p>
+                         <div className="pt-6 border-t">
+                            <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-4">Community Engagement</h3>
+                            <p className="text-lg leading-relaxed text-muted-foreground italic">"{user.networkActivity}"</p>
                         </div>
                     )}
                 </CardContent>
