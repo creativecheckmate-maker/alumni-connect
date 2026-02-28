@@ -76,6 +76,14 @@
           "minimum": 0,
           "maximum": 100
         },
+        "feedbackCount": {
+          "type": "number",
+          "description": "The total number of feedback entries received."
+        },
+        "totalFeedbackPoints": {
+          "type": "number",
+          "description": "The sum of all feedback points received."
+        },
         "interests": {
           "type": "array",
           "description": "General personal or professional interests of the user, used for recommendations and connections.",

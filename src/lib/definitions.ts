@@ -13,6 +13,8 @@ type BaseUser = {
   status?: 'active' | 'deactivated';
   isVisibleInDirectory?: boolean;
   feedbackRating?: number;
+  feedbackCount?: number;
+  totalFeedbackPoints?: number;
 };
 
 export type Student = BaseUser & {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { User, Student, Professor } from '@/lib/definitions';
@@ -7,14 +8,17 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit } from 'lucide-react';
+import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/logo';
-import { useDoc, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { doc, serverTimestamp } from 'firebase/firestore';
 import { ADMIN_EMAIL } from '@/lib/config';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { EditProfileForm } from '@/components/profile/edit-profile-form';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useState } from 'react';
+import { Slider } from '@/components/ui/slider';
+import { useToast } from '@/hooks/use-toast';
 
 const getInitials = (name: string) => {
     if (!name) return '';
@@ -28,9 +32,17 @@ const getInitials = (name: string) => {
 export default function UserProfilePage() {
   const params = useParams();
   const userId = params.id as string;
+  const { toast } = useToast();
 
   const { user: authUser, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
+
+  const viewerDocRef = useMemoFirebase(() => {
+    if (!firestore || !authUser?.uid) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [firestore, authUser?.uid]);
+
+  const { data: viewerProfile } = useDoc<User>(viewerDocRef);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
@@ -39,12 +51,44 @@ export default function UserProfilePage() {
   
   const { data: user, isLoading: isDocLoading, error } = useDoc<User>(userDocRef);
 
+  const [ratingValue, setRatingValue] = useState(80);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+
   const isAdmin = authUser?.email === ADMIN_EMAIL;
   const isOwnProfile = authUser?.uid === userId;
+  const isStudentViewer = viewerProfile?.role === 'student';
+  const isProfessorOrStaffTarget = user?.role === 'professor' || user?.role === 'non-teaching-staff';
+
+  const handleFeedbackSubmit = () => {
+    if (!userDocRef || !user) return;
+    setIsSubmittingFeedback(true);
+
+    const currentPoints = user.totalFeedbackPoints || user.feedbackRating || 0;
+    const currentCount = user.feedbackCount || 1;
+
+    const newTotalPoints = currentPoints + ratingValue;
+    const newCount = currentCount + 1;
+    const newAverage = Math.round(newTotalPoints / newCount);
+
+    updateDocumentNonBlocking(userDocRef, {
+      feedbackRating: newAverage,
+      feedbackCount: newCount,
+      totalFeedbackPoints: newTotalPoints,
+      updatedAt: serverTimestamp(),
+    });
+
+    toast({
+      title: "Feedback Submitted!",
+      description: `Thank you for rating ${user.name}.`,
+    });
+
+    setIsSubmittingFeedback(false);
+    setIsFeedbackDialogOpen(false);
+  };
 
   const isLoading = isAuthLoading || isDocLoading;
 
-  // Prioritize showing a skeleton while any part of the page is loading
   if (isLoading) {
       return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -74,16 +118,8 @@ export default function UserProfilePage() {
       )
   }
 
-  // Handle errors (like Permission Denied) which will be caught by the listener
-  if (error) {
-      throw error;
-  }
-
-  // Only call notFound() if we are definitely not loading and the user data is null
-  if (!user && !isDocLoading) {
-    notFound();
-  }
-
+  if (error) throw error;
+  if (!user && !isDocLoading) notFound();
   if (!user) return null;
 
   return (
@@ -116,22 +152,63 @@ export default function UserProfilePage() {
                     <Link href={authUser ? "/directory" : "/"}>
                         <Button variant="ghost" className="text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> Back to {authUser ? "Directory" : "Homepage"}</Button>
                     </Link>
-                    {isAdmin && !isOwnProfile && (
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button><Edit className="mr-2 h-4 w-4"/>Edit Profile</Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[625px]">
-                                <DialogHeader>
-                                    <DialogTitle>Edit Profile</DialogTitle>
-                                    <DialogDescription>
-                                        Make changes to {user.name}'s profile. Click save when you're done.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <EditProfileForm currentUser={user} />
-                            </DialogContent>
-                        </Dialog>
-                    )}
+                    <div className="flex gap-2">
+                        {isAdmin && !isOwnProfile && (
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline"><Edit className="mr-2 h-4 w-4"/>Edit Profile</Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[625px]">
+                                    <DialogHeader>
+                                        <DialogTitle>Edit Profile</DialogTitle>
+                                        <DialogDescription>
+                                            Make changes to {user.name}'s profile. Click save when you're done.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <EditProfileForm currentUser={user} />
+                                </DialogContent>
+                            </Dialog>
+                        )}
+                        {authUser && isStudentViewer && isProfessorOrStaffTarget && !isOwnProfile && (
+                            <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button className="bg-primary hover:bg-primary/90"><Star className="mr-2 h-4 w-4" /> Give Feedback</Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[425px]">
+                                    <DialogHeader>
+                                        <DialogTitle>Rate {user.name}</DialogTitle>
+                                        <DialogDescription>
+                                            Share your feedback as a student. This will help fellow alumni know about {user.name}'s contributions.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="py-12 space-y-8">
+                                        <div className="flex justify-between items-center px-2">
+                                            <span className="text-sm font-medium">Poor</span>
+                                            <span className="text-2xl font-bold text-primary">{ratingValue}/100</span>
+                                            <span className="text-sm font-medium">Excellent</span>
+                                        </div>
+                                        <Slider
+                                            defaultValue={[ratingValue]}
+                                            max={100}
+                                            step={1}
+                                            onValueChange={(vals) => setRatingValue(vals[0])}
+                                            className="w-full"
+                                        />
+                                    </div>
+                                    <DialogFooter>
+                                        <Button 
+                                            onClick={handleFeedbackSubmit} 
+                                            className="w-full"
+                                            disabled={isSubmittingFeedback}
+                                        >
+                                            {isSubmittingFeedback && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Submit Rating
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        )}
+                    </div>
                 </div>
               <Card className="overflow-hidden shadow-lg border-none">
                 <CardHeader className="relative flex flex-col items-center justify-center space-y-4 bg-card p-10 text-center">
@@ -141,7 +218,14 @@ export default function UserProfilePage() {
                     <AvatarFallback className="text-5xl bg-muted">{getInitials(user.name)}</AvatarFallback>
                   </Avatar>
                   <div className="space-y-2">
-                    <CardTitle className="text-4xl font-bold font-headline">{user.name}</CardTitle>
+                    <div className="flex items-center justify-center gap-2">
+                        <CardTitle className="text-4xl font-bold font-headline">{user.name}</CardTitle>
+                        {isProfessorOrStaffTarget && (
+                            <Badge className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-current" /> {user.feedbackRating || 0}
+                            </Badge>
+                        )}
+                    </div>
                     <CardDescription className="text-lg">{user.college} — {user.university}</CardDescription>
                     <Badge variant={user.role === 'student' ? 'secondary' : 'outline'} className="capitalize mt-2 px-4 py-1 text-sm font-semibold">{user.role}</Badge>
                   </div>

@@ -39,6 +39,8 @@ export async function signup(prevState: any, formData: FormData) {
 
         await updateProfile(user, { displayName: name });
 
+        const initialRating = Math.floor(Math.random() * 41) + 60; // Initial random rating
+
         let userProfileForDb: any = {
             id: user.uid,
             externalAuthId: user.uid,
@@ -51,7 +53,9 @@ export async function signup(prevState: any, formData: FormData) {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             status: 'active',
-            feedbackRating: Math.floor(Math.random() * 41) + 60, // Default random rating between 60-100 for MVP
+            feedbackRating: initialRating,
+            feedbackCount: 1,
+            totalFeedbackPoints: initialRating,
             avatarUrl: `https://picsum.photos/seed/${user.uid}/200/200`,
             preferences: [],
             networkActivity: '',
