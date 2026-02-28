@@ -4,8 +4,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'Alumni University',
-  description: 'Alumni Management System',
+  title: 'Nexus Alumni Network',
+  description: 'The official alumni platform for staying connected, finding jobs, and mentoring the next generation.',
 };
 
 export default function RootLayout({
