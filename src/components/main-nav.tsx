@@ -22,6 +22,10 @@ import {
   GraduationCap,
   MessageCircle,
   User as UserIcon,
+  Home as HomeIcon,
+  Info,
+  Newspaper,
+  Globe,
 } from 'lucide-react';
 import { Logo } from './logo';
 import { usePathname, useRouter } from 'next/navigation';
@@ -31,6 +35,7 @@ import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 
 const menuItems = [
+  { href: '/', label: 'Home', icon: HomeIcon },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
   { href: '/directory', label: 'Alumni Directory', icon: Users },
   { href: '/feed', label: 'Community Feed', icon: Rss },
@@ -39,6 +44,12 @@ const menuItems = [
   { href: '/mentorship', label: 'Mentorship', icon: GraduationCap },
   { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/messages', label: 'Messages', icon: MessageCircle },
+];
+
+const frontPageOptions = [
+  { href: '#', label: 'About Us', icon: Info },
+  { href: '#', label: 'News', icon: Newspaper },
+  { href: '#', label: 'Community', icon: Globe },
 ];
 
 export function MainNav() {
@@ -59,6 +70,9 @@ export function MainNav() {
       </SidebarHeader>
       <SidebarContent className="px-3">
         <SidebarMenu>
+          <div className="px-4 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            Main Menu
+          </div>
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.href} className="mb-1">
               <Link href={item.href}>
@@ -69,6 +83,23 @@ export function MainNav() {
                 >
                   <item.icon className={`h-5 w-5 ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
                   <span className={`font-bold text-sm ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`}>{item.label}</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          ))}
+          
+          <div className="px-4 py-2 mt-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            Explore
+          </div>
+          {frontPageOptions.map((item) => (
+            <SidebarMenuItem key={item.label} className="mb-1">
+              <Link href={item.href}>
+                <SidebarMenuButton
+                  className="h-11 px-4 rounded-xl transition-all duration-200"
+                  tooltip={item.label}
+                >
+                  <item.icon className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-bold text-sm text-muted-foreground">{item.label}</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
