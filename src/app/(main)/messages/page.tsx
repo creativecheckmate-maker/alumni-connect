@@ -20,8 +20,6 @@ export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch real users from Firestore to populate the sidebar.
-  // We guard this query with authUser to prevent guest permission errors.
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !authUser) return null;
     return query(
@@ -40,15 +38,12 @@ export default function MessagesPage() {
 
   const selectedUser = allUsers?.find(u => u.id === activeChat);
 
-  // Determine chat ID (deterministic sorting of UIDs to ensure uid1_uid2 always equals uid2_uid1)
    const chatId = activeChat && authUser?.uid 
     ? [authUser.uid, activeChat].sort().join('_') 
     : null;
 
-  // Fetch real-time messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId || !authUser?.uid) return null;
-    // Including participants filter to strictly match security rules for list operations
     return query(
       collection(firestore, 'messages'),
       where('participants', 'array-contains', authUser.uid),
@@ -60,7 +55,6 @@ export default function MessagesPage() {
 
   const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
 
-  // Scroll to bottom when messages change
   useEffect (() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -105,7 +99,6 @@ export default function MessagesPage() {
 
    return (
     <div className="flex h-[calc(100vh-140px)] gap-4 flex-col md:flex-row max-w-6xl mx-auto w-full">
-      {/* Sidebar: User List */}
       <Card className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-md bg-card ${activeChat ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b">
           <h2 className="text-xl font-bold font-headline mb-4">Messages</h2>
@@ -158,11 +151,9 @@ export default function MessagesPage() {
         </ScrollArea>
       </Card>
 
-      {/* Main Chat Window */}
       <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-md min-h-[400px] bg-card ${ !activeChat ? 'hidden md:flex' : 'flex'}`}>
         {selectedUser ? (
           <>
-            {/* Chat Header */}
             <div className="p-4 border-b flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button onClick={() => setActiveChat(null)} className="md:hidden p-2 hover:bg-muted rounded-full">
@@ -187,7 +178,6 @@ export default function MessagesPage() {
               </div>
             </div>
 
-             {/* Chat Messages Area */}
             <ScrollArea className="flex-1 p-6 bg-muted/5">
               <div className="space-y-6">
                 {isMessagesLoading ? (
@@ -225,7 +215,6 @@ export default function MessagesPage() {
               </div>
             </ScrollArea>
 
-            {/* Chat Input Area */}
             <div className="p-4 border-t">
               <form 
                 className="flex gap-2"
