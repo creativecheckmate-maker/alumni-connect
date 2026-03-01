@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card } from '@/components/ui/card';
@@ -42,7 +43,7 @@ export default function MessagesPage() {
   // Fetch real-time messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId || !authUser?.uid) return null;
-    // Including participants filter to match security rules
+    // Including participants filter to strictly match security rules for list operations
     return query(
       collection(firestore, 'messages'),
       where('participants', 'array-contains', authUser.uid),
