@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card } from '@/components/ui/card';
@@ -8,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Send, Phone, Video, Info, Loader2, ArrowLeft, MessageCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { collection, query, where, orderBy, addDoc, serverTimestamp, limit } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase, useCollection, addDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, orderBy, serverTimestamp, limit } from 'firebase/firestore';
 import type { User, Message } from '@/lib/definitions';
 
 export default function MessagesPage() {
@@ -30,7 +29,7 @@ export default function MessagesPage() {
   
   const users = allUsers?.filter(u => 
     u.id !== authUser?.uid && 
-    u.name.toLowerCase().includes(searchTerm.toLowerCase())
+    (u.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
   const selectedUser = allUsers?.find(u => u.id === activeChat);
@@ -43,7 +42,7 @@ export default function MessagesPage() {
   // Fetch real-time messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId || !authUser?.uid) return null;
-    // Explicitly including participants filter to match security rules
+    // Including participants filter to match security rules
     return query(
       collection(firestore, 'messages'),
       where('participants', 'array-contains', authUser.uid),
@@ -68,14 +67,14 @@ export default function MessagesPage() {
     const msgData = {
       senderId: authUser.uid,
       receiverId: activeChat,
-      participants: [authUser.uid, activeChat], // Crucial for security rules
+      participants: [authUser.uid, activeChat],
       chatId: chatId,
       text: messageText,
       createdAt: serverTimestamp(),
     };
 
     setMessageText('');
-    addDoc(collection(firestore, 'messages'), msgData);
+    addDocumentNonBlocking(collection(firestore, 'messages'), msgData);
   };
 
   const getInitials = (name: string) => {
@@ -117,11 +116,11 @@ export default function MessagesPage() {
                   }`}
                 >
                   <Avatar className="h-12 w-12 ring-2 ring-background ring-offset-2 shrink-0">
-                    <AvatarImage src={user.avatarUrl} alt={user.name} />
-                    <AvatarFallback className="bg-muted text-muted-foreground font-bold">{getInitials(user.name)}</AvatarFallback>
+                    <AvatarImage src={user.avatarUrl} alt={user.name || 'User'} />
+                    <AvatarFallback className="bg-muted text-muted-foreground font-bold">{getInitials(user.name || 'U')}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 text-left min-w-0">
-                    <p className="text-sm font-bold truncate">{user.name}</p>
+                    <p className="text-sm font-bold truncate">{user.name || 'Nexus Alumnus'}</p>
                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider truncate">
                       {user.role === 'student' ? (user.major || 'Nexus Student') : (user.department || 'Nexus Staff')}
                     </p>
@@ -150,10 +149,10 @@ export default function MessagesPage() {
                 </button>
                 <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                   <AvatarImage src={selectedUser.avatarUrl} />
-                  <AvatarFallback className="bg-primary/5 text-primary font-bold">{getInitials(selectedUser.name)}</AvatarFallback>
+                  <AvatarFallback className="bg-primary/5 text-primary font-bold">{getInitials(selectedUser.name || 'U')}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="text-sm font-bold leading-none mb-1">{selectedUser.name}</p>
+                  <p className="text-sm font-bold leading-none mb-1">{selectedUser.name || 'Nexus Alumnus'}</p>
                   <p className="text-[10px] text-green-500 font-bold flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
                     Available Now
@@ -198,7 +197,7 @@ export default function MessagesPage() {
                   <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
                     <MessageCircle className="h-12 w-12 mb-2" />
                     <p className="text-sm font-bold">No messages yet</p>
-                    <p className="text-xs">Start the conversation with {selectedUser.name.split(' ')[0]}</p>
+                    <p className="text-xs">Start the conversation with {(selectedUser.name || 'this user').split(' ')[0]}</p>
                   </div>
                 )}
                 <div ref={scrollRef} />

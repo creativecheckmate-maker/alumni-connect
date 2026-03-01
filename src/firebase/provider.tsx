@@ -57,16 +57,24 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     userError: null,
   });
 
-  const [isEditMode, setIsEditMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('nexus_admin_edit_mode') === 'true';
-    }
-    return false;
-  });
+  const [isEditMode, setIsEditMode] = useState(false);
 
+  // Use useEffect to handle hydration-safe localStorage access
   useEffect(() => {
-    localStorage.setItem('nexus_admin_edit_mode', isEditMode.toString());
-  }, [isEditMode]);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('nexus_admin_edit_mode') === 'true';
+      if (saved !== isEditMode) {
+        setIsEditMode(saved);
+      }
+    }
+  }, []);
+
+  const handleSetEditMode = (val: boolean) => {
+    setIsEditMode(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nexus_admin_edit_mode', val.toString());
+    }
+  };
 
   useEffect(() => {
     if (!auth) {
@@ -98,7 +106,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
       isEditMode,
-      setIsEditMode,
+      setIsEditMode: handleSetEditMode,
     };
   }, [firebaseApp, firestore, auth, userAuthState, isEditMode]);
 
