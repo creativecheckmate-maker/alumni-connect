@@ -3,14 +3,78 @@
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { Search, Settings2 } from 'lucide-react';
+import { Search, Settings2, Edit, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { ADMIN_EMAIL } from '@/lib/config';
+import { useState } from 'react';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import type { SiteContent } from '@/lib/definitions';
+
+function HeaderEditDialog({ initialData }: { initialData: any }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', 'global_header'), {
+        id: 'global_header',
+        pageId: 'global',
+        sectionId: 'header',
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Header Updated", description: "Global header settings saved." });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to save settings." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-lg">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Header Settings</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          {Object.keys(initialData).map((key) => (
+            <div key={key} className="space-y-2">
+              <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
+              <Input 
+                value={data[key]} 
+                onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+              />
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Header
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function MainLayout({
   children,
@@ -18,7 +82,19 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   const { user, isEditMode, setIsEditMode } = useFirebase();
+  const firestore = useFirestore();
   const isAdmin = user?.email === ADMIN_EMAIL;
+
+  const headerDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_header'), [firestore]);
+  const { data: headerContent } = useDoc<SiteContent>(headerDocRef);
+
+  const defaultHeader = {
+    searchPlaceholder: "Search anything...",
+    loginButton: "Log In",
+    signupButton: "Join Today"
+  };
+
+  const currentHeader = headerContent?.data || defaultHeader;
 
   return (
     <SidebarProvider>
@@ -32,7 +108,7 @@ export default function MainLayout({
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search anything..."
+                  placeholder={currentHeader.searchPlaceholder}
                   className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
                 />
               </div>
@@ -41,6 +117,7 @@ export default function MainLayout({
           
           {isAdmin && (
             <div className="flex items-center gap-2 mr-4 bg-muted/50 px-3 py-1.5 rounded-full border border-primary/20 animate-in fade-in slide-in-from-right-2">
+              {isEditMode && <HeaderEditDialog initialData={currentHeader} />}
               <Settings2 className="h-4 w-4 text-primary" />
               <Label htmlFor="edit-mode" className="text-xs font-bold whitespace-nowrap">Edit Mode</Label>
               <Switch 
@@ -56,10 +133,10 @@ export default function MainLayout({
           ) : (
             <div className="flex items-center gap-2">
               <Link href="/login">
-                <Button variant="ghost" size="sm">Log In</Button>
+                <Button variant="ghost" size="sm">{currentHeader.loginButton}</Button>
               </Link>
               <Link href="/login">
-                <Button size="sm">Join Today</Button>
+                <Button size="sm">{currentHeader.signupButton}</Button>
               </Link>
             </div>
           )}
