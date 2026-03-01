@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Send, Phone, Video, Info, Loader2, ArrowLeft, MessageCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { useUser, useFirestore, useMemoFirebase, useCollection, addDocumentNonBlocking, useDoc } from '@/firebase';
-import { collection, query, where, orderBy, serverTimestamp, limit, doc } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase, useCollection, addDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, orderBy, serverTimestamp, limit } from 'firebase/firestore';
 import type { User, Message } from '@/lib/definitions';
 
 export default function MessagesPage() {
@@ -21,15 +21,15 @@ export default function MessagesPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch real users from Firestore to populate the sidebar.
-  // We filter by visibility to align with public/private listing rules.
+  // We guard this query with authUser to prevent guest permission errors.
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !authUser) return null;
     return query(
       collection(firestore, 'users'), 
       where('isVisibleInDirectory', '==', true),
       limit(100)
     );
-  }, [firestore]);
+  }, [firestore, authUser]);
 
   const { data: allUsers, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
 

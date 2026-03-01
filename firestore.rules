@@ -20,11 +20,10 @@ service cloud.firestore {
 
     // Users Collection
     match /users/{userId} {
-      // Individual profiles: Public if visible, otherwise signed-in or admin.
+      // Allow reading individual profiles if public, signed in, or admin
       allow get: if isAdmin() || isSignedIn() || resource.data.isVisibleInDirectory == true;
       
-      // Listing: Admin can see all. Regular users/guests only visible ones.
-      // Rules for listing must match the filters used in the query.
+      // Allow listing users if admin or if filtering by public visibility
       allow list: if isAdmin() || (resource.data.isVisibleInDirectory == true);
       
       allow create: if isOwner(userId);
