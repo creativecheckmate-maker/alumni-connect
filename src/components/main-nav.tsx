@@ -29,20 +29,20 @@ import {
 import { Logo } from './logo';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 
 const menuItems = [
-  { href: '/', label: 'Home', icon: HomeIcon },
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
-  { href: '/directory', label: 'Alumni Directory', icon: Users },
-  { href: '/feed', label: 'Community Feed', icon: Rss },
-  { href: '/events', label: 'Upcoming Events', icon: Calendar },
-  { href: '/jobs', label: 'Job Board', icon: Briefcase },
-  { href: '/mentorship', label: 'Mentorship', icon: GraduationCap },
-  { href: '/notifications', label: 'Notifications', icon: Bell },
-  { href: '/messages', label: 'Messages', icon: MessageCircle },
+  { href: '/', label: 'Home', icon: HomeIcon, public: true },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid, public: false },
+  { href: '/directory', label: 'Alumni Directory', icon: Users, public: true },
+  { href: '/feed', label: 'Community Feed', icon: Rss, public: false },
+  { href: '/events', label: 'Upcoming Events', icon: Calendar, public: true },
+  { href: '/jobs', label: 'Job Board', icon: Briefcase, public: true },
+  { href: '/mentorship', label: 'Mentorship', icon: GraduationCap, public: true },
+  { href: '/notifications', label: 'Notifications', icon: Bell, public: false },
+  { href: '/messages', label: 'Messages', icon: MessageCircle, public: false },
 ];
 
 const frontPageOptions = [
@@ -54,6 +54,7 @@ const frontPageOptions = [
 export function MainNav() {
   const pathname = usePathname();
   const auth = useAuth();
+  const { user } = useUser();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -61,6 +62,8 @@ export function MainNav() {
     await signOut(auth);
     router.push('/login');
   };
+
+  const filteredItems = menuItems.filter(item => item.public || !!user);
 
   return (
     <Sidebar className="border-r-0 shadow-xl">
@@ -72,7 +75,7 @@ export function MainNav() {
           <div className="px-4 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             Main Menu
           </div>
-          {menuItems.map((item) => (
+          {filteredItems.map((item) => (
             <SidebarMenuItem key={item.href} className="mb-1">
               <SidebarMenuButton
                 asChild
@@ -108,34 +111,40 @@ export function MainNav() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-6 pt-0">
-        <div className="space-y-3">
-          <Button 
-            asChild
-            variant="ghost" 
-            className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 font-bold"
-          >
-            <Link href="/profile">
-              <UserIcon className="h-5 w-5" /> My Profile
-            </Link>
+        {user ? (
+          <div className="space-y-3">
+            <Button 
+              asChild
+              variant="ghost" 
+              className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 font-bold"
+            >
+              <Link href="/profile">
+                <UserIcon className="h-5 w-5" /> My Profile
+              </Link>
+            </Button>
+            <Button 
+              asChild
+              variant="ghost" 
+              className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 font-bold"
+            >
+              <Link href="/settings">
+                <Settings className="h-5 w-5" /> Settings
+              </Link>
+            </Button>
+            <Button 
+              variant="default" 
+              className="w-full justify-between h-12 rounded-xl shadow-lg shadow-primary/20"
+              onClick={handleLogout}
+            >
+              <span className="font-bold">Sign Out</span>
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
+        ) : (
+          <Button asChild className="w-full rounded-xl">
+            <Link href="/login">Join the Network</Link>
           </Button>
-          <Button 
-            asChild
-            variant="ghost" 
-            className="w-full justify-start gap-3 h-11 px-4 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/5 font-bold"
-          >
-            <Link href="/settings">
-              <Settings className="h-5 w-5" /> Settings
-            </Link>
-          </Button>
-          <Button 
-            variant="default" 
-            className="w-full justify-between h-12 rounded-xl shadow-lg shadow-primary/20"
-            onClick={handleLogout}
-          >
-            <span className="font-bold">Sign Out</span>
-            <LogOut className="h-5 w-5" />
-          </Button>
-        </div>
+        )}
       </SidebarFooter>
     </Sidebar>
   );
