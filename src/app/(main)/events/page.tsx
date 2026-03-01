@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -16,11 +17,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2, Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function EventsPage() {
   const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   const isAdmin = authUser?.email === ADMIN_EMAIL;
   const [isPosting, setIsPosting] = useState(false);
   const [open, setOpen] = useState(false);
@@ -60,6 +63,14 @@ export default function EventsPage() {
     if (!firestore) return;
     await deleteDoc(doc(firestore, 'events', id));
     toast({ title: "Event Deleted", description: "The event has been removed." });
+  };
+
+  const handleRSVP = (eventName: string) => {
+    if (!authUser) {
+      router.push('/login');
+      return;
+    }
+    toast({ title: "RSVP Confirmed", description: `You have successfully registered for ${eventName}.` });
   };
 
   return (
@@ -149,7 +160,7 @@ export default function EventsPage() {
                                     <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">{event.description}</p>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button variant="secondary" className="w-full md:w-auto font-bold">RSVP Now</Button>
+                                    <Button variant="secondary" className="w-full md:w-auto font-bold" onClick={() => handleRSVP(event.name)}>RSVP Now</Button>
                                 </CardFooter>
                             </div>
                         </div>

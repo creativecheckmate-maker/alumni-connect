@@ -14,6 +14,7 @@ import { ADMIN_EMAIL } from '@/lib/config';
 import Image from 'next/image';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 export default function FeedPage() {
   const { user, isEditMode } = useFirebase();
@@ -61,7 +62,7 @@ export default function FeedPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <PageHeader title="Community Feed" />
 
-      {user && (
+      {user ? (
         <Card className="border-none shadow-sm">
           <CardContent className="p-4 space-y-4">
             <div className="flex gap-4">
@@ -85,6 +86,16 @@ export default function FeedPage() {
                 Post <Send className="ml-2 h-4 w-4" />
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-none shadow-sm bg-primary/5">
+          <CardContent className="p-8 text-center space-y-4">
+            <h3 className="font-bold text-lg">Join the Conversation</h3>
+            <p className="text-sm text-muted-foreground">Log in to share updates, memories, and connect with the Nexus community.</p>
+            <Link href="/login">
+              <Button className="rounded-full px-8 font-bold">Log In to Post</Button>
+            </Link>
           </CardContent>
         </Card>
       )}

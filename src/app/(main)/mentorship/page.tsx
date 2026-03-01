@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string, initialData: any, label: string }) {
   const { toast } = useToast();
@@ -80,6 +81,7 @@ export default function MentorshipPage() {
   const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const isAdmin = authUser?.email === ADMIN_EMAIL;
 
@@ -88,7 +90,6 @@ export default function MentorshipPage() {
 
   const mentorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Ensure we only query visible profiles to satisfy security rules for public access
     return query(
       collection(firestore, 'users'), 
       where('role', 'in', ['professor', 'non-teaching-staff']),
@@ -104,6 +105,14 @@ export default function MentorshipPage() {
   const filteredMentors = mentors?.filter(m => 
     (m.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+
+  const handleRequestConnection = (mentorName: string) => {
+    if (!authUser) {
+      router.push('/login');
+      return;
+    }
+    toast({ title: "Request Sent", description: `Mentorship request sent to ${mentorName.split(' ')[0]}.` });
+  };
 
   const getInitials = (name: string) => {
     if (!name) return 'U';
@@ -123,7 +132,9 @@ export default function MentorshipPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
           </div>
-          <Button variant="outline" className="font-bold">Become a Mentor</Button>
+          <Button variant="outline" className="font-bold" onClick={() => !authUser ? router.push('/login') : toast({ title: "Enrolling...", description: "Your mentor profile is being set up." })}>
+            Become a Mentor
+          </Button>
           {isAdmin && isEditMode && <AdminEditDialog sectionId="main" initialData={{ description }} label="Intro Description" />}
         </div>
       </PageHeader>
@@ -160,7 +171,7 @@ export default function MentorshipPage() {
                 </div>
               </CardContent>
               <CardFooter className="p-0 border-t">
-                <Button variant="ghost" className="w-full h-14 font-bold rounded-none hover:bg-primary/5 text-primary" onClick={() => toast({ title: "Request Sent", description: `Mentorship request sent to ${mentor.name.split(' ')[0]}.` })}>
+                <Button variant="ghost" className="w-full h-14 font-bold rounded-none hover:bg-primary/5 text-primary" onClick={() => handleRequestConnection(mentor.name)}>
                   Request Connection
                 </Button>
               </CardFooter>

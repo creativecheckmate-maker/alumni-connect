@@ -24,13 +24,13 @@ export default function DashboardPage() {
   const { data: currentUser } = useDoc<User>(userDocRef);
 
   const recentUsersQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser) return null; // Private query: don't run if not signed in
+    if (!firestore) return null;
     return query(
       collection(firestore, 'users'), 
       where('isVisibleInDirectory', '==', true),
       limit(10)
     );
-  }, [firestore, authUser]);
+  }, [firestore]);
 
   const { data: users } = useCollection<User>(recentUsersQuery);
 
@@ -43,11 +43,41 @@ export default function DashboardPage() {
 
   if (!authUser) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="max-w-md w-full text-center p-8 space-y-6">
+      <div className="max-w-4xl mx-auto space-y-8 pb-10">
+        <div className="flex items-center justify-between">
+           <h1 className="text-2xl font-bold font-headline leading-tight">Alumni Network</h1>
+           <Link href="/login">
+            <Button size="sm">Log In</Button>
+           </Link>
+        </div>
+        
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold font-headline text-primary">Alumni Spotlights</h2>
+            <Link href="/directory">
+              <Button variant="link" size="sm" className="text-muted-foreground p-0">View All</Button>
+            </Link>
+          </div>
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-4 pb-4">
+              {users?.map((u) => (
+                <Link key={u.id} href={`/users/${u.id}`} className="flex flex-col items-center gap-2 group cursor-pointer">
+                  <Avatar className="h-16 w-16 border-2 border-transparent group-hover:border-primary transition-all">
+                    <AvatarImage src={u.avatarUrl} />
+                    <AvatarFallback>{u.name?.[0] || 'U'}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">{u.name?.split(' ')[0]}</span>
+                </Link>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </section>
+
+        <Card className="max-w-md w-full text-center p-8 space-y-6 mx-auto">
           <CardHeader>
-            <CardTitle>Welcome to Nexus Alumni</CardTitle>
-            <CardDescription>Please log in to view your personalized dashboard and network updates.</CardDescription>
+            <CardTitle>Personalize Your Experience</CardTitle>
+            <CardDescription>Log in to view your personalized dashboard, private messages, and network updates.</CardDescription>
           </CardHeader>
           <Link href="/login">
             <Button className="w-full font-bold h-12">Log In to Dashboard</Button>
