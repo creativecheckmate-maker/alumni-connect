@@ -6,33 +6,34 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { Search, Briefcase, Plus, MapPin, Building2, ExternalLink } from 'lucide-react';
+import { Search, Briefcase, Plus, MapPin, Building2, ExternalLink, Trash2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import type { JobPosting } from '@/lib/definitions';
+import { ADMIN_EMAIL } from '@/lib/config';
 
 export default function JobsPage() {
-  const { user } = useUser();
+  const { user: authUser } = useUser();
   const { toast } = useToast();
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
+  const isAdmin = authUser?.email === ADMIN_EMAIL;
 
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'jobPostings'));
+    return query(collection(firestore, 'jobPostings'), orderBy('createdAt', 'desc'));
   }, [firestore]);
 
   const { data: jobs } = useCollection<JobPosting>(jobsQuery);
 
   const handlePostJob = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!firestore || !user) return;
+    if (!firestore || !authUser) return;
     
     const formData = new FormData(e.currentTarget);
     const jobData = {
@@ -40,7 +41,8 @@ export default function JobsPage() {
       company: formData.get('company') as string,
       location: formData.get('location') as string,
       description: formData.get('description') as string,
-      posterId: user.uid,
+      posterId: authUser.uid,
+      companyLogoUrl: `https://picsum.photos/seed/${Math.random()}/100/100`,
       createdAt: serverTimestamp(),
     };
 
@@ -50,6 +52,12 @@ export default function JobsPage() {
       title: "Job Posted Successfully",
       description: "Your job posting has been submitted.",
     });
+  };
+
+  const handleDeleteJob = async (id: string) => {
+    if (!firestore) return;
+    await deleteDoc(doc(firestore, 'jobPostings', id));
+    toast({ title: "Job Deleted", description: "The job posting has been removed." });
   };
 
   const filteredJobs = jobs?.filter(job => 
@@ -122,7 +130,19 @@ export default function JobsPage() {
                           <AvatarFallback className="bg-primary/5 text-primary text-sm font-bold uppercase">{job.company.substring(0, 2)}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0 space-y-1">
-                          <CardTitle className="text-lg font-bold leading-none truncate">{job.title}</CardTitle>
+                          <div className="flex justify-between items-start">
+                            <CardTitle className="text-lg font-bold leading-none truncate">{job.title}</CardTitle>
+                            {isAdmin && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7 text-destructive -mt-1 -mr-1" 
+                                onClick={() => handleDeleteJob(job.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                               <Building2 className="h-3 w-3" />
                               <span className="truncate">{job.company}</span>
