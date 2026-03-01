@@ -46,9 +46,9 @@ const menuItems = [
 ];
 
 const frontPageOptions = [
-  { href: '#', label: 'About Us', icon: Info },
-  { href: '#', label: 'News', icon: Newspaper },
-  { href: '#', label: 'Community', icon: Globe },
+  { href: '/about', label: 'About Us', icon: Info },
+  { href: '/news', label: 'News', icon: Newspaper },
+  { href: '/community', label: 'Community', icon: Globe },
 ];
 
 export function MainNav() {
@@ -95,15 +95,16 @@ export function MainNav() {
             Explore
           </div>
           {frontPageOptions.map((item) => (
-            <SidebarMenuItem key={item.label} className="mb-1">
+            <SidebarMenuItem key={item.href} className="mb-1">
               <SidebarMenuButton
                 asChild
+                isActive={pathname === item.href}
                 className="h-11 px-4 rounded-xl transition-all duration-200"
                 tooltip={item.label}
               >
                 <Link href={item.href}>
-                  <item.icon className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-bold text-sm text-muted-foreground">{item.label}</span>
+                  <item.icon className={`h-5 w-5 ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span className={`font-bold text-sm ${pathname === item.href ? 'text-primary' : 'text-muted-foreground'}`}>{item.label}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -141,9 +142,11 @@ export function MainNav() {
             </Button>
           </div>
         ) : (
-          <Button asChild className="w-full rounded-xl">
-            <Link href="/login">Join the Network</Link>
-          </Button>
+          <div className="space-y-2">
+            <Link href="/login" className="w-full">
+               <Button className="w-full rounded-xl">Join the Network</Button>
+            </Link>
+          </div>
         )}
       </SidebarFooter>
     </Sidebar>
