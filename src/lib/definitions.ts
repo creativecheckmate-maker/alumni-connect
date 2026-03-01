@@ -27,7 +27,6 @@ export type UserProfile = {
   networkActivity?: string;
 };
 
-// Alias for convenience
 export type User = UserProfile;
 
 export type FeedPost = {
@@ -70,4 +69,12 @@ export type JobPosting = {
   posterId: string;
   companyLogoUrl?: string;
   university?: string;
+};
+
+export type SiteContent = {
+  id: string;
+  pageId: string;
+  sectionId: string;
+  data: Record<string, any>;
+  updatedAt: any;
 };

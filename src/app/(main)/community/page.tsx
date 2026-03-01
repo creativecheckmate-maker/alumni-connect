@@ -1,12 +1,87 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Globe, Users, MapPin, Share2 } from 'lucide-react';
+import { Globe, Users, MapPin, Share2, Edit, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { ADMIN_EMAIL } from '@/lib/config';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { SiteContent } from '@/lib/definitions';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+
+function AdminEditDialog({ initialData }: { initialData: any }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', 'community_hero'), {
+        id: 'community_hero',
+        pageId: 'community',
+        sectionId: 'hero',
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Updated", description: "Community Hub description saved." });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to save." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" className="h-8 w-8 ml-2">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Hub Description</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <Label>Description</Label>
+          <Textarea 
+            value={data.description} 
+            onChange={(e) => setData({ description: e.target.value })} 
+            className="mt-2"
+          />
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function CommunityHubPage() {
+  const { user: authUser } = useUser();
+  const firestore = useFirestore();
+  const isAdmin = authUser?.email === ADMIN_EMAIL;
+
+  const contentDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'community_hero'), [firestore]);
+  const { data: hubContent } = useDoc<SiteContent>(contentDocRef);
+
+  const defaultDescription = "Our strength lies in our diversity. Connect with local chapters and engage with alumni across the globe.";
+  const description = hubContent?.data?.description || defaultDescription;
+
   const stats = [
     { label: 'Global Alumni', value: '25,000+', icon: <Users className="h-5 w-5" /> },
     { label: 'Countries', value: '120+', icon: <Globe className="h-5 w-5" /> },
@@ -23,9 +98,11 @@ export default function CommunityHubPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-12 pb-20">
       <div className="text-center space-y-4">
-        <PageHeader title="Community Hub" />
+        <PageHeader title="Community Hub">
+          {isAdmin && <AdminEditDialog initialData={{ description }} />}
+        </PageHeader>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto font-body">
-          Our strength lies in our diversity. Connect with local chapters and engage with alumni across the globe.
+          {description}
         </p>
       </div>
 

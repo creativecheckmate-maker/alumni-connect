@@ -6,15 +6,22 @@ import { Badge } from '@/components/ui/badge';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { ArrowRight, Star, GraduationCap, Briefcase, Users, Globe, Trophy, Rocket } from 'lucide-react';
-import { collection, query, where, limit } from 'firebase/firestore';
-import type { User } from '@/lib/definitions';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { ArrowRight, Star, GraduationCap, Briefcase, Users, Globe, Trophy, Edit, Loader2 } from 'lucide-react';
+import { collection, query, where, limit, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { User, SiteContent } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { ADMIN_EMAIL } from '@/lib/config';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const getPlaceholderImage = (id: string) => {
     const img = PlaceHolderImages.find(p => p.id === id);
@@ -59,9 +66,81 @@ function UserRatingCard({ user }: { user: User }) {
   );
 }
 
+function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: string, sectionId: string, initialData: any, label: string }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', `${pageId}_${sectionId}`), {
+        id: `${pageId}_${sectionId}`,
+        pageId,
+        sectionId,
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Content Updated", description: `${label} has been saved successfully.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to update content." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="secondary" className="absolute top-4 right-4 z-50 rounded-full shadow-lg">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit {label}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          {Object.keys(initialData).map((key) => (
+            <div key={key} className="space-y-2">
+              <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
+              {key.toLowerCase().includes('description') || key.toLowerCase().includes('content') ? (
+                <Textarea 
+                  value={data[key]} 
+                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                />
+              ) : (
+                <Input 
+                  value={data[key]} 
+                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function HomePage() {
   const { user: authUser } = useUser();
   const firestore = useFirestore();
+  const isAdmin = authUser?.email === ADMIN_EMAIL;
+
+  const heroDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'home_hero'), [firestore]);
+  const { data: heroContent } = useDoc<SiteContent>(heroDocRef);
+
+  const statsDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'home_stats'), [firestore]);
+  const { data: statsContent } = useDoc<SiteContent>(statsDocRef);
 
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -81,17 +160,27 @@ export default function HomePage() {
   const professors = allUsers?.filter(u => u.role === 'professor').sort((a, b) => (b.feedbackRating || 0) - (a.feedbackRating || 0)).slice(0, 3) || [];
   const staff = allUsers?.filter(u => u.role === 'non-teaching-staff').sort((a, b) => (b.feedbackRating || 0) - (a.feedbackRating || 0)).slice(0, 3) || [];
 
-  const stats = [
+  const defaultHero = {
+    badge: "🚀 Trusted by 25,000+ Alumni",
+    title: "Connecting Our Global Legacy",
+    description: "The official portal for Nexus University graduates to stay connected, find opportunities, and empower the next generation."
+  };
+
+  const defaultStats = [
     { label: 'Global Alumni', value: '25K+', icon: <Globe className="h-5 w-5" /> },
     { label: 'Job Placements', value: '12K+', icon: <Briefcase className="h-5 w-5" /> },
     { label: 'Mentors', value: '1.5K', icon: <Users className="h-5 w-5" /> },
     { label: 'Avg Rating', value: '92%', icon: <Star className="h-5 w-5" /> },
   ];
 
+  const currentHero = heroContent?.data || defaultHero;
+  const currentStats = statsContent?.data?.stats || defaultStats;
+
   return (
     <div className="flex-1 space-y-20 pb-20">
       {/* Hero Section */}
       <section className="relative h-[70vh] min-h-[600px] w-full rounded-[2rem] overflow-hidden shadow-2xl">
+        {isAdmin && <AdminEditDialog pageId="home" sectionId="hero" initialData={currentHero} label="Hero Section" />}
         <Image
           src={heroImage.imageUrl}
           alt={heroImage.description}
@@ -103,13 +192,13 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/70 to-transparent" />
         <div className="relative z-10 flex h-full flex-col items-start justify-center text-left text-white p-8 md:p-20 max-w-5xl">
           <Badge className="bg-white/20 hover:bg-white/30 text-white border-none px-4 py-1 mb-6 text-sm backdrop-blur-md">
-            🚀 Trusted by 25,000+ Alumni
+            {currentHero.badge}
           </Badge>
           <h1 className="font-headline text-5xl md:text-8xl font-bold tracking-tighter leading-none mb-6">
-            Connecting Our <br/><span className="text-secondary">Global Legacy</span>
+            {currentHero.title.split(' ').slice(0, -2).join(' ')} <br/><span className="text-secondary">{currentHero.title.split(' ').slice(-2).join(' ')}</span>
           </h1>
           <p className="max-w-xl text-lg md:text-2xl text-white/90 font-body leading-relaxed mb-10">
-            The official portal for Nexus University graduates to stay connected, find opportunities, and empower the next generation.
+            {currentHero.description}
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
             {authUser ? (
@@ -135,11 +224,14 @@ export default function HomePage() {
       {/* Quick Stats */}
       <section className="container mx-auto px-4 -mt-32 relative z-20">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map((stat, i) => (
+          {currentStats.map((stat: any, i: number) => (
             <Card key={i} className="border-none shadow-xl bg-background/80 backdrop-blur-lg">
               <CardContent className="p-6 text-center space-y-2">
                 <div className="inline-flex p-3 rounded-2xl bg-primary/10 text-primary mb-2">
-                  {stat.icon}
+                  {i === 0 && <Globe className="h-5 w-5" />}
+                  {i === 1 && <Briefcase className="h-5 w-5" />}
+                  {i === 2 && <Users className="h-5 w-5" />}
+                  {i === 3 && <Star className="h-5 w-5" />}
                 </div>
                 <div className="text-3xl font-bold font-headline">{stat.value}</div>
                 <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</div>
@@ -227,7 +319,7 @@ export default function HomePage() {
 
       {/* Global Recognition Banner */}
       <section className="container mx-auto px-4">
-        <div className="bg-primary text-white rounded-[3rem] overflow-hidden shadow-2xl">
+        <div className="bg-primary text-white rounded-[3rem] overflow-hidden shadow-2xl relative">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div className="p-10 md:p-20 space-y-8">
                   <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1 rounded-full text-sm font-bold border border-white/20">

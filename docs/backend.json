@@ -51,6 +51,19 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "userId", "type", "message", "read", "createdAt"]
+    },
+    "SiteContent": {
+      "title": "SiteContent",
+      "type": "object",
+      "description": "Stores editable content for various pages and sections of the site.",
+      "properties": {
+        "id": { "type": "string" },
+        "pageId": { "type": "string" },
+        "sectionId": { "type": "string" },
+        "data": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "pageId", "sectionId", "data", "updatedAt"]
     }
   },
   "auth": {
@@ -87,6 +100,14 @@
         "definition": {
           "entityName": "Event",
           "description": "Details about alumni events."
+        }
+      },
+      {
+        "path": "siteContent/{contentId}",
+        "definition": {
+          "entityName": "SiteContent",
+          "schema": { "$ref": "#/backend/entities/SiteContent" },
+          "description": "Dynamic content for site pages."
         }
       }
     ]

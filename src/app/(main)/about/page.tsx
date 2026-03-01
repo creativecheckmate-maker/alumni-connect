@@ -1,37 +1,129 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { GraduationCap, Target, Users, Heart } from 'lucide-react';
+import { GraduationCap, Target, Users, Heart, Edit, Loader2 } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { ADMIN_EMAIL } from '@/lib/config';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { SiteContent } from '@/lib/definitions';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+
+function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string, initialData: any, label: string }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', `about_${sectionId}`), {
+        id: `about_${sectionId}`,
+        pageId: 'about',
+        sectionId,
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Content Updated", description: `${label} has been saved.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to save content." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="outline" className="rounded-full shadow-sm ml-2">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit {label}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          {Object.keys(initialData).map((key) => (
+            <div key={key} className="space-y-2">
+              <Label className="capitalize">{key}</Label>
+              <Textarea 
+                value={data[key]} 
+                onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+              />
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function AboutPage() {
+  const { user: authUser } = useUser();
+  const firestore = useFirestore();
+  const isAdmin = authUser?.email === ADMIN_EMAIL;
+
+  const contentDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'about_main'), [firestore]);
+  const { data: mainContent } = useDoc<SiteContent>(contentDocRef);
+
+  const defaultContent = {
+    mission: 'To foster a lifelong connection between the university and its alumni, providing a platform for professional growth and meaningful engagement.',
+    vision: 'To be the most impactful alumni network globally, where every graduate is empowered to reach their full potential through community support.',
+    community: 'A diverse and vibrant global network of professionals, researchers, and leaders across every industry imaginable.',
+    values: 'Integrity, excellence, and a commitment to giving back to the next generation of students and fellow graduates.'
+  };
+
+  const content = mainContent?.data || defaultContent;
+
   const features = [
     {
       icon: <Target className="h-6 w-6 text-primary" />,
       title: 'Our Mission',
-      description: 'To foster a lifelong connection between the university and its alumni, providing a platform for professional growth and meaningful engagement.',
+      description: content.mission,
+      key: 'mission'
     },
     {
       icon: <GraduationCap className="h-6 w-6 text-primary" />,
       title: 'Our Vision',
-      description: 'To be the most impactful alumni network globally, where every graduate is empowered to reach their full potential through community support.',
+      description: content.vision,
+      key: 'vision'
     },
     {
       icon: <Users className="h-6 w-6 text-primary" />,
       title: 'Our Community',
-      description: 'A diverse and vibrant global network of professionals, researchers, and leaders across every industry imaginable.',
+      description: content.community,
+      key: 'community'
     },
     {
       icon: <Heart className="h-6 w-6 text-primary" />,
       title: 'Our Values',
-      description: 'Integrity, excellence, and a commitment to giving back to the next generation of students and fellow graduates.',
+      description: content.values,
+      key: 'values'
     },
   ];
 
   return (
     <div className="max-w-4xl mx-auto space-y-12 pb-20">
-      <div className="text-center space-y-4">
-        <PageHeader title="About Alumni Connect" />
+      <div className="text-center space-y-4 relative">
+        <PageHeader title="About Alumni Connect">
+           {isAdmin && <AdminEditDialog sectionId="main" initialData={content} label="Main Content" />}
+        </PageHeader>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           We are more than just a network; we are a family of global innovators and leaders committed to excellence.
         </p>

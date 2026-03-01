@@ -1,10 +1,4 @@
 
-/**
- * @file firestore.rules
- * @description Security rules for the Nexus Alumni Firestore database.
- *
- * @version 2
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -29,52 +23,28 @@ service cloud.firestore {
       allow get: if isOwner(userId) || resource.data.isVisibleInDirectory == true || isAdmin();
       allow list: if true;
       allow create: if isOwner(userId) && request.resource.data.externalAuthId == userId;
-      // Allow students to update feedback fields for professors and staff
-      allow update: if (isExistingOwner(userId) && request.resource.data.externalAuthId == resource.data.externalAuthId) 
+      allow update: if (isOwner(userId) && request.resource.data.externalAuthId == resource.data.externalAuthId) 
                     || isAdmin()
                     || (isStudent() && resource.data.role in ['professor', 'non-teaching-staff'] && 
                         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['feedbackRating', 'feedbackCount', 'totalFeedbackPoints', 'updatedAt']));
       allow delete: if isOwner(userId) || isAdmin();
     }
 
-    function isExistingOwner(ownerId) {
-      return isOwner(ownerId) && resource != null;
-    }
-
-    function isCreator(ownerField) {
-      return isSignedIn() && request.resource.data[ownerField] == request.auth.uid;
-    }
-
-    function isParticipant(mentorId, menteeId) {
-      return isSignedIn() && (request.auth.uid == mentorId || request.auth.uid == menteeId);
-    }
-
-    function isExistingParticipant(mentorId, menteeId) {
-      return isParticipant(mentorId, menteeId) && resource != null;
-    }
-
     match /events/{eventId} {
       allow get, list: if isSignedIn();
-      allow create: if isCreator('organizerId') || isAdmin();
-      allow update, delete: if isExistingOwner(resource.data.organizerId) || isAdmin();
+      allow create: if (isSignedIn() && request.resource.data.organizerId == request.auth.uid) || isAdmin();
+      allow update, delete: if (isSignedIn() && resource.data.organizerId == request.auth.uid) || isAdmin();
     }
 
     match /jobPostings/{jobPostingId} {
       allow get, list: if isSignedIn();
-      allow create: if isCreator('posterId') || isAdmin();
-      allow update, delete: if isExistingOwner(resource.data.posterId) || isAdmin();
-    }
-
-    match /mentorshipConnections/{connectionId} {
-      allow get: if isParticipant(resource.data.mentorId, resource.data.menteeId) || isAdmin();
-      allow list: if isSignedIn();
-      allow create: if isParticipant(request.resource.data.mentorId, request.resource.data.menteeId) || isAdmin();
-      allow update, delete: if isExistingParticipant(resource.data.mentorId, resource.data.menteeId) || isAdmin();
+      allow create: if (isSignedIn() && request.resource.data.posterId == request.auth.uid) || isAdmin();
+      allow update, delete: if (isSignedIn() && resource.data.posterId == request.auth.uid) || isAdmin();
     }
 
     match /feed/{postId} {
       allow get, list: if isSignedIn();
-      allow create: if isCreator('authorId') || isAdmin();
+      allow create: if (isSignedIn() && request.resource.data.authorId == request.auth.uid) || isAdmin();
       allow update: if (isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin())) || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
       allow delete: if (isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin()));
     }
@@ -84,6 +54,11 @@ service cloud.firestore {
       allow create: if isAdmin();
       allow update: if isOwner(resource.data.userId) || isAdmin();
       allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    match /siteContent/{contentId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }
