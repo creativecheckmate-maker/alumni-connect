@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Send, Phone, Video, Info, Loader2, ArrowLeft, MessageCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { useUser, useFirestore, useMemoFirebase, useCollection, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, orderBy, serverTimestamp, limit } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase, useCollection, addDocumentNonBlocking, useDoc } from '@/firebase';
+import { collection, query, where, orderBy, serverTimestamp, limit, doc } from 'firebase/firestore';
 import type { User, Message } from '@/lib/definitions';
 
 export default function MessagesPage() {
@@ -20,23 +20,31 @@ export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch real users from Firestore to populate the sidebar
+  // Fetch the current user's profile to ensure we have the most accurate data
+   const currentUserDocRef = useMemoFirebase(() => {
+    if (!firestore || !authUser?.uid) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [firestore, authUser?.uid]);
+  const { data: currentUserProfile } = useDoc<User>(currentUserDocRef);
+
+  // Fetch real users from Firestore to populate the sidebar.
+  // We only fetch if authenticated to satisfy security rules.
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !authUser) return null;
     return query(collection(firestore, 'users'), limit(100));
-  }, [firestore]);
+  }, [firestore, authUser]);
 
   const { data: allUsers, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
-  
+
   const users = allUsers?.filter(u => 
-    u.id !== authUser?.uid && 
+    u.id !== authUser?.uid  && 
     (u.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
   const selectedUser = allUsers?.find(u => u.id === activeChat);
 
   // Determine chat ID (deterministic sorting of UIDs to ensure uid1_uid2 always equals uid2_uid1)
-  const chatId = activeChat && authUser?.uid 
+   const chatId = activeChat && authUser?.uid 
     ? [authUser.uid, activeChat].sort().join('_') 
     : null;
 
@@ -56,7 +64,7 @@ export default function MessagesPage() {
   const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
 
   // Scroll to bottom when messages change
-  useEffect(() => {
+  useEffect (() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -72,7 +80,7 @@ export default function MessagesPage() {
       chatId: chatId,
       text: messageText,
       createdAt: serverTimestamp(),
-    };
+     };
 
     setMessageText('');
     addDocumentNonBlocking(collection(firestore, 'messages'), msgData);
@@ -83,7 +91,22 @@ export default function MessagesPage() {
     return name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
-  return (
+  if (!authUser) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-10">
+        <Card className="max-w-md w-full p-8 text-center space-y-4 shadow-lg border-none bg-card">
+          <MessageCircle className="h-12 w-12 text-primary mx-auto opacity-20" />
+          <h2 className="text-xl font-bold font-headline">Messaging is Private</h2>
+          <p className="text-muted-foreground text-sm">Please log in to start conversations with fellow alumni and mentors.</p>
+          <Button asChild className="w-full font-bold">
+            <a href="/login">Log In to Messages</a>
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+   return (
     <div className="flex h-[calc(100vh-140px)] gap-4 flex-col md:flex-row max-w-6xl mx-auto w-full">
       {/* Sidebar: User List */}
       <Card className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-md ${activeChat ? 'hidden md:flex' : 'flex'}`}>
@@ -105,12 +128,12 @@ export default function MessagesPage() {
               <div className="flex justify-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-            ) : users.length > 0 ? (
+            ) : users.length > 0  ? (
               users.map((user) => (
                 <button
                   key={user.id}
                   onClick={() => setActiveChat(user.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200  ${
                     activeChat === user.id 
                       ? 'bg-primary/10 text-primary shadow-sm' 
                       : 'hover:bg-muted/50'
@@ -118,7 +141,7 @@ export default function MessagesPage() {
                 >
                   <Avatar className="h-12 w-12 ring-2 ring-background ring-offset-2 shrink-0">
                     <AvatarImage src={user.avatarUrl} alt={user.name || 'User'} />
-                    <AvatarFallback className="bg-muted text-muted-foreground font-bold">{getInitials(user.name || 'U')}</AvatarFallback>
+                    <AvatarFallback className="bg-muted text-muted-foreground font-bold">{getInitials(user.name || 'U') }</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 text-left min-w-0">
                     <p className="text-sm font-bold truncate">{user.name || 'Nexus Alumnus'}</p>
@@ -139,7 +162,7 @@ export default function MessagesPage() {
       </Card>
 
       {/* Main Chat Window */}
-      <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-md min-h-[400px] bg-card ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
+      <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-md min-h-[400px] bg-card ${ !activeChat ? 'hidden md:flex' : 'flex'}`}>
         {selectedUser ? (
           <>
             {/* Chat Header */}
@@ -151,7 +174,7 @@ export default function MessagesPage() {
                 <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                   <AvatarImage src={selectedUser.avatarUrl} />
                   <AvatarFallback className="bg-primary/5 text-primary font-bold">{getInitials(selectedUser.name || 'U')}</AvatarFallback>
-                </Avatar>
+                 </Avatar>
                 <div>
                   <p className="text-sm font-bold leading-none mb-1">{selectedUser.name || 'Nexus Alumnus'}</p>
                   <p className="text-[10px] text-green-500 font-bold flex items-center gap-1">
@@ -162,12 +185,12 @@ export default function MessagesPage() {
               </div>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary"><Phone className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary"><Video className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground  hover:text-primary"><Video className="h-4 w-4" /></Button>
                 <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary"><Info className="h-4 w-4" /></Button>
               </div>
             </div>
 
-            {/* Chat Messages Area */}
+             {/* Chat Messages Area */}
             <ScrollArea className="flex-1 p-6 bg-muted/5">
               <div className="space-y-6">
                 {isMessagesLoading ? (
@@ -181,13 +204,13 @@ export default function MessagesPage() {
                       className={`flex ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
                     >
                       <div
-                        className={`max-w-[75%] p-4 rounded-2xl text-sm shadow-sm ${
+                        className={`max-w-[75%] p-4 rounded-2xl text-sm shadow-sm ${ 
                           msg.senderId === authUser?.uid
                             ? 'bg-primary text-primary-foreground rounded-tr-none'
                             : 'bg-background text-foreground rounded-tl-none border border-muted'
                         }`}
                       >
-                        <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                        <p className="leading-relaxed whitespace-pre-wrap">{ msg.text}</p>
                         <p className={`text-[9px] mt-2 font-bold uppercase tracking-widest opacity-70 ${msg.senderId === authUser?.uid ? 'text-right' : 'text-left'}`}>
                           {msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Sending...'}
                         </p>
@@ -229,7 +252,7 @@ export default function MessagesPage() {
                   <Send className="h-4 w-4" />
                 </Button>
               </form>
-            </div>
+             </div>
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-10 text-center">

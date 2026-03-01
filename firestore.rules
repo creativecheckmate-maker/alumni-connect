@@ -19,43 +19,40 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Allow reading if signed in, OR if the profile is explicitly marked as visible in the directory
       allow read: if isSignedIn() || (resource != null && resource.data.isVisibleInDirectory == true);
+      allow list: if isAdmin() || (isSignedIn()) || (resource != null && resource.data.isVisibleInDirectory == true);
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
-    }
+     }
 
     match /messages/{messageId} {
-      // Only participants or admin can read messages
       allow read: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
-      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100 && request.auth.uid in request.resource.data.participants); // Note: list queries must filter by participants
       allow create: if isSignedIn() && (request.resource.data.senderId == request.auth.uid && request.auth.uid in request.resource.data.participants);
       allow delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
     }
 
     match /notifications/{notificationId} {
-      // Users can only read their own notifications
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     match /feed/{postId} {
-      allow read: if isSignedIn(); // Feed is private to alumni
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
       allow delete: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
     }
 
     match /events/{eventId} {
-      allow read: if true; // Events are public content
+      allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.organizerId == request.auth.uid);
     }
 
     match /jobPostings/{jobPostingId} {
-      allow read: if true; // Jobs are public content
+      allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.posterId == request.auth.uid);
     }

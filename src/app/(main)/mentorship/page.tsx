@@ -102,7 +102,7 @@ export default function MentorshipPage() {
   const description = mainContent?.data?.description || defaultDescription;
 
   const filteredMentors = mentors?.filter(m => 
-    m.name.toLowerCase().includes(searchTerm.toLowerCase())
+    (m.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
   const getInitials = (name: string) => {

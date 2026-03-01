@@ -7,9 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2 } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, useUser, useFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
-import type { FeedPost } from '@/lib/definitions';
+import type { FeedPost, User } from '@/lib/definitions';
 import { ADMIN_EMAIL } from '@/lib/config';
 import Image from 'next/image';
 import { useState } from 'react';
@@ -22,6 +22,13 @@ export default function FeedPage() {
   const [content, setContent] = useState('');
   const isAdmin = user?.email === ADMIN_EMAIL;
 
+  // Fetch the current user's full profile to get the real avatarUrl
+  const userProfileDocRef = useMemoFirebase(() => {
+    if (!firestore || !user?.uid) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user?.uid]);
+  const { data: userProfile } = useDoc<User>(userProfileDocRef);
+
   const feedQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'feed'), orderBy('createdAt', 'desc'));
@@ -31,10 +38,11 @@ export default function FeedPage() {
 
   const handlePost = async () => {
     if (!firestore || !user || !content.trim()) return;
+    
     await addDoc(collection(firestore, 'feed'), {
       authorId: user.uid,
-      authorName: user.displayName || 'Nexus Alumnus',
-      authorAvatarUrl: user.photoURL || '',
+      authorName: userProfile?.name || user.displayName || 'Nexus Alumnus',
+      authorAvatarUrl: userProfile?.avatarUrl || user.photoURL || '',
       content,
       likes: 0,
       createdAt: serverTimestamp(),
@@ -53,31 +61,33 @@ export default function FeedPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <PageHeader title="Community Feed" />
 
-      <Card className="border-none shadow-sm">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex gap-4">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={user?.photoURL || ''} />
-              <AvatarFallback>{user?.displayName?.[0] || 'U'}</AvatarFallback>
-            </Avatar>
-            <Textarea 
-                placeholder="Share an update or a memory with the community..." 
-                className="min-h-[100px] border-none focus-visible:ring-0 bg-muted/20 resize-none p-4 text-sm rounded-xl"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center justify-between border-t pt-3">
-            <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
-              <ImageIcon className="h-4 w-4 text-primary" />
-              <span className="text-xs">Add Photo</span>
-            </Button>
-            <Button size="sm" className="rounded-full px-6 font-bold" onClick={handlePost}>
-              Post <Send className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {user && (
+        <Card className="border-none shadow-sm">
+          <CardContent className="p-4 space-y-4">
+            <div className="flex gap-4">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={userProfile?.avatarUrl || user?.photoURL || ''} />
+                <AvatarFallback>{userProfile?.name?.[0] || user?.displayName?.[0] || 'U'}</AvatarFallback>
+              </Avatar>
+              <Textarea 
+                  placeholder="Share an update or a memory with the community..." 
+                  className="min-h-[100px] border-none focus-visible:ring-0 bg-muted/20 resize-none p-4 text-sm rounded-xl"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between border-t pt-3">
+              <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
+                <ImageIcon className="h-4 w-4 text-primary" />
+                <span className="text-xs">Add Photo</span>
+              </Button>
+              <Button size="sm" className="rounded-full px-6 font-bold" onClick={handlePost}>
+                Post <Send className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-6 pb-10">
         {posts?.map((post) => (
@@ -116,7 +126,7 @@ export default function FeedPage() {
               {post.imageUrl && (
                 <div className="relative h-64 w-full bg-muted">
                   <Image src={post.imageUrl} alt="Post media" fill className="object-cover" />
-                </div>
+                 </div>
               )}
             </CardContent>
             <CardFooter className="p-2 border-t flex items-center justify-around">
@@ -124,7 +134,7 @@ export default function FeedPage() {
                 <ThumbsUp className="h-4 w-4" /> {post.likes}
               </Button>
               <Button variant="ghost" size="sm" className="flex-1 text-xs gap-2 font-medium hover:text-primary transition-colors">
-                <MessageSquare className="h-4 w-4" />
+                 <MessageSquare className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="sm" className="flex-1 text-xs gap-2 font-medium hover:text-primary transition-colors">
                 <Share2 className="h-4 w-4" /> Share

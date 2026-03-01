@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'; 
 import type { User } from '@/lib/definitions';
 import { UserCard } from '@/components/user-card';
 import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
@@ -21,6 +21,9 @@ export default function DirectoryPage() {
     () => {
         if (!firestore) return null;
         const baseQuery = collection(firestore, 'users');
+        
+        // If administrator, show everything.
+        // Otherwise, strictly filter by visibility to comply with security rules for guest/regular users.
         if (isAdmin) {
             return baseQuery;
         }
@@ -42,7 +45,7 @@ export default function DirectoryPage() {
 
   const filteredUsers = users
     ? users.filter(user =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) &&
         (activeTab === 'all' || user.role === activeTab)
       )
     : [];
@@ -71,7 +74,7 @@ export default function DirectoryPage() {
 
   return (
     <>
-      <PageHeader title="Alumni Directory">
+      <PageHeader title="Alumni Directory"> 
         <Input 
           placeholder="Search alumni..." 
           className="w-64" 
@@ -85,7 +88,7 @@ export default function DirectoryPage() {
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="student">Students</TabsTrigger>
           <TabsTrigger value="professor">Professors</TabsTrigger>
-          <TabsTrigger value="non-teaching-staff">Staff</TabsTrigger>
+          <TabsTrigger value="non-teaching-staff"> Staff</TabsTrigger>
         </TabsList>
         <TabsContent value="all" className="mt-6">
           {renderUserGrid(filteredUsers)}
@@ -95,11 +98,11 @@ export default function DirectoryPage() {
         </TabsContent>
         <TabsContent value="professor" className="mt-6">
           {renderUserGrid(filteredUsers.filter(u => u.role === 'professor'))}
-        </TabsContent>
+        </TabsContent> 
         <TabsContent value="non-teaching-staff" className="mt-6">
           {renderUserGrid(filteredUsers.filter(u => u.role === 'non-teaching-staff'))}
         </TabsContent>
       </Tabs>
     </>
   );
-}
+ }
