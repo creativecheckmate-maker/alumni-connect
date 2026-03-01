@@ -15,6 +15,7 @@ import { useCollection, useFirestore, useMemoFirebase, useUser, useFirebase, use
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc, setDoc } from 'firebase/firestore';
 import type { JobPosting, SiteContent } from '@/lib/definitions';
 import { ADMIN_EMAIL } from '@/lib/config';
+import Link from 'next/link';
 
 function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string, initialData: any, label: string }) {
   const { toast } = useToast();
@@ -144,44 +145,53 @@ export default function JobsPage() {
             />
           </div>
           {isAdmin && isEditMode && <AdminEditDialog sectionId="intro" initialData={currentIntro} label="Page Intro" />}
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="gap-2 shadow-lg shadow-primary/20">
+          
+          {authUser ? (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="gap-2 shadow-lg shadow-primary/20">
+                  <Plus className="h-4 w-4" /> Post a Job
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                      <Briefcase className="h-5 w-5 text-primary" /> Post New Opportunity
+                  </DialogTitle>
+                  <DialogDescription>
+                    Help fellow alumni by sharing career opportunities.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handlePostJob} className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="title">Job Title</Label>
+                    <Input id="title" name="title" placeholder="e.g. Senior Product Designer" required />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="company">Company Name</Label>
+                    <Input id="company" name="company" placeholder="e.g. Google, Nexus Tech" required />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input id="location" name="location" placeholder="e.g. Remote / New York, NY" required />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">Job Description</Label>
+                    <Textarea id="description" name="description" placeholder="Key responsibilities..." required />
+                  </div>
+                  <DialogFooter className="pt-4">
+                    <Button type="submit" className="w-full">Submit</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Link href="/login">
+              <Button className="gap-2 shadow-lg shadow-primary/20" variant="outline">
                 <Plus className="h-4 w-4" /> Post a Job
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                    <Briefcase className="h-5 w-5 text-primary" /> Post New Opportunity
-                </DialogTitle>
-                <DialogDescription>
-                  Help fellow alumni by sharing career opportunities.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handlePostJob} className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="title">Job Title</Label>
-                  <Input id="title" name="title" placeholder="e.g. Senior Product Designer" required />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="company">Company Name</Label>
-                  <Input id="company" name="company" placeholder="e.g. Google, Nexus Tech" required />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input id="location" name="location" placeholder="e.g. Remote / New York, NY" required />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="description">Job Description</Label>
-                  <Textarea id="description" name="description" placeholder="Key responsibilities..." required />
-                </div>
-                <DialogFooter className="pt-4">
-                  <Button type="submit" className="w-full">Submit</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+            </Link>
+          )}
         </div>
       </PageHeader>
 
