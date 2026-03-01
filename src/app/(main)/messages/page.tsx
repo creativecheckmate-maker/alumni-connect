@@ -5,7 +5,20 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Send, Phone, Video, Info, Loader2, ArrowLeft, MessageCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Search, 
+  Send, 
+  Mic, 
+  MicOff, 
+  Volume2, 
+  VolumeX, 
+  Info, 
+  Loader2, 
+  ArrowLeft, 
+  MessageCircle,
+  Radio
+} from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useMemoFirebase, useCollection, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, serverTimestamp, limit } from 'firebase/firestore';
@@ -17,6 +30,8 @@ export default function MessagesPage() {
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMicOn, setIsMicOn] = useState(false);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch all users for the sidebar (excluding self)
@@ -44,13 +59,10 @@ export default function MessagesPage() {
 
   // Fetch messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
-    // CRITICAL: Prevent query if auth state is not settled or chatId is missing.
-    // This prevents "Missing or insufficient permissions" during auth transitions.
     if (!firestore || !chatId || !authUser?.uid || isAuthLoading) return null;
     
     return query(
       collection(firestore, 'messages'),
-      // Adding participants filter is MANDATORY for security rules authorization for individual users.
       where('participants', 'array-contains', authUser.uid),
       where('chatId', '==', chatId),
       limit(100)
@@ -115,11 +127,11 @@ export default function MessagesPage() {
       {/* Contact List Sidebar */}
       <Card className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-md bg-card ${activeChat ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b">
-          <h2 className="text-xl font-bold font-headline mb-4">Messages</h2>
+          <h2 className="text-xl font-bold font-headline mb-4">Alumni Network</h2>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Search alumni..." 
+              placeholder="Find friends..." 
               className="pl-9 bg-muted/20 border-none shadow-none rounded-xl h-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -143,10 +155,13 @@ export default function MessagesPage() {
                       : 'hover:bg-muted/50'
                   }`}
                 >
-                  <Avatar className="h-12 w-12 ring-2 ring-background ring-offset-2 shrink-0 shadow-sm">
-                    <AvatarImage src={user.avatarUrl} alt={user.name || 'User'} />
-                    <AvatarFallback className="bg-muted text-muted-foreground font-bold">{getInitials(user.name || 'U')}</AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="h-12 w-12 ring-2 ring-background ring-offset-2 shrink-0 shadow-sm">
+                      <AvatarImage src={user.avatarUrl} alt={user.name || 'User'} />
+                      <AvatarFallback className="bg-muted text-muted-foreground font-bold">{getInitials(user.name || 'U')}</AvatarFallback>
+                    </Avatar>
+                    <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></span>
+                  </div>
                   <div className="flex-1 text-left min-w-0">
                     <p className="text-sm font-bold truncate">{user.name || 'Nexus Alumnus'}</p>
                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider truncate">
@@ -169,31 +184,59 @@ export default function MessagesPage() {
       <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-md min-h-[400px] bg-card ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
         {selectedUser ? (
           <>
-            <div className="p-4 border-b flex items-center justify-between">
+            {/* PUBG Style Header */}
+            <div className="p-4 border-b flex items-center justify-between bg-zinc-900 text-white">
               <div className="flex items-center gap-3">
-                <button onClick={() => setActiveChat(null)} className="md:hidden p-2 hover:bg-muted rounded-full">
+                <button onClick={() => setActiveChat(null)} className="md:hidden p-2 hover:bg-zinc-800 rounded-full">
                   <ArrowLeft className="h-5 w-5" />
                 </button>
-                <Avatar className="h-10 w-10 ring-2 ring-primary/20 shadow-sm">
-                  <AvatarImage src={selectedUser.avatarUrl} />
-                  <AvatarFallback className="bg-primary/5 text-primary font-bold">{getInitials(selectedUser.name || 'U')}</AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="h-10 w-10 ring-2 ring-zinc-700 shadow-sm">
+                    <AvatarImage src={selectedUser.avatarUrl} />
+                    <AvatarFallback className="bg-zinc-800 text-zinc-400 font-bold">{getInitials(selectedUser.name || 'U')}</AvatarFallback>
+                  </Avatar>
+                  {isMicOn && (
+                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span>
+                  )}
+                </div>
                 <div>
-                  <p className="text-sm font-bold leading-none mb-1">{selectedUser.name || 'Nexus Alumnus'}</p>
-                  <p className="text-[10px] text-green-500 font-bold flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                    Available Now
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold leading-none">{selectedUser.name || 'Player'}</p>
+                    <Badge variant="outline" className="h-4 px-1.5 text-[8px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800">TEAM</Badge>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 font-bold flex items-center gap-1 mt-1 uppercase tracking-tighter">
+                    <Radio className="h-3 w-3 text-green-500" /> 
+                    Voice Channel Active
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary"><Phone className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary"><Video className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary"><Info className="h-4 w-4" /></Button>
+              
+              {/* Voice Controls (PUBG Style) */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-zinc-800 rounded-lg p-1 border border-zinc-700">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`h-8 w-8 rounded-md transition-all ${isSpeakerOn ? 'text-white' : 'text-zinc-600'}`}
+                    onClick={() => setIsSpeakerOn(!isSpeakerOn)}
+                  >
+                    {isSpeakerOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                  </Button>
+                  <div className="w-[1px] h-4 bg-zinc-700 mx-1"></div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={`h-8 w-8 rounded-md transition-all ${isMicOn ? 'text-green-500 bg-green-500/10' : 'text-zinc-600'}`}
+                    onClick={() => setIsMicOn(!isMicOn)}
+                  >
+                    {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-zinc-500 hover:text-white"><Info className="h-4 w-4" /></Button>
               </div>
             </div>
 
-            <ScrollArea className="flex-1 p-6 bg-muted/5">
+            <ScrollArea className="flex-1 p-6 bg-zinc-50/50">
               <div className="space-y-6">
                 {isMessagesLoading ? (
                   <div className="flex justify-center p-4">
@@ -208,12 +251,12 @@ export default function MessagesPage() {
                       <div
                         className={`max-w-[75%] p-4 rounded-2xl text-sm shadow-sm ${ 
                           msg.senderId === authUser?.uid
-                            ? 'bg-primary text-primary-foreground rounded-tr-none'
-                            : 'bg-background text-foreground rounded-tl-none border border-muted'
+                            ? 'bg-zinc-900 text-white rounded-tr-none'
+                            : 'bg-white text-zinc-900 rounded-tl-none border border-zinc-200'
                         }`}
                       >
-                        <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                        <p className={`text-[9px] mt-2 font-bold uppercase tracking-widest opacity-70 ${msg.senderId === authUser?.uid ? 'text-right' : 'text-left'}`}>
+                        <p className="leading-relaxed whitespace-pre-wrap font-medium">{msg.text}</p>
+                        <p className={`text-[9px] mt-2 font-black uppercase tracking-widest opacity-50 ${msg.senderId === authUser?.uid ? 'text-right' : 'text-left'}`}>
                           {msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Just now'}
                         </p>
                       </div>
@@ -221,16 +264,18 @@ export default function MessagesPage() {
                   ))
                 ) : (
                   <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
-                    <MessageCircle className="h-12 w-12 mb-2" />
-                    <p className="text-sm font-bold">No messages yet</p>
-                    <p className="text-xs">Start the conversation with {(selectedUser.name || 'this user').split(' ')[0]}</p>
+                    <div className="h-16 w-16 bg-zinc-100 rounded-full flex items-center justify-center mb-4">
+                      <MessageCircle className="h-8 w-8 text-zinc-400" />
+                    </div>
+                    <p className="text-sm font-bold text-zinc-900">Encrypted Communication</p>
+                    <p className="text-xs text-zinc-500">Messages are private between you and {(selectedUser.name || 'this user').split(' ')[0]}</p>
                   </div>
                 )}
                 <div ref={scrollRef} />
               </div>
             </ScrollArea>
 
-            <div className="p-4 border-t">
+            <div className="p-4 border-t bg-white">
               <form 
                 className="flex gap-2"
                 onSubmit={(e) => {
@@ -238,16 +283,21 @@ export default function MessagesPage() {
                   handleSendMessage();
                 }}
               >
-                <Input 
-                  placeholder="Write a message..." 
-                  className="bg-muted/20 border-none shadow-none focus-visible:ring-primary/20 rounded-xl h-11"
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                />
+                <div className="relative flex-1">
+                  <Input 
+                    placeholder="Enter message..." 
+                    className="bg-zinc-100 border-none shadow-none focus-visible:ring-zinc-200 rounded-xl h-11 pr-10 font-medium"
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 text-zinc-400">
+                    <Radio className={`h-4 w-4 ${isMicOn ? 'text-green-500 animate-pulse' : ''}`} />
+                  </div>
+                </div>
                 <Button 
                   type="submit" 
                   size="icon" 
-                  className="shrink-0 rounded-xl h-11 w-11 shadow-lg transition-transform active:scale-95" 
+                  className="shrink-0 rounded-xl h-11 w-11 bg-zinc-900 hover:bg-zinc-800 shadow-lg transition-transform active:scale-95" 
                   disabled={!messageText.trim()}
                 >
                   <Send className="h-4 w-4" />
@@ -258,11 +308,11 @@ export default function MessagesPage() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-10 text-center">
             <div className="h-24 w-24 rounded-[2rem] bg-primary/5 flex items-center justify-center mb-6 shadow-sm">
-                <MessageCircle className="h-12 w-12 text-primary/40" />
+                <Radio className="h-12 w-12 text-primary/40 animate-pulse" />
             </div>
-            <h3 className="font-bold text-2xl text-foreground font-headline mb-2">Nexus Messenger</h3>
+            <h3 className="font-bold text-2xl text-foreground font-headline mb-2">Network Voice Chat</h3>
             <p className="text-sm max-w-xs leading-relaxed">
-              Select an alumnus from the sidebar to start a secure, real-time conversation with your network.
+              Select an alumnus to join a private secure channel with real-time text and simulated voice status.
             </p>
           </div>
         )}

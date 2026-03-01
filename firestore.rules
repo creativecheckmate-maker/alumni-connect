@@ -17,7 +17,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Users Collection - Publicly viewable, strictly controlled updates
+    // Users Collection - Publicly viewable
     match /users/{userId} {
       allow get, list: if true;
       allow create: if isSignedIn();
