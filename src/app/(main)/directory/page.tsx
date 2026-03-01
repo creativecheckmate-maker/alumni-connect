@@ -54,13 +54,17 @@ export default function DirectoryPage() {
     if (isLoading) {
       return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-2xl" />)}
         </div>
       );
     }
 
     if (!usersToRender || usersToRender.length === 0) {
-        return <p className="text-muted-foreground text-center mt-8">No users found.</p>
+        return (
+          <div className="text-center py-20 bg-muted/20 rounded-2xl border-2 border-dashed">
+            <p className="text-muted-foreground font-medium">No alumni found matching your criteria.</p>
+          </div>
+        );
     }
 
     return (
@@ -73,36 +77,38 @@ export default function DirectoryPage() {
   };
 
   return (
-    <>
-      <PageHeader title="Alumni Directory"> 
-        <Input 
-          placeholder="Search alumni..." 
-          className="w-64" 
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+    <div className="max-w-6xl mx-auto space-y-6 pb-20">
+      <PageHeader title="Alumni Directory" description="Connect with fellow graduates and explore our global network."> 
+        <div className="relative">
+          <Input 
+            placeholder="Search by name..." 
+            className="w-64 pl-4 bg-card" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </PageHeader>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="student">Students</TabsTrigger>
-          <TabsTrigger value="professor">Professors</TabsTrigger>
-          <TabsTrigger value="non-teaching-staff"> Staff</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="bg-muted/50 p-1 h-12 rounded-xl mb-8">
+          <TabsTrigger value="all" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">All Alumni</TabsTrigger>
+          <TabsTrigger value="student" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">Students</TabsTrigger>
+          <TabsTrigger value="professor" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">Professors</TabsTrigger>
+          <TabsTrigger value="non-teaching-staff" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">Staff</TabsTrigger>
         </TabsList>
-        <TabsContent value="all" className="mt-6">
+        <TabsContent value="all" className="focus-visible:ring-0">
           {renderUserGrid(filteredUsers)}
         </TabsContent>
-        <TabsContent value="student" className="mt-6">
+        <TabsContent value="student" className="focus-visible:ring-0">
           {renderUserGrid(filteredUsers.filter(u => u.role === 'student'))}
         </TabsContent>
-        <TabsContent value="professor" className="mt-6">
+        <TabsContent value="professor" className="focus-visible:ring-0">
           {renderUserGrid(filteredUsers.filter(u => u.role === 'professor'))}
         </TabsContent> 
-        <TabsContent value="non-teaching-staff" className="mt-6">
+        <TabsContent value="non-teaching-staff" className="focus-visible:ring-0">
           {renderUserGrid(filteredUsers.filter(u => u.role === 'non-teaching-staff'))}
         </TabsContent>
       </Tabs>
-    </>
+    </div>
   );
- }
+}

@@ -18,53 +18,69 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Users Collection
     match /users/{userId} {
-      // Allow reading individual profiles if the user is signed in OR the profile is public.
-      allow get: if isSignedIn() || resource.data.isVisibleInDirectory == true;
+      // Individual profiles: Public if visible, otherwise signed-in or admin.
+      allow get: if isAdmin() || isSignedIn() || resource.data.isVisibleInDirectory == true;
       
-      // Allow listing profiles for administrators and signed-in users.
-      // Guests can only list if the query filters for isVisibleInDirectory == true.
-      allow list: if isAdmin() || isSignedIn() || resource.data.isVisibleInDirectory == true;
+      // Listing: Admin can see all. Regular users/guests only visible ones.
+      // Rules for listing must match the filters used in the query.
+      allow list: if isAdmin() || (resource.data.isVisibleInDirectory == true);
       
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
-     }
+    }
 
+    // Messages Collection
     match /messages/{messageId} {
-      // Allow administrators or participants to read and list messages.
+      // Admins see everything. Participants see their own.
       allow read: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
-      allow create: if isSignedIn() && (request.resource.data.senderId == request.auth.uid && request.auth.uid in request.resource.data.participants);
+      
+      allow create: if isSignedIn() && (
+        request.resource.data.senderId == request.auth.uid && 
+        request.auth.uid in request.resource.data.participants
+      );
+      
       allow delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
     }
 
+    // Notifications Collection
     match /notifications/{notificationId} {
-      // Allow administrators or the recipient to read and list notifications.
+      // Admins see everything. Recipients see their own.
       allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
+    // Community Feed
     match /feed/{postId} {
-      // Community feed is publicly readable.
       allow read: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
+      allow update: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid || 
+        isAdmin() || 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
+      );
       allow delete: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
     }
 
+    // Events
     match /events/{eventId} {
       allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.organizerId == request.auth.uid);
     }
 
+    // Job Postings
     match /jobPostings/{jobPostingId} {
       allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.posterId == request.auth.uid);
     }
 
+    // Site Content (CMS)
     match /siteContent/{contentId} {
       allow read: if true;
       allow write: if isAdmin();

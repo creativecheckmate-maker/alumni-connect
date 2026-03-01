@@ -20,19 +20,16 @@ export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch the current user's profile to ensure we have the most accurate data
-   const currentUserDocRef = useMemoFirebase(() => {
-    if (!firestore || !authUser?.uid) return null;
-    return doc(firestore, 'users', authUser.uid);
-  }, [firestore, authUser?.uid]);
-  const { data: currentUserProfile } = useDoc<User>(currentUserDocRef);
-
   // Fetch real users from Firestore to populate the sidebar.
-  // We only fetch if authenticated to satisfy security rules.
+  // We filter by visibility to align with public/private listing rules.
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser) return null;
-    return query(collection(firestore, 'users'), limit(100));
-  }, [firestore, authUser]);
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'users'), 
+      where('isVisibleInDirectory', '==', true),
+      limit(100)
+    );
+  }, [firestore]);
 
   const { data: allUsers, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
 
@@ -98,7 +95,7 @@ export default function MessagesPage() {
           <MessageCircle className="h-12 w-12 text-primary mx-auto opacity-20" />
           <h2 className="text-xl font-bold font-headline">Messaging is Private</h2>
           <p className="text-muted-foreground text-sm">Please log in to start conversations with fellow alumni and mentors.</p>
-          <Button asChild className="w-full font-bold">
+          <Button asChild className="w-full font-bold h-12 rounded-xl">
             <a href="/login">Log In to Messages</a>
           </Button>
         </Card>
@@ -109,20 +106,20 @@ export default function MessagesPage() {
    return (
     <div className="flex h-[calc(100vh-140px)] gap-4 flex-col md:flex-row max-w-6xl mx-auto w-full">
       {/* Sidebar: User List */}
-      <Card className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-md ${activeChat ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-4 border-b bg-card">
+      <Card className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-md bg-card ${activeChat ? 'hidden md:flex' : 'flex'}`}>
+        <div className="p-4 border-b">
           <h2 className="text-xl font-bold font-headline mb-4">Messages</h2>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Search alumni..." 
-              className="pl-9 bg-muted/20 border-none shadow-none rounded-xl"
+              className="pl-9 bg-muted/20 border-none shadow-none rounded-xl h-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
-        <ScrollArea className="flex-1 bg-card">
+        <ScrollArea className="flex-1">
           <div className="p-2 space-y-1">
             {isUsersLoading ? (
               <div className="flex justify-center p-8">
@@ -139,7 +136,7 @@ export default function MessagesPage() {
                       : 'hover:bg-muted/50'
                   }`}
                 >
-                  <Avatar className="h-12 w-12 ring-2 ring-background ring-offset-2 shrink-0">
+                  <Avatar className="h-12 w-12 ring-2 ring-background ring-offset-2 shrink-0 shadow-sm">
                     <AvatarImage src={user.avatarUrl} alt={user.name || 'User'} />
                     <AvatarFallback className="bg-muted text-muted-foreground font-bold">{getInitials(user.name || 'U') }</AvatarFallback>
                   </Avatar>
@@ -166,12 +163,12 @@ export default function MessagesPage() {
         {selectedUser ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b bg-card flex items-center justify-between">
+            <div className="p-4 border-b flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button onClick={() => setActiveChat(null)} className="md:hidden p-2 hover:bg-muted rounded-full">
                   <ArrowLeft className="h-5 w-5" />
                 </button>
-                <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                <Avatar className="h-10 w-10 ring-2 ring-primary/20 shadow-sm">
                   <AvatarImage src={selectedUser.avatarUrl} />
                   <AvatarFallback className="bg-primary/5 text-primary font-bold">{getInitials(selectedUser.name || 'U')}</AvatarFallback>
                  </Avatar>
@@ -229,7 +226,7 @@ export default function MessagesPage() {
             </ScrollArea>
 
             {/* Chat Input Area */}
-            <div className="p-4 border-t bg-card">
+            <div className="p-4 border-t">
               <form 
                 className="flex gap-2"
                 onSubmit={(e) => {
@@ -256,7 +253,7 @@ export default function MessagesPage() {
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-10 text-center">
-            <div className="h-24 w-24 rounded-[2rem] bg-primary/5 flex items-center justify-center mb-6">
+            <div className="h-24 w-24 rounded-[2rem] bg-primary/5 flex items-center justify-center mb-6 shadow-sm">
                 <MessageCircle className="h-12 w-12 text-primary/40" />
             </div>
             <h3 className="font-bold text-2xl text-foreground font-headline mb-2">Nexus Messenger</h3>
