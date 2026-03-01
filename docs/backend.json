@@ -26,6 +26,19 @@
       },
       "required": ["id", "externalAuthId", "role", "name", "email", "isVisibleInDirectory", "createdAt", "updatedAt"]
     },
+    "Friendship": {
+      "title": "Friendship",
+      "type": "object",
+      "description": "Represents a connection between two alumni.",
+      "properties": {
+        "id": { "type": "string" },
+        "uids": { "type": "array", "items": { "type": "string" } },
+        "followedBy": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["pending", "mutual"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "uids", "followedBy", "status", "updatedAt"]
+    },
     "FeedPost": {
       "title": "FeedPost",
       "type": "object",
@@ -69,19 +82,6 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "senderId", "receiverId", "participants", "chatId", "text", "status", "createdAt"]
-    },
-    "SiteContent": {
-      "title": "SiteContent",
-      "type": "object",
-      "description": "Stores editable content for various pages and sections of the site.",
-      "properties": {
-        "id": { "type": "string" },
-        "pageId": { "type": "string" },
-        "sectionId": { "type": "string" },
-        "data": { "type": "object" },
-        "updatedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "pageId", "sectionId", "data", "updatedAt"]
     }
   },
   "auth": {
@@ -95,6 +95,14 @@
           "entityName": "UserProfile",
           "schema": { "$ref": "#/backend/entities/UserProfile" },
           "description": "Stores individual user profiles."
+        }
+      },
+      {
+        "path": "friendships/{friendshipId}",
+        "definition": {
+          "entityName": "Friendship",
+          "schema": { "$ref": "#/backend/entities/Friendship" },
+          "description": "Tracks mutual follows between users."
         }
       },
       {
@@ -119,21 +127,6 @@
           "entityName": "Message",
           "schema": { "$ref": "#/backend/entities/Message" },
           "description": "Private messages between users."
-        }
-      },
-      {
-        "path": "events/{eventId}",
-        "definition": {
-          "entityName": "Event",
-          "description": "Details about alumni events."
-        }
-      },
-      {
-        "path": "siteContent/{contentId}",
-        "definition": {
-          "entityName": "SiteContent",
-          "schema": { "$ref": "#/backend/entities/SiteContent" },
-          "description": "Dynamic content for site pages."
         }
       }
     ]

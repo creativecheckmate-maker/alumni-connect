@@ -16,7 +16,7 @@ export type UserProfile = {
   feedbackCount?: number;
   totalFeedbackPoints?: number;
   isVisibleInDirectory: boolean;
-  isVerified?: boolean; // Added for project depth
+  isVerified?: boolean;
   status: 'active' | 'deactivated';
   createdAt: any;
   updatedAt: any;
@@ -32,6 +32,16 @@ export type User = UserProfile;
 
 export type Student = UserProfile & { role: 'student'; major: string; graduationYear: number };
 export type Professor = UserProfile & { role: 'professor'; department: string; researchInterests: string[] };
+
+export type FriendshipStatus = 'pending' | 'mutual';
+
+export type Friendship = {
+  id: string;
+  uids: string[];
+  followedBy: string[];
+  status: FriendshipStatus;
+  updatedAt: any;
+};
 
 export type FeedPost = {
   id: string;

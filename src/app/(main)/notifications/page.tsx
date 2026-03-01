@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -18,13 +19,11 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState('all');
 
   const notificationsQuery = useMemoFirebase(() => {
-    // CRITICAL: Ensure we have a stable user ID and auth is not loading before initiating query.
-    // This prevents "Missing or insufficient permissions" during auth transitions.
+    // CRITICAL: Ensure auth is not loading and we have a uid to satisfy security rules
     if (!firestore || !user?.uid || isUserLoading) return null;
     
     return query(
       collection(firestore, 'notifications'), 
-      // This filter is MANDATORY to satisfy security rules for individual users.
       where('userId', '==', user.uid), 
       limit(50)
     );
@@ -45,14 +44,14 @@ export default function NotificationsPage() {
   if (!user) {
     return (
       <div className="flex-1 flex items-center justify-center p-10">
-        <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-xl border-none bg-card">
+        <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-xl border-none">
           <div className="h-20 w-20 bg-primary/5 rounded-3xl flex items-center justify-center mx-auto">
             <Bell className="h-10 w-10 text-primary opacity-40" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold font-headline">Private Notifications</h2>
+            <h2 className="text-2xl font-bold">Private Notifications</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Log in to your account to see your personal updates, event invitations, and connection requests.
+              Log in to see your personalized network activity and connection requests.
             </p>
           </div>
           <Link href="/login" className="block">
@@ -65,28 +64,26 @@ export default function NotificationsPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
-      <PageHeader title="Notifications" description="Stay updated with your latest network activity." />
+      <PageHeader title="Notifications" description="Your personal alumni alerts and connection updates." />
 
       <Tabs value={filter} onValueChange={setFilter} className="w-full">
         <TabsList className="grid grid-cols-4 w-full h-auto p-1 bg-muted/50 rounded-xl mb-6">
-          <TabsTrigger value="all" className="rounded-lg py-2 text-xs font-bold data-[state=active]:bg-white data-[state=active]:text-primary">All</TabsTrigger>
-          <TabsTrigger value="connection" className="rounded-lg py-2 text-xs font-bold data-[state=active]:bg-white data-[state=active]:text-primary">Connections</TabsTrigger>
-          <TabsTrigger value="event" className="rounded-lg py-2 text-xs font-bold data-[state=active]:bg-white data-[state=active]:text-primary">Events</TabsTrigger>
-          <TabsTrigger value="general" className="rounded-lg py-2 text-xs font-bold data-[state=active]:bg-white data-[state=active]:text-primary">General</TabsTrigger>
+          <TabsTrigger value="all" className="rounded-lg py-2 text-xs font-bold">All</TabsTrigger>
+          <TabsTrigger value="connection" className="rounded-lg py-2 text-xs font-bold">Network</TabsTrigger>
+          <TabsTrigger value="event" className="rounded-lg py-2 text-xs font-bold">Events</TabsTrigger>
+          <TabsTrigger value="general" className="rounded-lg py-2 text-xs font-bold">Info</TabsTrigger>
         </TabsList>
       </Tabs>
 
       <div className="space-y-3">
         {isLoading ? (
-          [1, 2, 3].map(i => (
-            <div key={i} className="h-24 w-full bg-muted animate-pulse rounded-2xl" />
-          ))
+          [1, 2, 3].map(i => <div key={i} className="h-24 w-full bg-muted animate-pulse rounded-2xl" />)
         ) : filteredNotifications.length > 0 ? (
           filteredNotifications.map((n) => (
             <Card key={n.id} className={`border-none transition-all hover:bg-white shadow-sm ${!n.read ? 'bg-primary/5 ring-1 ring-primary/10' : 'bg-card'}`}>
               <CardContent className="p-5">
                 <div className="flex items-start gap-4">
-                  <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+                  <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 ${
                     n.type === 'connection' ? 'bg-blue-100 text-blue-600' :
                     n.type === 'event' ? 'bg-red-100 text-red-600' :
                     'bg-gray-100 text-gray-600'
@@ -97,17 +94,14 @@ export default function NotificationsPage() {
                   </div>
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className={`text-sm leading-snug line-clamp-2 ${!n.read ? 'font-bold text-foreground' : 'font-medium text-muted-foreground'}`}>
+                      <p className={`text-sm leading-snug line-clamp-2 ${!n.read ? 'font-bold' : 'font-medium text-muted-foreground'}`}>
                         {n.message}
                       </p>
-                      <span className="text-[10px] font-bold text-muted-foreground whitespace-nowrap uppercase tracking-tighter">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase whitespace-nowrap">
                         {n.createdAt?.toDate?.()?.toLocaleDateString() || 'Just now'}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        {!n.read && <Badge variant="default" className="text-[9px] h-4 px-1.5 font-bold uppercase tracking-tighter">Unread</Badge>}
-                        <span className="text-[10px] text-muted-foreground font-medium">{n.type} notification</span>
-                    </div>
+                    {!n.read && <Badge variant="default" className="text-[9px] h-4 px-1.5 font-bold uppercase">New</Badge>}
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted shrink-0">
                     <MoreHorizontal className="h-4 w-4" />
@@ -120,7 +114,6 @@ export default function NotificationsPage() {
           <div className="text-center py-20 bg-muted/20 rounded-[2rem] border-2 border-dashed border-muted">
             <Bell className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
             <p className="text-muted-foreground font-bold">No notifications found.</p>
-            <p className="text-xs text-muted-foreground/60">We'll let you know when something happens.</p>
           </div>
         )}
       </div>

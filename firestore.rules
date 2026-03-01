@@ -26,20 +26,28 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Messages Collection - Private to participants with feedback support
+    // Friendships Collection
+    match /friendships/{friendshipId} {
+      allow list: if isSignedIn() && request.auth.uid in resource.data.uids;
+      allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.uids);
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && request.auth.uid in resource.data.uids;
+    }
+
+    // Messages Collection - Split list/get to resolve permission optimization errors
     match /messages/{messageId} {
-      // allow read (get + list) if the user is a participant
-      allow read: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
+      allow list: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
       
       allow create: if isSignedIn();
-      // Allow update for participants to mark as 'seen'
       allow update: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
       allow delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
     }
 
-    // Notifications Collection - Private to target user
+    // Notifications Collection - Split list/get to resolve permission optimization errors
     match /notifications/{notificationId} {
-      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
@@ -56,12 +64,6 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.organizerId == request.auth.uid);
-    }
-
-    match /jobPostings/{jobPostingId} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.posterId == request.auth.uid);
     }
 
     match /siteContent/{contentId} {
