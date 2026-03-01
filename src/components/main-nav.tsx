@@ -102,7 +102,12 @@ function SidebarEditDialog({ initialData }: { initialData: any }) {
   );
 }
 
-export function MainNav() {
+interface MainNavProps {
+  logoPart1?: string;
+  logoPart2?: string;
+}
+
+export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
   const pathname = usePathname();
   const auth = useAuth();
   const { user, isEditMode } = useFirebase();
@@ -164,7 +169,7 @@ export function MainNav() {
     <Sidebar className="border-r-0 shadow-xl" collapsible="offcanvas">
       <SidebarHeader className="p-6">
         <Link href="/">
-          <Logo />
+          <Logo part1={logoPart1} part2={logoPart2} />
         </Link>
       </SidebarHeader>
       <SidebarContent className="px-3">

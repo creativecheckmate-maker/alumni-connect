@@ -14,9 +14,9 @@ import { ADMIN_EMAIL } from '@/lib/config';
 import { useState } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { SiteContent } from '@/lib/definitions';
+import { Logo } from '@/components/logo';
 
 function HeaderEditDialog({ initialData }: { initialData: any }) {
   const { toast } = useToast();
@@ -89,6 +89,8 @@ export default function MainLayout({
   const { data: headerContent } = useDoc<SiteContent>(headerDocRef);
 
   const defaultHeader = {
+    logoPart1: "Alumni",
+    logoPart2: "Connect",
     searchPlaceholder: "Search anything...",
     loginButton: "Log In",
     signupButton: "Join Today"
@@ -98,7 +100,7 @@ export default function MainLayout({
 
   return (
     <SidebarProvider>
-      <MainNav />
+      <MainNav logoPart1={currentHeader.logoPart1} logoPart2={currentHeader.logoPart2} />
       <SidebarInset>
         <header className="flex sticky top-0 z-30 h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
           <SidebarTrigger className="-ml-1" />

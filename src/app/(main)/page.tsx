@@ -90,16 +90,12 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
     }
   };
 
-  const trigger = (
-    <Button size="icon" variant="secondary" className={`${overlay ? 'absolute top-4 right-4 z-50' : ''} rounded-full shadow-lg`}>
-      <Edit className="h-4 w-4" />
-    </Button>
-  );
-
   return (
     <Dialog>
       <DialogTrigger asChild>
-        {trigger}
+        <Button size="icon" variant="secondary" className={`${overlay ? 'absolute top-4 right-4 z-50' : ''} rounded-full shadow-lg`}>
+          <Edit className="h-4 w-4" />
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -179,7 +175,10 @@ export default function HomePage() {
     badge: "🚀 Trusted by 25,000+ Alumni",
     title: "Connecting Our Global Legacy",
     description: "The official portal for Nexus University graduates to stay connected, find opportunities, and empower the next generation.",
-    imageUrl: heroImage.imageUrl
+    imageUrl: heroImage.imageUrl,
+    primaryButtonText: "Join the Network",
+    secondaryButtonText: "Alumni Login",
+    dashboardButtonText: "My Dashboard"
   };
 
   const defaultCommunity = {
@@ -193,14 +192,17 @@ export default function HomePage() {
     title: "Top 5 Globally for Teaching Excellence",
     description: "Our commitment to academic brilliance is reflected in the success of our graduates across every major industry worldwide.",
     imageUrl: professorImage.imageUrl,
-    buttonText: "Our Academic Journey"
+    buttonText: "Our Academic Journey",
+    buttonUrl: "/about"
   };
 
   const defaultReconnect = {
     title: "Ready to re-connect?",
     description: "Join the official Nexus Alumni Network today and unlock a world of professional mentorship, job opportunities, and lifelong friendships.",
-    primaryButton: "Create My Profile",
-    secondaryButton: "How it Works"
+    primaryButtonText: "Create My Profile",
+    primaryButtonUrl: "/login",
+    secondaryButtonText: "How it Works",
+    secondaryButtonUrl: "/about"
   };
 
   const currentHero = heroContent?.data || defaultHero;
@@ -241,16 +243,20 @@ export default function HomePage() {
             {authUser ? (
               <Link href="/dashboard">
                   <Button size="lg" variant="secondary" className="h-16 px-10 text-xl font-bold rounded-2xl shadow-xl shadow-black/20 hover:scale-105 transition-transform">
-                      My Dashboard <ArrowRight className="ml-2 h-6 w-6" />
+                      {currentHero.dashboardButtonText || "My Dashboard"} <ArrowRight className="ml-2 h-6 w-6" />
                   </Button>
               </Link>
             ) : (
               <>
                   <Link href="/login">
-                      <Button size="lg" variant="secondary" className="h-16 px-10 text-xl font-bold rounded-2xl shadow-xl shadow-black/20 hover:scale-105 transition-transform">Join the Network</Button>
+                      <Button size="lg" variant="secondary" className="h-16 px-10 text-xl font-bold rounded-2xl shadow-xl shadow-black/20 hover:scale-105 transition-transform">
+                        {currentHero.primaryButtonText || "Join the Network"}
+                      </Button>
                   </Link>
                   <Link href="/login">
-                      <Button size="lg" variant="outline" className="h-16 px-10 text-xl font-bold rounded-2xl border-white/50 text-white hover:bg-white hover:text-primary backdrop-blur-sm">Alumni Login</Button>
+                      <Button size="lg" variant="outline" className="h-16 px-10 text-xl font-bold rounded-2xl border-white/50 text-white hover:bg-white hover:text-primary backdrop-blur-sm">
+                        {currentHero.secondaryButtonText || "Alumni Login"}
+                      </Button>
                   </Link>
               </>
             )}
@@ -368,7 +374,9 @@ export default function HomePage() {
                   <h2 className="font-headline text-4xl md:text-6xl font-bold leading-tight">{currentBanner.title}</h2>
                   <p className="text-xl text-white/80 leading-relaxed font-body">{currentBanner.description}</p>
                   <div className="flex gap-4 pt-4">
-                    <Button size="lg" variant="secondary" className="font-bold h-14 px-8 rounded-xl shadow-lg">{currentBanner.buttonText}</Button>
+                    <Link href={currentBanner.buttonUrl || "/about"}>
+                      <Button size="lg" variant="secondary" className="font-bold h-14 px-8 rounded-xl shadow-lg">{currentBanner.buttonText}</Button>
+                    </Link>
                     <Button size="lg" variant="ghost" className="text-white hover:bg-white/10 font-bold h-14 px-8 rounded-xl">Learn More</Button>
                   </div>
               </div>
@@ -391,11 +399,15 @@ export default function HomePage() {
         <h2 className="font-headline text-5xl font-bold tracking-tight">{currentReconnect.title}</h2>
         <p className="text-muted-foreground text-xl max-w-2xl mx-auto">{currentReconnect.description}</p>
         <div className="flex justify-center gap-6">
-          <Link href="/login">
-            <Button size="lg" className="h-16 px-12 rounded-2xl text-xl font-bold shadow-xl shadow-primary/20">{currentReconnect.primaryButton}</Button>
+          <Link href={currentReconnect.primaryButtonUrl || "/login"}>
+            <Button size="lg" className="h-16 px-12 rounded-2xl text-xl font-bold shadow-xl shadow-primary/20">
+              {currentReconnect.primaryButtonText || "Create My Profile"}
+            </Button>
           </Link>
-          <Link href="/about">
-            <Button size="lg" variant="outline" className="h-16 px-12 rounded-2xl text-xl font-bold border-2">{currentReconnect.secondaryButton}</Button>
+          <Link href={currentReconnect.secondaryButtonUrl || "/about"}>
+            <Button size="lg" variant="outline" className="h-16 px-12 rounded-2xl text-xl font-bold border-2">
+              {currentReconnect.secondaryButtonText || "How it Works"}
+            </Button>
           </Link>
         </div>
       </section>

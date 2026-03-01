@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { sectionId: string, initialData: any, label: string, overlay?: boolean }) {
   const { toast } = useToast();
@@ -92,6 +93,9 @@ export default function CommunityHubPage() {
   const statsDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'community_stats'), [firestore]);
   const { data: statsContent } = useDoc<SiteContent>(statsDocRef);
 
+  const volunteerDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'community_volunteer'), [firestore]);
+  const { data: volunteerContent } = useDoc<SiteContent>(volunteerDocRef);
+
   const defaultDescription = "Our strength lies in our diversity. Connect with local chapters and engage with alumni across the globe.";
   const description = hubContent?.data?.description || defaultDescription;
 
@@ -100,6 +104,15 @@ export default function CommunityHubPage() {
     { label: 'Countries', value: '120+', icon: 'Globe' },
     { label: 'Regional Chapters', value: '45', icon: 'MapPin' },
   ];
+
+  const defaultVolunteer = {
+    title: 'Volunteer with Us',
+    description: 'Help us grow the network by becoming a chapter lead or organizing local meetups in your city.',
+    buttonText: 'Get Involved',
+    buttonUrl: '/about'
+  };
+
+  const volunteer = volunteerContent?.data || defaultVolunteer;
 
   const chapters = [
     { city: 'San Francisco', members: '1,200', region: 'North America' },
@@ -165,13 +178,16 @@ export default function CommunityHubPage() {
       </div>
 
       <Card className="border-none shadow-xl bg-muted/30 relative">
+        {isAdmin && isEditMode && <AdminEditDialog sectionId="volunteer" initialData={volunteer} label="Volunteer Section" overlay />}
         <CardContent className="p-10 flex flex-col md:flex-row items-center gap-8">
           <div className="flex-1 space-y-4 text-center md:text-left">
-            <h2 className="text-2xl font-bold font-headline">Volunteer with Us</h2>
+            <h2 className="text-2xl font-bold font-headline">{volunteer.title}</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Help us grow the network by becoming a chapter lead or organizing local meetups in your city.
+              {volunteer.description}
             </p>
-            <Button className="font-bold px-8">Get Involved</Button>
+            <Link href={volunteer.buttonUrl || "/about"}>
+              <Button className="font-bold px-8">{volunteer.buttonText || "Get Involved"}</Button>
+            </Link>
           </div>
           <div className="h-40 w-40 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
              <Globe className="h-20 w-20 text-primary animate-pulse" />

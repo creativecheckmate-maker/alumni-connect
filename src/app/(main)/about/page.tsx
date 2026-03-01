@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { sectionId: string, initialData: any, label: string, overlay?: boolean }) {
   const { toast } = useToast();
@@ -88,6 +89,9 @@ export default function AboutPage() {
   const contentDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'about_main'), [firestore]);
   const { data: mainContent } = useDoc<SiteContent>(contentDocRef);
 
+  const ctaDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'about_cta'), [firestore]);
+  const { data: ctaContent } = useDoc<SiteContent>(ctaDocRef);
+
   const defaultContent = {
     intro: 'We are more than just a network; we are a family of global innovators and leaders committed to excellence.',
     mission: 'To foster a lifelong connection between the university and its alumni, providing a platform for professional growth and meaningful engagement.',
@@ -96,7 +100,15 @@ export default function AboutPage() {
     values: 'Integrity, excellence, and a commitment to giving back to the next generation of students and fellow graduates.'
   };
 
+  const defaultCta = {
+    title: 'Join Our Journey',
+    description: 'Whether you graduated recently or decades ago, your experience is invaluable. Join us in shaping the future of our alma mater.',
+    buttonText: 'Get Started',
+    buttonUrl: '/login'
+  };
+
   const content = mainContent?.data || defaultContent;
+  const cta = ctaContent?.data || defaultCta;
 
   const features = [
     {
@@ -153,11 +165,17 @@ export default function AboutPage() {
       </div>
 
       <Card className="border-none shadow-lg bg-primary text-primary-foreground relative">
+        {isAdmin && isEditMode && <AdminEditDialog sectionId="cta" initialData={cta} label="CTA Section" overlay />}
         <CardContent className="p-10 text-center space-y-6">
-          <h2 className="text-3xl font-bold font-headline">Join Our Journey</h2>
+          <h2 className="text-3xl font-bold font-headline">{cta.title}</h2>
           <p className="text-primary-foreground/80 max-w-xl mx-auto">
-            Whether you graduated recently or decades ago, your experience is invaluable. Join us in shaping the future of our alma mater.
+            {cta.description}
           </p>
+          <Link href={cta.buttonUrl || "/login"}>
+            <Button variant="secondary" size="lg" className="font-bold px-10 rounded-xl">
+              {cta.buttonText || "Get Started"}
+            </Button>
+          </Link>
         </CardContent>
       </Card>
     </div>
