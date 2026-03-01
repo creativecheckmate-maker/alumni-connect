@@ -22,7 +22,7 @@ service cloud.firestore {
       // Allow individual reads for everyone
       allow get: if true;
       // Allow listing if filtering by public visibility or if admin
-      allow list: if isAdmin() || resource.data.isVisibleInDirectory == true;
+      allow list: if isAdmin() || (resource != null && resource.data.isVisibleInDirectory == true) || !isSignedIn();
       
       allow create: if isAdmin() || isOwner(userId);
       allow update: if isAdmin() || isOwner(userId);

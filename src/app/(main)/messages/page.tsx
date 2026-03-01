@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card } from '@/components/ui/card';
@@ -100,6 +99,7 @@ export default function MessagesPage() {
 
    return (
     <div className="flex h-[calc(100vh-140px)] gap-4 flex-col md:flex-row max-w-6xl mx-auto w-full">
+      {/* Sidebar List */}
       <Card className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-md bg-card ${activeChat ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b">
           <h2 className="text-xl font-bold font-headline mb-4">Messages</h2>
@@ -152,6 +152,7 @@ export default function MessagesPage() {
         </ScrollArea>
       </Card>
 
+      {/* Chat Window */}
       <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-md min-h-[400px] bg-card ${ !activeChat ? 'hidden md:flex' : 'flex'}`}>
         {selectedUser ? (
           <>
