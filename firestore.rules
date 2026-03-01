@@ -27,16 +27,18 @@ service cloud.firestore {
 
     // Messages Collection - Private to participants only
     match /messages/{messageId} {
-      // We use 'read' to cover both 'get' and 'list'. 
-      // Listing requires the query to filter by participants array-contains auth.uid
-      allow read: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
+      // Split read into get and list for granular security
+      allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
+      allow list: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
     }
 
     // Notifications Collection - Private to target user
     match /notifications/{notificationId} {
-      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      // List rules require query filters to match security conditions
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
