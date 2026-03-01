@@ -71,5 +71,19 @@ service cloud.firestore {
       allow create: if isParticipant(request.resource.data.mentorId, request.resource.data.menteeId) || isAdmin();
       allow update, delete: if isExistingParticipant(resource.data.mentorId, resource.data.menteeId) || isAdmin();
     }
+
+    match /feed/{postId} {
+      allow get, list: if isSignedIn();
+      allow create: if isCreator('authorId') || isAdmin();
+      allow update: if (isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin())) || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
+      allow delete: if (isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin()));
+    }
+
+    match /notifications/{notificationId} {
+      allow get, list: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isAdmin();
+      allow update: if isOwner(resource.data.userId) || isAdmin();
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
   }
 }
