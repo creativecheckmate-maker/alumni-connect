@@ -15,19 +15,19 @@ import {
   MicOff, 
   Volume2, 
   VolumeX, 
-  Info, 
   Loader2, 
   ArrowLeft, 
   MessageCircle,
   Radio,
   Check,
   CheckCheck,
-  UserPlus,
-  UserCheck,
   Video,
   Phone,
   ShieldCheck,
-  Users as UsersIcon
+  Users as UsersIcon,
+  UserPlus,
+  UserCheck,
+  Handshake
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { 
@@ -52,16 +52,14 @@ export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'active' | 'network'>('active');
   
-  // PUBG Voice Chat State
+  // Voice/Video State
   const [isMicOn, setIsMicOn] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
-  
-  // Video Call State
   const [isVideoCallActive, setIsVideoCallActive] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch all friendships for the current user - Query strictly filtered to satisfy rules
+  // Fetch all friendships for the current user
   const friendshipQuery = useMemoFirebase(() => {
     if (!firestore || !authUser?.uid || isUserLoading) return null;
     return query(
@@ -93,11 +91,6 @@ export default function MessagesPage() {
     return f?.status === 'mutual';
   };
 
-  const isFollowing = (otherId: string) => {
-    const f = getFriendshipWith(otherId);
-    return f?.followedBy.includes(authUser?.uid || '');
-  };
-
   const followingList = allUsers?.filter(u => {
     if (u.id === authUser?.uid) return false;
     if (activeTab === 'active') return isMutualFriend(u.id);
@@ -111,7 +104,7 @@ export default function MessagesPage() {
     ? [authUser.uid, activeChat].sort().join('_') 
     : null;
 
-  // Fetch messages for the active chat - Query strictly filtered
+  // Fetch messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId || !authUser?.uid || isUserLoading) return null;
     
@@ -146,7 +139,7 @@ export default function MessagesPage() {
     if (!firestore || !authUser || !activeChat || !messageText.trim() || !chatId) return;
     
     if (!isMutualFriend(activeChat)) {
-      toast({ variant: 'destructive', title: "Mutual Connection Required", description: "Both alumni must follow each other to unlock private chat." });
+      toast({ variant: 'destructive', title: "Connection Required", description: "Mutual connection is required to send messages." });
       return;
     }
 
@@ -164,29 +157,39 @@ export default function MessagesPage() {
     addDocumentNonBlocking(collection(firestore, 'messages'), msgData);
   };
 
-  const handleFollowUser = async (otherId: string) => {
+  const handleFollowUser = async (otherId: string, otherName: string) => {
     if (!firestore || !authUser) return;
     const friendshipId = [authUser.uid, otherId].sort().join('_');
     const existing = getFriendshipWith(otherId);
 
     if (existing) {
       if (existing.followedBy.includes(authUser.uid)) {
-        toast({ title: "Already Following", description: "You have already sent a request to this alumnus." });
+        toast({ title: "Request Pending", description: `You have already sent a request to ${otherName}.` });
         return;
       }
-      // Follow back logic
+      
       const newFollowedBy = [...existing.followedBy, authUser.uid];
-      const newStatus = newFollowedBy.length === 2 ? 'mutual' : 'pending';
+      const isMutual = newFollowedBy.length === 2;
+      
       updateDocumentNonBlocking(doc(firestore, 'friendships', existing.id), {
         followedBy: newFollowedBy,
-        status: newStatus,
+        status: isMutual ? 'mutual' : 'pending',
         updatedAt: serverTimestamp()
       });
-      if (newStatus === 'mutual') {
-        toast({ title: "Connected!", description: "Mutual connection established. Chat is now active." });
+
+      // Notify the other user about acceptance
+      addDocumentNonBlocking(collection(firestore, 'notifications'), {
+        userId: otherId,
+        type: 'connection',
+        message: `${authUser.displayName || 'An alumnus'} accepted your request. ${isMutual ? 'Start chatting now!' : ''}`,
+        read: false,
+        createdAt: serverTimestamp()
+      });
+
+      if (isMutual) {
+        toast({ title: "Connected!", description: `Mutual connection with ${otherName} established. Chat unlocked.` });
       }
     } else {
-      // New friendship record
       const data = {
         id: friendshipId,
         uids: [authUser.uid, otherId],
@@ -195,7 +198,17 @@ export default function MessagesPage() {
         updatedAt: serverTimestamp()
       };
       setDocumentNonBlocking(doc(firestore, 'friendships', friendshipId), data, { merge: true });
-      toast({ title: "Request Sent", description: "You are now following this alumnus." });
+      
+      // Notify the other user about new request
+      addDocumentNonBlocking(collection(firestore, 'notifications'), {
+        userId: otherId,
+        type: 'connection',
+        message: `${authUser.displayName || 'An alumnus'} sent you a connection request.`,
+        read: false,
+        createdAt: serverTimestamp()
+      });
+
+      toast({ title: "Request Sent", description: `Connection request sent to ${otherName}.` });
     }
   };
 
@@ -207,8 +220,8 @@ export default function MessagesPage() {
         <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-none bg-card/50 backdrop-blur-sm">
           <ShieldCheck className="h-16 w-16 text-primary mx-auto opacity-20" />
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold font-headline">Private Network</h2>
-            <p className="text-muted-foreground text-sm leading-relaxed">Please log in to browse the alumni network, build connections, and start secure conversations.</p>
+            <h2 className="text-2xl font-bold font-headline">Secure Alumni Network</h2>
+            <p className="text-muted-foreground text-sm leading-relaxed">Log in to build connections, manage mutual requests, and start secure conversations.</p>
           </div>
           <Button asChild className="w-full font-bold h-12 rounded-xl shadow-lg shadow-primary/20">
             <a href="/login">Access Alumni Hub</a>
@@ -251,18 +264,16 @@ export default function MessagesPage() {
               followingList.map((user) => {
                 const friendship = getFriendshipWith(user.id);
                 const isMutual = friendship?.status === 'mutual';
-                const isSentByMe = friendship?.followedBy.includes(authUser?.uid || '');
+                const isRequestedByMe = friendship && friendship.followedBy.includes(authUser?.uid || '') && !isMutual;
+                const hasRequestedMe = friendship && !friendship.followedBy.includes(authUser?.uid || '') && !isMutual;
 
                 return (
                   <div key={user.id} className="group relative">
                     <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => isMutual ? setActiveChat(user.id) : null}
-                      onKeyDown={(e) => e.key === 'Enter' && (isMutual ? setActiveChat(user.id) : null)}
                       className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
-                        activeChat === user.id ? 'bg-primary/10 text-primary shadow-inner' : 'hover:bg-muted/50 cursor-pointer'
-                      } ${!isMutual && activeTab === 'active' ? 'opacity-50 grayscale' : ''}`}
+                        activeChat === user.id ? 'bg-primary/10 text-primary shadow-inner' : 'hover:bg-muted/50'
+                      } ${!isMutual && activeTab === 'active' ? 'opacity-50 grayscale' : 'cursor-pointer'}`}
+                      onClick={() => isMutual ? setActiveChat(user.id) : null}
                     >
                       <div className="relative">
                         <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background shadow-md">
@@ -274,17 +285,17 @@ export default function MessagesPage() {
                       <div className="flex-1 text-left min-w-0">
                         <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{user.name}</p>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-widest truncate font-medium">
-                          {isMutual ? 'Connected' : (isSentByMe ? 'Requested' : 'Alumni')}
+                          {isMutual ? 'Connected' : (isRequestedByMe ? 'Requested' : (hasRequestedMe ? 'Wants to Connect' : 'Alumni'))}
                         </p>
                       </div>
                       {activeTab === 'network' && !isMutual && (
                         <Button 
-                          size="icon" 
-                          variant={isSentByMe ? "secondary" : "ghost"} 
-                          className="h-9 w-9 rounded-full shrink-0"
-                          onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id); }}
+                          size="sm" 
+                          variant={isRequestedByMe ? "secondary" : "default"} 
+                          className="px-3 rounded-full shrink-0 font-bold text-[10px] h-8"
+                          onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id, user.name); }}
                         >
-                          {isSentByMe ? <UserCheck className="h-4 w-4 text-green-600" /> : <UserPlus className="h-4 w-4 text-primary" />}
+                          {isRequestedByMe ? "Pending" : (hasRequestedMe ? "Accept" : "Connect")}
                         </Button>
                       )}
                     </div>
@@ -300,7 +311,7 @@ export default function MessagesPage() {
         </ScrollArea>
       </Card>
 
-      {/* Main Interaction Window (Chat/Voice/Video) */}
+      {/* Main Interaction Window */}
       <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-2xl bg-card ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
         {isVideoCallActive ? (
           <div className="flex-1 bg-zinc-950 relative flex items-center justify-center p-4">
@@ -316,7 +327,7 @@ export default function MessagesPage() {
                       <AvatarFallback className="text-2xl font-black">YOU</AvatarFallback>
                    </Avatar>
                    <div className="absolute bottom-6 left-6 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full">
-                      <p className="text-[10px] font-black text-white/70 uppercase tracking-widest">Local Feed (Encrypted)</p>
+                      <p className="text-[10px] font-black text-white/70 uppercase tracking-widest">Local Feed</p>
                    </div>
                 </div>
                 <div className="relative rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800 shadow-2xl flex items-center justify-center group">
@@ -356,10 +367,10 @@ export default function MessagesPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-base font-black leading-none tracking-tight">{selectedUser.name}</p>
-                    <Badge variant="outline" className="h-5 px-2 text-[9px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800/50">ALUMNI ID: {selectedUser.id.substring(0, 6)}</Badge>
+                    <Badge variant="outline" className="h-5 px-2 text-[9px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800/50">MUTUAL FRIEND</Badge>
                   </div>
                   <p className="text-[10px] text-zinc-500 font-black flex items-center gap-1.5 mt-1.5 uppercase tracking-widest">
-                    <Radio className={`h-3 w-3 ${isMicOn ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> Team Channel Active
+                    <Radio className={`h-3 w-3 ${isMicOn ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> Voice Channel Ready
                   </p>
                 </div>
               </div>
@@ -378,14 +389,11 @@ export default function MessagesPage() {
                     <Button variant="ghost" size="icon" className="h-11 w-11 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl" onClick={() => setIsVideoCallActive(true)}>
                         <Video className="h-6 w-6" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-11 w-11 text-green-400 hover:text-green-300 hover:bg-green-500/10 rounded-xl">
-                        <Phone className="h-5 w-5" />
-                    </Button>
                 </div>
               </div>
             </div>
 
-            {/* Messaging Feed with WhatsApp-style checkmarks */}
+            {/* Messaging Feed */}
             <ScrollArea className="flex-1 p-6 bg-zinc-50/50">
               <div className="space-y-8 max-w-4xl mx-auto">
                 {isMessagesLoading ? (
@@ -401,7 +409,7 @@ export default function MessagesPage() {
                         <p className="text-sm leading-relaxed font-medium tracking-tight">{msg.text}</p>
                         <div className={`flex items-center gap-2 mt-3 ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'}`}>
                           <p className="text-[10px] font-black uppercase opacity-40 tracking-tighter">
-                            {msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'JUST NOW'}
+                            {msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'RECENT'}
                           </p>
                           {msg.senderId === authUser?.uid && (
                             <div className="flex -space-x-1">
@@ -419,11 +427,11 @@ export default function MessagesPage() {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-32 text-center space-y-6 opacity-30">
                     <div className="h-24 w-24 rounded-[2rem] bg-muted flex items-center justify-center">
-                        <ShieldCheck className="h-12 w-12" />
+                        <Handshake className="h-12 w-12" />
                     </div>
                     <div className="space-y-1">
-                        <p className="text-lg font-black tracking-tighter">ENCRYPTED CHANNEL</p>
-                        <p className="text-sm font-medium">Messages are isolated between you and {selectedUser.name}</p>
+                        <p className="text-lg font-black tracking-tighter">SECURE CHANNEL ACTIVE</p>
+                        <p className="text-sm font-medium">You and {selectedUser.name} are now connected. Say hello!</p>
                     </div>
                   </div>
                 )}
@@ -435,7 +443,7 @@ export default function MessagesPage() {
             <div className="p-5 border-t bg-white/80 backdrop-blur-xl">
               <form className="flex gap-3 max-w-4xl mx-auto" onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
                 <Input 
-                  placeholder={`Send secure message to ${selectedUser.name.split(' ')[0]}...`} 
+                  placeholder={`Type a message to ${selectedUser.name.split(' ')[0]}...`} 
                   className="bg-zinc-100 border-none shadow-none rounded-[1.25rem] h-12 px-6 text-sm font-medium focus-visible:ring-2 focus-visible:ring-zinc-900/5 transition-all"
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
@@ -451,13 +459,13 @@ export default function MessagesPage() {
             <div className="h-24 w-24 rounded-[2.5rem] bg-white shadow-2xl flex items-center justify-center mb-8 border border-zinc-100">
                 <Radio className="h-10 w-10 text-primary animate-pulse opacity-40" />
             </div>
-            <h3 className="font-black text-3xl text-zinc-900 mb-3 tracking-tighter">ALUMNI SECURE HUB</h3>
+            <h3 className="font-black text-3xl text-zinc-900 mb-3 tracking-tighter">MUTUAL ALUMNI HUB</h3>
             <p className="text-sm max-w-xs leading-relaxed font-medium">
-              Start conversations with fellow alumni. Mutual follow is required to establish an encrypted voice and text channel.
+              Browse the network tab to send connection requests. Once accepted, you'll unlock voice, video, and text communication.
             </p>
             <div className="mt-10 flex gap-2">
-                <Badge variant="secondary" className="px-3 py-1 font-bold text-[10px] tracking-widest uppercase">Privacy Guaranteed</Badge>
-                <Badge variant="secondary" className="px-3 py-1 font-bold text-[10px] tracking-widest uppercase">Verified Network</Badge>
+                <Badge variant="secondary" className="px-3 py-1 font-bold text-[10px] tracking-widest uppercase">Verified Connections</Badge>
+                <Badge variant="secondary" className="px-3 py-1 font-bold text-[10px] tracking-widest uppercase">Privacy First</Badge>
             </div>
           </div>
         )}

@@ -1,6 +1,7 @@
+
 'use client';
 
-import type { User } from '@/lib/definitions';
+import type { User, Friendship } from '@/lib/definitions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -18,8 +19,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Edit, Trash2, GraduationCap, Building2, MapPin, MessageSquare } from 'lucide-react';
+import { Edit, Trash2, GraduationCap, Building2, MapPin, MessageSquare, UserPlus, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useUser, useMemoFirebase, useCollection, addDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 const getInitials = (name: string) => {
   if (!name) return '';
@@ -35,6 +39,71 @@ interface UserCardProps {
 
 export const UserCard = ({ user, isAdmin, handleDeleteUser }: UserCardProps) => {
   const { toast } = useToast();
+  const { user: authUser } = useUser();
+  const firestore = useFirestore();
+  const router = useRouter();
+
+  const friendshipQuery = useMemoFirebase(() => {
+    if (!firestore || !authUser?.uid) return null;
+    return query(collection(firestore, 'friendships'), where('uids', 'array-contains', authUser.uid));
+  }, [firestore, authUser?.uid]);
+
+  const { data: friendships } = useCollection<Friendship>(friendshipQuery);
+
+  const friendship = friendships?.find(f => f.uids.includes(user.id));
+  const isMutual = friendship?.status === 'mutual';
+  const isRequestedByMe = friendship && friendship.followedBy.includes(authUser?.uid || '') && !isMutual;
+  const hasRequestedMe = friendship && !friendship.followedBy.includes(authUser?.uid || '') && !isMutual;
+
+  const handleFollowUser = async () => {
+    if (!firestore || !authUser) {
+      router.push('/login');
+      return;
+    }
+    const friendshipId = [authUser.uid, user.id].sort().join('_');
+
+    if (friendship) {
+      if (friendship.followedBy.includes(authUser.uid)) return;
+      
+      const newFollowedBy = [...friendship.followedBy, authUser.uid];
+      const isMutual = newFollowedBy.length === 2;
+      
+      updateDocumentNonBlocking(doc(firestore, 'friendships', friendship.id), {
+        followedBy: newFollowedBy,
+        status: isMutual ? 'mutual' : 'pending',
+        updatedAt: serverTimestamp()
+      });
+
+      addDocumentNonBlocking(collection(firestore, 'notifications'), {
+        userId: user.id,
+        type: 'connection',
+        message: `${authUser.displayName || 'An alumnus'} accepted your request.`,
+        read: false,
+        createdAt: serverTimestamp()
+      });
+
+      toast({ title: isMutual ? "Connected!" : "Followed Back", description: `You are now connected with ${user.name}.` });
+    } else {
+      const data = {
+        id: friendshipId,
+        uids: [authUser.uid, user.id],
+        followedBy: [authUser.uid],
+        status: 'pending',
+        updatedAt: serverTimestamp()
+      };
+      setDocumentNonBlocking(doc(firestore, 'friendships', friendshipId), data, { merge: true });
+      
+      addDocumentNonBlocking(collection(firestore, 'notifications'), {
+        userId: user.id,
+        type: 'connection',
+        message: `${authUser.displayName || 'An alumnus'} sent you a connection request.`,
+        read: false,
+        createdAt: serverTimestamp()
+      });
+
+      toast({ title: "Request Sent", description: `Connection request sent to ${user.name}.` });
+    }
+  };
 
   return (
     <Card className="hover:shadow-lg transition-all duration-300 group border-none shadow-sm">
@@ -89,13 +158,23 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser }: UserCardProps) => 
           <Link href={`/users/${user.id}`} className="flex-1">
             <Button size="sm" variant="outline" className="w-full font-bold h-9">View Profile</Button>
           </Link>
+          
           <Button 
-            size="icon" 
-            variant="ghost" 
-            className="h-9 w-9 text-primary hover:bg-primary/5 shrink-0"
-            onClick={() => toast({ title: "Connecting...", description: `Connection request sent to ${user.name.split(' ')[0]}.` })}
+            size="sm" 
+            variant={isRequestedByMe ? "secondary" : "default"} 
+            className="flex-1 font-bold h-9 gap-2"
+            onClick={handleFollowUser}
+            disabled={isMutual || isRequestedByMe}
           >
-            <MessageSquare className="h-4 w-4" />
+            {isMutual ? (
+              <><UserCheck className="h-4 w-4" /> Connected</>
+            ) : isRequestedByMe ? (
+              "Pending"
+            ) : hasRequestedMe ? (
+              "Accept"
+            ) : (
+              <><UserPlus className="h-4 w-4" /> Connect</>
+            )}
           </Button>
 
           {isAdmin && user.email !== ADMIN_EMAIL && (
@@ -114,13 +193,13 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser }: UserCardProps) => 
                           <AlertDialogHeader>
                           <AlertDialogTitle>Permanent Deletion</AlertDialogTitle>
                           <AlertDialogDescription>
-                              Are you sure you want to remove <strong>{user.name}</strong> from the network? This action cannot be undone.
+                              Are you sure you want to remove <strong>{user.name}</strong> from the network?
                           </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteUser(user.id)} className="bg-destructive hover:bg-destructive/90">
-                              Confirm Delete
+                          <AlertDialogAction onClick={() => handleDeleteUser(user.id)} className="bg-destructive">
+                              Confirm
                           </AlertDialogAction>
                           </AlertDialogFooter>
                       </AlertDialogContent>
