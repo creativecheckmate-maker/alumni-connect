@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 const getPlaceholderImage = (id: string) => {
@@ -37,7 +38,7 @@ function UserRatingCard({ user }: { user: User }) {
         <div className="flex items-center gap-4 mb-4">
           <Avatar className="h-16 w-16 border-2 border-primary/20 ring-4 ring-primary/5 transition-transform group-hover:scale-105">
             <AvatarImage src={user.avatarUrl} alt={user.name} />
-            <AvatarFallback className="bg-primary/5 text-primary text-xl font-bold">{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback className="bg-primary/5 text-primary text-xl font-bold">{user.name?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <h4 className="font-bold text-lg leading-tight truncate group-hover:text-primary transition-colors">{user.name}</h4>
@@ -71,6 +72,10 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
   const [data, setData] = useState(initialData);
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+
   const handleSave = async () => {
     if (!firestore) return;
     setIsSaving(true);
@@ -97,33 +102,70 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Edit {label}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-          {Object.keys(initialData).map((key) => (
-            <div key={key} className="space-y-2">
-              <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
-              {key.toLowerCase().includes('description') || key.toLowerCase().includes('content') ? (
-                <Textarea 
-                  value={data[key]} 
-                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
-                />
-              ) : (
-                <div className="flex gap-2">
-                  <Input 
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+          {Object.keys(data).map((key) => {
+            if (key === 'stats' && Array.isArray(data[key])) {
+              return (
+                <div key={key} className="space-y-4">
+                  <Label className="text-base font-bold text-primary">Metrics Hub</Label>
+                  {data[key].map((stat: any, index: number) => (
+                    <div key={index} className="grid grid-cols-2 gap-3 p-4 border rounded-xl bg-muted/20">
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Label</Label>
+                        <Input 
+                          value={stat.label} 
+                          onChange={(e) => {
+                            const newStats = [...data.stats];
+                            newStats[index] = { ...newStats[index], label: e.target.value };
+                            setData({ ...data, stats: newStats });
+                          }} 
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Value</Label>
+                        <Input 
+                          value={stat.value} 
+                          onChange={(e) => {
+                            const newStats = [...data.stats];
+                            newStats[index] = { ...newStats[index], value: e.target.value };
+                            setData({ ...data, stats: newStats });
+                          }} 
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
+            return (
+              <div key={key} className="space-y-2">
+                <Label className="capitalize text-xs font-bold text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}</Label>
+                {key.toLowerCase().includes('description') || key.toLowerCase().includes('content') ? (
+                  <Textarea 
                     value={data[key]} 
                     onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                    className="min-h-[100px]"
                   />
-                  {key.toLowerCase().includes('url') && <ImageIcon className="h-4 w-4 text-muted-foreground self-center" />}
-                </div>
-              )}
-            </div>
-          ))}
+                ) : (
+                  <div className="flex gap-2">
+                    <Input 
+                      value={data[key]} 
+                      onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                    />
+                    {key.toLowerCase().includes('url') && <ImageIcon className="h-4 w-4 text-muted-foreground self-center opacity-50" />}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <DialogFooter>
-          <Button onClick={handleSave} disabled={isSaving}>
+        <DialogFooter className="pt-4 border-t">
+          <Button onClick={handleSave} disabled={isSaving} className="w-full font-bold">
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Changes
           </Button>
@@ -266,7 +308,7 @@ export default function HomePage() {
 
       {/* Quick Stats */}
       <section className="container mx-auto px-4 -mt-32 relative z-20">
-        {isAdmin && isEditMode && <AdminEditDialog pageId="home" sectionId="stats" initialData={{ stats: currentStats }} label="Stats Section" overlay />}
+        {isAdmin && isEditMode && <AdminEditDialog pageId="home" sectionId="stats" initialData={{ stats: currentStats }} label="Metrics Dashboard" overlay />}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {currentStats.map((stat: any, i: number) => (
             <Card key={i} className="border-none shadow-xl bg-background/80 backdrop-blur-lg">
