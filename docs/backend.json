@@ -52,6 +52,20 @@
       },
       "required": ["id", "userId", "type", "message", "read", "createdAt"]
     },
+    "Message": {
+      "title": "Message",
+      "type": "object",
+      "description": "A private message between two users.",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "chatId": { "type": "string", "description": "Unique ID for the conversation (e.g. uid1_uid2)" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "senderId", "receiverId", "chatId", "text", "createdAt"]
+    },
     "SiteContent": {
       "title": "SiteContent",
       "type": "object",
@@ -93,6 +107,14 @@
           "entityName": "Notification",
           "schema": { "$ref": "#/backend/entities/Notification" },
           "description": "In-app notifications."
+        }
+      },
+      {
+        "path": "messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": { "$ref": "#/backend/entities/Message" },
+          "description": "Private messages between users."
         }
       },
       {

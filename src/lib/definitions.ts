@@ -47,6 +47,15 @@ export type Notification = {
   createdAt: any;
 };
 
+export type Message = {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  chatId: string;
+  text: string;
+  createdAt: any;
+};
+
 export type Event = {
   id: string;
   name: string;
