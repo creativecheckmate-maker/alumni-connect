@@ -18,65 +18,63 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Global bypass for Admin
-    match /{document=**} {
-      allow read, write: if isAdmin();
-    }
-
     // Users Collection
     match /users/{userId} {
-      allow read: if true;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if false; // Only via global admin bypass
+      allow read: if true; // Publicly readable directory
+      allow create: if isAdmin() || isOwner(userId);
+      allow update: if isAdmin() || isOwner(userId);
+      allow delete: if isAdmin();
     }
 
     // Messages Collection
     match /messages/{messageId} {
-      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants);
+      // Allow listing only if the query is filtered by participants
+      allow list: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
+      allow get: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
       allow create: if isSignedIn() && (
         request.resource.data.senderId == request.auth.uid && 
         request.auth.uid in request.resource.data.participants
       );
-      allow delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
     }
 
     // Notifications Collection
     match /notifications/{notificationId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     // Community Feed
     match /feed/{postId} {
       allow read: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (
+      allow update: if isAdmin() || (isSignedIn() && (
         resource.data.authorId == request.auth.uid || 
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
-      );
-      allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+      ));
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
     }
 
     // Events
     match /events/{eventId} {
       allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && resource.data.organizerId == request.auth.uid;
+      allow create: if isAdmin() || isSignedIn();
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.organizerId == request.auth.uid);
     }
 
     // Job Postings
     match /jobPostings/{jobPostingId} {
       allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && resource.data.posterId == request.auth.uid;
+      allow create: if isAdmin() || isSignedIn();
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.posterId == request.auth.uid);
     }
 
     // Site Content (CMS)
     match /siteContent/{contentId} {
       allow read: if true;
-      allow write: if false; // Only via global admin bypass
+      allow write: if isAdmin();
     }
   }
 }

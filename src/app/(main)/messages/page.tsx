@@ -20,6 +20,7 @@ export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Guard users query to only run for authenticated users
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !authUser) return null;
     return query(
