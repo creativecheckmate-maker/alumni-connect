@@ -27,15 +27,14 @@ export interface FirebaseContextState {
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
+  isEditMode: boolean;
+  setIsEditMode: (val: boolean) => void;
 }
 
-export interface FirebaseServicesAndUser {
+export interface FirebaseServicesAndUser extends FirebaseContextState {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
-  user: User | null;
-  isUserLoading: boolean;
-  userError: Error | null;
 }
 
 export interface UserHookResult {
@@ -57,6 +56,17 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     isUserLoading: true,
     userError: null,
   });
+
+  const [isEditMode, setIsEditMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('nexus_admin_edit_mode') === 'true';
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('nexus_admin_edit_mode', isEditMode.toString());
+  }, [isEditMode]);
 
   useEffect(() => {
     if (!auth) {
@@ -87,8 +97,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       user: userAuthState.user,
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
+      isEditMode,
+      setIsEditMode,
     };
-  }, [firebaseApp, firestore, auth, userAuthState]);
+  }, [firebaseApp, firestore, auth, userAuthState, isEditMode]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -110,12 +122,10 @@ export const useFirebase = (): FirebaseServicesAndUser => {
   }
 
   return {
+    ...context,
     firebaseApp: context.firebaseApp,
     firestore: context.firestore,
     auth: context.auth,
-    user: context.user,
-    isUserLoading: context.isUserLoading,
-    userError: context.userError,
   };
 };
 
@@ -141,7 +151,6 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
   
   if(typeof memoized !== 'object' || memoized === null) return memoized;
   
-  // Safely mark as memoized if the object is extensible
   if (Object.isExtensible(memoized)) {
     (memoized as MemoFirebase<T>).__memo = true;
   }

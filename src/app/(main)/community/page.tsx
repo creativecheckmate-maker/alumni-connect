@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Globe, Users, MapPin, Share2, Edit, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { SiteContent } from '@/lib/definitions';
@@ -72,7 +71,7 @@ function AdminEditDialog({ initialData }: { initialData: any }) {
 }
 
 export default function CommunityHubPage() {
-  const { user: authUser } = useUser();
+  const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const isAdmin = authUser?.email === ADMIN_EMAIL;
 
@@ -99,7 +98,7 @@ export default function CommunityHubPage() {
     <div className="max-w-4xl mx-auto space-y-12 pb-20">
       <div className="text-center space-y-4">
         <PageHeader title="Community Hub">
-          {isAdmin && <AdminEditDialog initialData={{ description }} />}
+          {isAdmin && isEditMode && <AdminEditDialog initialData={{ description }} />}
         </PageHeader>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto font-body">
           {description}

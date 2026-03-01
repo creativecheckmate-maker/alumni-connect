@@ -3,18 +3,22 @@
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { Search } from 'lucide-react';
+import { Search, Settings2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useUser } from '@/firebase';
+import { useFirebase } from '@/firebase';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import Link from 'next/link';
+import { ADMIN_EMAIL } from '@/lib/config';
 
 export default function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user } = useUser();
+  const { user, isEditMode, setIsEditMode } = useFirebase();
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   return (
     <SidebarProvider>
@@ -34,6 +38,19 @@ export default function MainLayout({
               </div>
             </form>
           </div>
+          
+          {isAdmin && (
+            <div className="flex items-center gap-2 mr-4 bg-muted/50 px-3 py-1.5 rounded-full border border-primary/20 animate-in fade-in slide-in-from-right-2">
+              <Settings2 className="h-4 w-4 text-primary" />
+              <Label htmlFor="edit-mode" className="text-xs font-bold whitespace-nowrap">Edit Mode</Label>
+              <Switch 
+                id="edit-mode" 
+                checked={isEditMode} 
+                onCheckedChange={setIsEditMode} 
+              />
+            </div>
+          )}
+
           {user ? (
             <UserNav />
           ) : (

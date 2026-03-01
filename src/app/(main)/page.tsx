@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -6,8 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { ArrowRight, Star, GraduationCap, Briefcase, Users, Globe, Trophy, Edit, Loader2 } from 'lucide-react';
+import { useFirebase, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { ArrowRight, Star, GraduationCap, Briefcase, Users, Globe, Trophy, Edit, Loader2, Image as ImageIcon } from 'lucide-react';
 import { collection, query, where, limit, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { User, SiteContent } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -112,10 +111,13 @@ function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: st
                   onChange={(e) => setData({ ...data, [key]: e.target.value })} 
                 />
               ) : (
-                <Input 
-                  value={data[key]} 
-                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
-                />
+                <div className="flex gap-2">
+                  <Input 
+                    value={data[key]} 
+                    onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                  />
+                  {key.toLowerCase().includes('url') && <ImageIcon className="h-4 w-4 text-muted-foreground self-center" />}
+                </div>
               )}
             </div>
           ))}
@@ -132,7 +134,7 @@ function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: st
 }
 
 export default function HomePage() {
-  const { user: authUser } = useUser();
+  const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const isAdmin = authUser?.email === ADMIN_EMAIL;
 
@@ -163,30 +165,28 @@ export default function HomePage() {
   const defaultHero = {
     badge: "🚀 Trusted by 25,000+ Alumni",
     title: "Connecting Our Global Legacy",
-    description: "The official portal for Nexus University graduates to stay connected, find opportunities, and empower the next generation."
+    description: "The official portal for Nexus University graduates to stay connected, find opportunities, and empower the next generation.",
+    imageUrl: heroImage.imageUrl
   };
 
-  const defaultStats = [
-    { label: 'Global Alumni', value: '25K+', icon: <Globe className="h-5 w-5" /> },
-    { label: 'Job Placements', value: '12K+', icon: <Briefcase className="h-5 w-5" /> },
-    { label: 'Mentors', value: '1.5K', icon: <Users className="h-5 w-5" /> },
-    { label: 'Avg Rating', value: '92%', icon: <Star className="h-5 w-5" /> },
-  ];
-
   const currentHero = heroContent?.data || defaultHero;
-  const currentStats = statsContent?.data?.stats || defaultStats;
+  const currentStats = statsContent?.data?.stats || [
+    { label: 'Global Alumni', value: '25K+', icon: 'Globe' },
+    { label: 'Job Placements', value: '12K+', icon: 'Briefcase' },
+    { label: 'Mentors', value: '1.5K', icon: 'Users' },
+    { label: 'Avg Rating', value: '92%', icon: 'Star' },
+  ];
 
   return (
     <div className="flex-1 space-y-20 pb-20">
       {/* Hero Section */}
       <section className="relative h-[70vh] min-h-[600px] w-full rounded-[2rem] overflow-hidden shadow-2xl">
-        {isAdmin && <AdminEditDialog pageId="home" sectionId="hero" initialData={currentHero} label="Hero Section" />}
+        {isAdmin && isEditMode && <AdminEditDialog pageId="home" sectionId="hero" initialData={currentHero} label="Hero Section" />}
         <Image
-          src={heroImage.imageUrl}
-          alt={heroImage.description}
+          src={currentHero.imageUrl || heroImage.imageUrl}
+          alt="Nexus Hero"
           fill
           className="object-cover"
-          data-ai-hint={heroImage.imageHint}
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/70 to-transparent" />
@@ -195,7 +195,7 @@ export default function HomePage() {
             {currentHero.badge}
           </Badge>
           <h1 className="font-headline text-5xl md:text-8xl font-bold tracking-tighter leading-none mb-6">
-            {currentHero.title.split(' ').slice(0, -2).join(' ')} <br/><span className="text-secondary">{currentHero.title.split(' ').slice(-2).join(' ')}</span>
+            {currentHero.title}
           </h1>
           <p className="max-w-xl text-lg md:text-2xl text-white/90 font-body leading-relaxed mb-10">
             {currentHero.description}
@@ -228,10 +228,10 @@ export default function HomePage() {
             <Card key={i} className="border-none shadow-xl bg-background/80 backdrop-blur-lg">
               <CardContent className="p-6 text-center space-y-2">
                 <div className="inline-flex p-3 rounded-2xl bg-primary/10 text-primary mb-2">
-                  {i === 0 && <Globe className="h-5 w-5" />}
-                  {i === 1 && <Briefcase className="h-5 w-5" />}
-                  {i === 2 && <Users className="h-5 w-5" />}
-                  {i === 3 && <Star className="h-5 w-5" />}
+                  {stat.icon === 'Globe' && <Globe className="h-5 w-5" />}
+                  {stat.icon === 'Briefcase' && <Briefcase className="h-5 w-5" />}
+                  {stat.icon === 'Users' && <Users className="h-5 w-5" />}
+                  {stat.icon === 'Star' && <Star className="h-5 w-5" />}
                 </div>
                 <div className="text-3xl font-bold font-headline">{stat.value}</div>
                 <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</div>
@@ -338,7 +338,6 @@ export default function HomePage() {
                     alt={professorImage.description} 
                     fill 
                     className="object-cover" 
-                    data-ai-hint={professorImage.imageHint} 
                   />
                   <div className="absolute inset-0 bg-gradient-to-l from-primary/50 to-transparent" />
               </div>

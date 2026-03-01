@@ -1,10 +1,9 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { GraduationCap, Target, Users, Heart, Edit, Loader2 } from 'lucide-react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { GraduationCap, Target, Users, Heart, Edit, Loader2, Image as ImageIcon } from 'lucide-react';
+import { useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { SiteContent } from '@/lib/definitions';
@@ -55,11 +54,18 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
         <div className="space-y-4 py-4">
           {Object.keys(initialData).map((key) => (
             <div key={key} className="space-y-2">
-              <Label className="capitalize">{key}</Label>
-              <Textarea 
-                value={data[key]} 
-                onChange={(e) => setData({ ...data, [key]: e.target.value })} 
-              />
+              <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
+              {key.toLowerCase().includes('description') || key.toLowerCase().includes('content') || key.toLowerCase().includes('mission') || key.toLowerCase().includes('vision') || key.toLowerCase().includes('community') || key.toLowerCase().includes('values') ? (
+                <Textarea 
+                  value={data[key]} 
+                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                />
+              ) : (
+                <Input 
+                  value={data[key]} 
+                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                />
+              )}
             </div>
           ))}
         </div>
@@ -75,7 +81,7 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
 }
 
 export default function AboutPage() {
-  const { user: authUser } = useUser();
+  const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const isAdmin = authUser?.email === ADMIN_EMAIL;
 
@@ -122,7 +128,7 @@ export default function AboutPage() {
     <div className="max-w-4xl mx-auto space-y-12 pb-20">
       <div className="text-center space-y-4 relative">
         <PageHeader title="About Alumni Connect">
-           {isAdmin && <AdminEditDialog sectionId="main" initialData={content} label="Main Content" />}
+           {isAdmin && isEditMode && <AdminEditDialog sectionId="main" initialData={content} label="Main Content" />}
         </PageHeader>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           We are more than just a network; we are a family of global innovators and leaders committed to excellence.

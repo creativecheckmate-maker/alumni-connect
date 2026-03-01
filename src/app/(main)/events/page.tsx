@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -6,7 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Calendar } from '@/components/ui/calendar';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useFirebase, useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import type { Event } from '@/lib/definitions';
 import { ADMIN_EMAIL } from '@/lib/config';
@@ -19,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2, Loader2, Calendar as CalendarIcon } from 'lucide-react';
 
 export default function EventsPage() {
-  const { user: authUser } = useUser();
+  const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
   const isAdmin = authUser?.email === ADMIN_EMAIL;
@@ -45,7 +44,7 @@ export default function EventsPage() {
         date: formData.get('date'),
         description: formData.get('description'),
         organizerId: authUser.uid,
-        imageUrl: `https://picsum.photos/seed/${Math.random()}/800/400`,
+        imageUrl: formData.get('imageUrl') || `https://picsum.photos/seed/${Math.random()}/800/400`,
         createdAt: serverTimestamp(),
       });
       toast({ title: "Event Created", description: "The event has been added to the calendar." });
@@ -66,7 +65,7 @@ export default function EventsPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <PageHeader title="Events">
-        {isAdmin && (
+        {isAdmin && isEditMode && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -85,6 +84,10 @@ export default function EventsPage() {
                 <div className="space-y-2">
                   <Label>Date</Label>
                   <Input name="date" placeholder="e.g. August 12, 2024" required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Image URL (Optional)</Label>
+                  <Input name="imageUrl" placeholder="https://..." />
                 </div>
                 <div className="space-y-2">
                   <Label>Description</Label>
@@ -130,7 +133,7 @@ export default function EventsPage() {
                                                 <CalendarIcon className="h-3 w-3" /> {event.date}
                                             </CardDescription>
                                         </div>
-                                        {isAdmin && (
+                                        {isAdmin && isEditMode && (
                                             <Button 
                                                 variant="ghost" 
                                                 size="icon" 
