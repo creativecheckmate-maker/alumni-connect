@@ -53,6 +53,8 @@ export type Notification = {
   createdAt: any;
 };
 
+export type MessageStatus = 'sent' | 'delivered' | 'seen';
+
 export type Message = {
   id: string;
   senderId: string;
@@ -60,6 +62,7 @@ export type Message = {
   participants: string[];
   chatId: string;
   text: string;
+  status: MessageStatus;
   createdAt: any;
 };
 

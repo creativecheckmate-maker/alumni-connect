@@ -65,9 +65,10 @@
         "participants": { "type": "array", "items": { "type": "string" } },
         "chatId": { "type": "string", "description": "Unique ID for the conversation (e.g. uid1_uid2)" },
         "text": { "type": "string" },
+        "status": { "type": "string", "enum": ["sent", "delivered", "seen"], "description": "Status of the message for delivery feedback." },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "senderId", "receiverId", "participants", "chatId", "text", "createdAt"]
+      "required": ["id", "senderId", "receiverId", "participants", "chatId", "text", "status", "createdAt"]
     },
     "SiteContent": {
       "title": "SiteContent",

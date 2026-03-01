@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card } from '@/components/ui/card';
@@ -17,11 +18,13 @@ import {
   Loader2, 
   ArrowLeft, 
   MessageCircle,
-  Radio
+  Radio,
+  Check,
+  CheckCheck
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { useUser, useFirestore, useMemoFirebase, useCollection, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, serverTimestamp, limit } from 'firebase/firestore';
+import { useUser, useFirestore, useMemoFirebase, useCollection, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, serverTimestamp, limit, doc, orderBy } from 'firebase/firestore';
 import type { User, Message } from '@/lib/definitions';
 
 export default function MessagesPage() {
@@ -63,8 +66,8 @@ export default function MessagesPage() {
     
     return query(
       collection(firestore, 'messages'),
-      where('participants', 'array-contains', authUser.uid),
       where('chatId', '==', chatId),
+      orderBy('createdAt', 'asc'),
       limit(100)
     );
   }, [firestore, chatId, authUser?.uid, isAuthLoading]);
@@ -78,6 +81,20 @@ export default function MessagesPage() {
     }
   }, [messages, activeChat]);
 
+  // Mark messages as seen
+  useEffect(() => {
+    if (!firestore || !authUser || !activeChat || !messages || messages.length === 0) return;
+
+    const unreadMessages = messages.filter(
+      (msg) => msg.senderId === activeChat && msg.status !== 'seen'
+    );
+
+    unreadMessages.forEach((msg) => {
+      const msgRef = doc(firestore, 'messages', msg.id);
+      updateDocumentNonBlocking(msgRef, { status: 'seen' });
+    });
+  }, [messages, activeChat, authUser?.uid, firestore]);
+
   const handleSendMessage = async () => {
     if (!firestore || !authUser || !activeChat || !messageText.trim() || !chatId) return;
 
@@ -87,6 +104,7 @@ export default function MessagesPage() {
       participants: [authUser.uid, activeChat],
       chatId: chatId,
       text: messageText,
+      status: 'sent',
       createdAt: serverTimestamp(),
     };
 
@@ -256,9 +274,20 @@ export default function MessagesPage() {
                         }`}
                       >
                         <p className="leading-relaxed whitespace-pre-wrap font-medium">{msg.text}</p>
-                        <p className={`text-[9px] mt-2 font-black uppercase tracking-widest opacity-50 ${msg.senderId === authUser?.uid ? 'text-right' : 'text-left'}`}>
-                          {msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Just now'}
-                        </p>
+                        <div className={`flex items-center gap-1 mt-2 ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'}`}>
+                          <p className="text-[9px] font-black uppercase tracking-widest opacity-50">
+                            {msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Just now'}
+                          </p>
+                          {msg.senderId === authUser?.uid && (
+                            <div className="flex items-center">
+                              {msg.status === 'seen' ? (
+                                <CheckCheck className="h-3 w-3 text-blue-400" />
+                              ) : (
+                                <Check className="h-3 w-3 opacity-50" />
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))

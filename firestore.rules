@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -17,7 +18,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Users Collection - Publicly viewable
+    // Users Collection - Publicly viewable for directory features
     match /users/{userId} {
       allow get, list: if true;
       allow create: if isSignedIn();
@@ -25,21 +26,20 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Messages Collection - Private to participants
+    // Messages Collection - Private to participants with feedback support
     match /messages/{messageId} {
-      // Split read into get and list to help the query optimizer verify participants array filters
-      allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
-      allow list: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
+      // Explicitly allow list if the query filters for current user's participation
+      allow get, list: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
       
       allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
+      // Allow update for participants to mark as 'seen'
+      allow update: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
     }
 
     // Notifications Collection - Private to target user
     match /notifications/{notificationId} {
-      // Split read into get and list to help the rules engine verify userId filters
-      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
-      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow get, list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
