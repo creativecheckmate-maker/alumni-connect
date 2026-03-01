@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useAuth, useFirestore } from '@/firebase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -47,6 +47,7 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -80,7 +81,7 @@ export function LoginForm() {
         return;
       }
       
-      router.push('/profile');
+      router.push('/dashboard');
 
     } catch (error: any) {
       let message = 'An unknown error occurred. Please try again.';
@@ -115,7 +116,6 @@ export function LoginForm() {
       });
     } catch (error: any) {
       console.error('Password reset error:', error);
-      // For security, show the same message even if the email doesn't exist
       toast({
         title: 'Password Reset Email Sent',
         description: `If an account exists for ${resetEmail}, a password reset link has been sent.`,
@@ -183,7 +183,26 @@ export function LoginForm() {
                 </AlertDialog>
               </div>
               <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
+                <div className="relative">
+                  <Input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="••••••••" 
+                    {...field} 
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full w-10 px-3 py-2 hover:bg-transparent text-muted-foreground"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
