@@ -12,11 +12,15 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return isSignedIn() && request.auth.token.email == 'creativecheckmate@gmail.com';
+      return isSignedIn() && (
+        request.auth.token.email == 'creativecheckmate@gmail.com' ||
+        request.auth.uid == 'XuRuoj1HWaS5nIiVZVoEdbaGX052'
+      );
     }
 
     function isStudent() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student';
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isSignedIn() && userDoc != null && userDoc.data.role == 'student';
     }
 
     match /users/{userId} {
@@ -50,12 +54,10 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      // Allow users to read notifications where they are the recipient, or if they are admin
-      allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
-      allow list: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
-      allow create: if isAdmin();
-      allow update: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
-      allow delete: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
+      // Consolidate read/list access
+      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      // Allow users to update their own notification (mark as read) or admin to manage
+      allow write: if isAdmin() || (isSignedIn() && (resource == null || resource.data.userId == request.auth.uid));
     }
 
     match /siteContent/{contentId} {
