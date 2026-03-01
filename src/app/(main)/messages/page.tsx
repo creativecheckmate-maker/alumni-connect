@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Send, Phone, Video, Info, Loader2, ArrowLeft, MessageCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useMemoFirebase, useCollection, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, orderBy, serverTimestamp, limit } from 'firebase/firestore';
+import { collection, query, where, serverTimestamp, limit } from 'firebase/firestore';
 import type { User, Message } from '@/lib/definitions';
 
 export default function MessagesPage() {
@@ -45,6 +45,7 @@ export default function MessagesPage() {
   // Fetch messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
     // CRITICAL: Prevent query if auth state is not settled or chatId is missing.
+    // This prevents "Missing or insufficient permissions" during auth transitions.
     if (!firestore || !chatId || !authUser?.uid || isAuthLoading) return null;
     
     return query(
@@ -52,7 +53,7 @@ export default function MessagesPage() {
       // Adding participants filter is MANDATORY for security rules authorization for individual users.
       where('participants', 'array-contains', authUser.uid),
       where('chatId', '==', chatId),
-      orderBy('createdAt', 'asc'),
+      // Temporarily removed orderBy to troubleshoot indexing issues causing permission errors
       limit(100)
     );
   }, [firestore, chatId, authUser?.uid, isAuthLoading]);
@@ -214,7 +215,7 @@ export default function MessagesPage() {
                       >
                         <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                         <p className={`text-[9px] mt-2 font-bold uppercase tracking-widest opacity-70 ${msg.senderId === authUser?.uid ? 'text-right' : 'text-left'}`}>
-                          {msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Sending...'}
+                          {msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Just now'}
                         </p>
                       </div>
                     </div>

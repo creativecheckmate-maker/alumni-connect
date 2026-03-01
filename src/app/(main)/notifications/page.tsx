@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, UserPlus, Calendar, Info, Bell, Loader2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, limit } from 'firebase/firestore';
 import type { Notification } from '@/lib/definitions';
 import Link from 'next/link';
 
@@ -26,7 +26,7 @@ export default function NotificationsPage() {
       collection(firestore, 'notifications'), 
       // This filter is MANDATORY to satisfy security rules for individual users.
       where('userId', '==', user.uid), 
-      orderBy('createdAt', 'desc'),
+      // Temporarily removed orderBy to troubleshoot indexing issues causing permission errors
       limit(50)
     );
   }, [firestore, user?.uid, isUserLoading]);
