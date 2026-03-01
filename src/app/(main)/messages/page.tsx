@@ -19,7 +19,7 @@ export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch all users for the sidebar
+  // Fetch all users for the sidebar (excluding self)
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !authUser || isAuthLoading) return null;
     return query(
@@ -53,7 +53,6 @@ export default function MessagesPage() {
       // Adding participants filter is MANDATORY for security rules authorization for individual users.
       where('participants', 'array-contains', authUser.uid),
       where('chatId', '==', chatId),
-      // Temporarily removed orderBy to troubleshoot indexing issues causing permission errors
       limit(100)
     );
   }, [firestore, chatId, authUser?.uid, isAuthLoading]);

@@ -26,7 +26,6 @@ export default function NotificationsPage() {
       collection(firestore, 'notifications'), 
       // This filter is MANDATORY to satisfy security rules for individual users.
       where('userId', '==', user.uid), 
-      // Temporarily removed orderBy to troubleshoot indexing issues causing permission errors
       limit(50)
     );
   }, [firestore, user?.uid, isUserLoading]);

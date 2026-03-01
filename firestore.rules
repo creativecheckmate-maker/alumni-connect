@@ -17,9 +17,9 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Users Collection - Publicly viewable
+    // Users Collection - Publicly viewable, strictly controlled updates
     match /users/{userId} {
-      allow read: if true;
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isAdmin() || isOwner(userId);
       allow delete: if isAdmin();
@@ -27,41 +27,45 @@ service cloud.firestore {
 
     // Messages Collection - Private to participants
     match /messages/{messageId} {
-      // Use consolidated read rule to help the query optimizer
-      allow read: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
+      // Split read into get and list to help the query optimizer verify participants array filters
+      allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
+      allow list: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
+      
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
     }
 
     // Notifications Collection - Private to target user
     match /notifications/{notificationId} {
-      // Use consolidated read rule to help the query optimizer
-      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      // Split read into get and list to help the rules engine verify userId filters
+      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     // Public content sections
     match /feed/{postId} {
-      allow read: if true;
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
     }
 
     match /events/{eventId} {
-      allow read: if true;
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.organizerId == request.auth.uid);
     }
 
     match /jobPostings/{jobPostingId} {
-      allow read: if true;
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.posterId == request.auth.uid);
     }
 
     match /siteContent/{contentId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
   }
