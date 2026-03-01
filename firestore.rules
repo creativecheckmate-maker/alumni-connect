@@ -27,20 +27,28 @@ service cloud.firestore {
 
     // Messages Collection - Private to participants only
     match /messages/{messageId} {
-      // Split read into get and list for granular security
-      allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
-      allow list: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
+      // Split rules to help the rules optimizer verify filtered list queries
+      allow list: if isAdmin();
+      allow list: if isSignedIn() && request.auth.uid in resource.data.participants;
+      
+      allow get: if isAdmin();
+      allow get: if isSignedIn() && request.auth.uid in resource.data.participants;
+      
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
     }
 
     // Notifications Collection - Private to target user
     match /notifications/{notificationId} {
-      // List rules require query filters to match security conditions
-      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
-      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      // Split rules to help the rules optimizer verify filtered list queries
+      allow list: if isAdmin();
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow get: if isAdmin();
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
     // Public content sections - Viewable by anyone, writable by authorized users
