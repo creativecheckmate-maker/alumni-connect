@@ -19,9 +19,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Edit, Trash2, GraduationCap, Building2, MapPin, MessageSquare, UserPlus, UserCheck } from 'lucide-react';
+import { Edit, Trash2, GraduationCap, Building2, MapPin, MessageSquare, UserPlus, UserCheck, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useMemoFirebase, useCollection, addDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, useMemoFirebase, useCollection, addDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
@@ -55,6 +55,12 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser }: UserCardProps) => 
   const isRequestedByMe = friendship && friendship.followedBy.includes(authUser?.uid || '') && !isMutual;
   const hasRequestedMe = friendship && !friendship.followedBy.includes(authUser?.uid || '') && !isMutual;
 
+  const handleCancelRequest = async () => {
+    if (!firestore || !authUser || !friendship) return;
+    deleteDocumentNonBlocking(doc(firestore, 'friendships', friendship.id));
+    toast({ title: "Request Cancelled", description: "Your connection request has been withdrawn." });
+  };
+
   const handleFollowUser = async () => {
     if (!firestore || !authUser) {
       router.push('/login');
@@ -77,7 +83,7 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser }: UserCardProps) => 
       addDocumentNonBlocking(collection(firestore, 'notifications'), {
         userId: user.id,
         type: 'connection',
-        message: `${authUser.displayName || 'An alumnus'} accepted your request.`,
+        message: `${authUser.displayName || 'An alumnus'} accepted your request and followed you back!`,
         read: false,
         createdAt: serverTimestamp()
       });
@@ -159,23 +165,21 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser }: UserCardProps) => 
             <Button size="sm" variant="outline" className="w-full font-bold h-9">View Profile</Button>
           </Link>
           
-          <Button 
-            size="sm" 
-            variant={isRequestedByMe ? "secondary" : "default"} 
-            className="flex-1 font-bold h-9 gap-2"
-            onClick={handleFollowUser}
-            disabled={isMutual || isRequestedByMe}
-          >
+          <div className="flex-1">
             {isMutual ? (
-              <><UserCheck className="h-4 w-4" /> Connected</>
+              <Button size="sm" variant="default" className="w-full font-bold h-9 gap-2" disabled>
+                <UserCheck className="h-4 w-4" /> Connected
+              </Button>
             ) : isRequestedByMe ? (
-              "Pending"
-            ) : hasRequestedMe ? (
-              "Accept"
+              <Button size="sm" variant="destructive" className="w-full font-bold h-9 gap-2" onClick={handleCancelRequest}>
+                <XCircle className="h-4 w-4" /> Cancel
+              </Button>
             ) : (
-              <><UserPlus className="h-4 w-4" /> Connect</>
+              <Button size="sm" variant="default" className="w-full font-bold h-9 gap-2" onClick={handleFollowUser}>
+                {hasRequestedMe ? <><UserCheck className="h-4 w-4" /> Follow Back</> : <><UserPlus className="h-4 w-4" /> Connect</>}
+              </Button>
             )}
-          </Button>
+          </div>
 
           {isAdmin && user.email !== ADMIN_EMAIL && (
             <div className="flex gap-1 ml-auto">

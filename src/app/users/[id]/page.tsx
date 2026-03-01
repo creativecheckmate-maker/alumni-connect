@@ -1,17 +1,17 @@
 
 'use client';
 
-import type { User, Student, Professor } from '@/lib/definitions';
-import { notFound, useParams } from 'next/navigation';
+import type { User, Student, Professor, Friendship } from '@/lib/definitions';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2 } from 'lucide-react';
+import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2, UserPlus, UserCheck, XCircle } from 'lucide-react';
 import { Logo } from '@/components/logo';
-import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useFirebase } from '@/firebase';
-import { doc, serverTimestamp } from 'firebase/firestore';
+import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useFirebase, useCollection, setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { doc, serverTimestamp, collection, query, where } from 'firebase/firestore';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { EditProfileForm } from '@/components/profile/edit-profile-form';
@@ -33,6 +33,7 @@ export default function UserProfilePage() {
   const params = useParams();
   const userId = params.id as string;
   const { toast } = useToast();
+  const router = useRouter();
 
   const { user: authUser, isUserLoading: isAuthLoading, isEditMode } = useFirebase();
   const firestore = useFirestore();
@@ -50,6 +51,18 @@ export default function UserProfilePage() {
   }, [firestore, userId]);
   
   const { data: user, isLoading: isDocLoading, error } = useDoc<User>(userDocRef);
+
+  // Friendship state logic
+  const friendshipQuery = useMemoFirebase(() => {
+    if (!firestore || !authUser?.uid || !userId) return null;
+    return query(collection(firestore, 'friendships'), where('uids', 'array-contains', authUser.uid));
+  }, [firestore, authUser?.uid, userId]);
+
+  const { data: friendships } = useCollection<Friendship>(friendshipQuery);
+  const friendship = friendships?.find(f => f.uids.includes(userId));
+  const isMutual = friendship?.status === 'mutual';
+  const isRequestedByMe = friendship && friendship.followedBy.includes(authUser?.uid || '') && !isMutual;
+  const hasRequestedMe = friendship && !friendship.followedBy.includes(authUser?.uid || '') && !isMutual;
 
   const [ratingValue, setRatingValue] = useState(80);
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
@@ -85,6 +98,62 @@ export default function UserProfilePage() {
 
     setIsSubmittingFeedback(false);
     setIsFeedbackDialogOpen(false);
+  };
+
+  const handleCancelRequest = async () => {
+    if (!firestore || !authUser || !friendship) return;
+    deleteDocumentNonBlocking(doc(firestore, 'friendships', friendship.id));
+    toast({ title: "Request Cancelled", description: "Your connection request has been withdrawn." });
+  };
+
+  const handleFollowUser = async () => {
+    if (!firestore || !authUser) {
+      router.push('/login');
+      return;
+    }
+    const friendshipId = [authUser.uid, userId].sort().join('_');
+
+    if (friendship) {
+      if (friendship.followedBy.includes(authUser.uid)) return;
+      
+      const newFollowedBy = [...friendship.followedBy, authUser.uid];
+      const isMutual = newFollowedBy.length === 2;
+      
+      updateDocumentNonBlocking(doc(firestore, 'friendships', friendship.id), {
+        followedBy: newFollowedBy,
+        status: isMutual ? 'mutual' : 'pending',
+        updatedAt: serverTimestamp()
+      });
+
+      addDocumentNonBlocking(collection(firestore, 'notifications'), {
+        userId: userId,
+        type: 'connection',
+        message: `${authUser.displayName || 'An alumnus'} accepted your request and followed you back!`,
+        read: false,
+        createdAt: serverTimestamp()
+      });
+
+      toast({ title: isMutual ? "Connected!" : "Followed Back", description: `You are now connected with ${user?.name}.` });
+    } else {
+      const data = {
+        id: friendshipId,
+        uids: [authUser.uid, userId],
+        followedBy: [authUser.uid],
+        status: 'pending',
+        updatedAt: serverTimestamp()
+      };
+      setDocumentNonBlocking(doc(firestore, 'friendships', friendshipId), data, { merge: true });
+      
+      addDocumentNonBlocking(collection(firestore, 'notifications'), {
+        userId: userId,
+        type: 'connection',
+        message: `${authUser.displayName || 'An alumnus'} sent you a connection request.`,
+        read: false,
+        createdAt: serverTimestamp()
+      });
+
+      toast({ title: "Request Sent", description: `Connection request sent to ${user?.name}.` });
+    }
   };
 
   const isLoading = isAuthLoading || isDocLoading;
@@ -168,6 +237,23 @@ export default function UserProfilePage() {
                                     <EditProfileForm currentUser={user} />
                                 </DialogContent>
                             </Dialog>
+                        )}
+                        {!isOwnProfile && authUser && (
+                          <div className="flex gap-2">
+                            {isMutual ? (
+                              <Button variant="outline" className="gap-2" disabled>
+                                <UserCheck className="h-4 w-4" /> Connected
+                              </Button>
+                            ) : isRequestedByMe ? (
+                              <Button variant="destructive" className="gap-2" onClick={handleCancelRequest}>
+                                <XCircle className="h-4 w-4" /> Cancel Request
+                              </Button>
+                            ) : (
+                              <Button className="gap-2" onClick={handleFollowUser}>
+                                {hasRequestedMe ? <><UserCheck className="h-4 w-4" /> Accept & Follow Back</> : <><UserPlus className="h-4 w-4" /> Connect</>}
+                              </Button>
+                            )}
+                          </div>
                         )}
                         {authUser && isStudentViewer && isProfessorOrStaffTarget && !isOwnProfile && (
                             <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>

@@ -31,6 +31,7 @@ service cloud.firestore {
       allow read: if isSignedIn() && (isAdmin() || (request.auth.uid in resource.data.uids));
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (isAdmin() || (request.auth.uid in resource.data.uids));
+      allow delete: if isSignedIn() && (isAdmin() || (request.auth.uid in resource.data.uids));
     }
 
     // Messages Collection

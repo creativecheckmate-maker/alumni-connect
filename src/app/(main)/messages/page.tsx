@@ -27,7 +27,8 @@ import {
   Users as UsersIcon,
   UserPlus,
   UserCheck,
-  Handshake
+  Handshake,
+  XCircle
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { 
@@ -37,7 +38,8 @@ import {
   useCollection, 
   addDocumentNonBlocking, 
   updateDocumentNonBlocking,
-  setDocumentNonBlocking
+  setDocumentNonBlocking,
+  deleteDocumentNonBlocking
 } from '@/firebase';
 import { collection, query, where, serverTimestamp, limit, doc, orderBy } from 'firebase/firestore';
 import type { User, Message, Friendship } from '@/lib/definitions';
@@ -157,6 +159,15 @@ export default function MessagesPage() {
     addDocumentNonBlocking(collection(firestore, 'messages'), msgData);
   };
 
+  const handleCancelRequest = async (otherId: string) => {
+    if (!firestore || !authUser) return;
+    const existing = getFriendshipWith(otherId);
+    if (existing) {
+      deleteDocumentNonBlocking(doc(firestore, 'friendships', existing.id));
+      toast({ title: "Request Cancelled", description: "Your connection request has been withdrawn." });
+    }
+  };
+
   const handleFollowUser = async (otherId: string, otherName: string) => {
     if (!firestore || !authUser) return;
     const friendshipId = [authUser.uid, otherId].sort().join('_');
@@ -181,7 +192,7 @@ export default function MessagesPage() {
       addDocumentNonBlocking(collection(firestore, 'notifications'), {
         userId: otherId,
         type: 'connection',
-        message: `${authUser.displayName || 'An alumnus'} accepted your request. ${isMutual ? 'Start chatting now!' : ''}`,
+        message: `${authUser.displayName || 'An alumnus'} accepted your request and followed you back! Start chatting now.`,
         read: false,
         createdAt: serverTimestamp()
       });
@@ -289,14 +300,27 @@ export default function MessagesPage() {
                         </p>
                       </div>
                       {activeTab === 'network' && !isMutual && (
-                        <Button 
-                          size="sm" 
-                          variant={isRequestedByMe ? "secondary" : "default"} 
-                          className="px-3 rounded-full shrink-0 font-bold text-[10px] h-8"
-                          onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id, user.name); }}
-                        >
-                          {isRequestedByMe ? "Pending" : (hasRequestedMe ? "Accept" : "Connect")}
-                        </Button>
+                        <div className="flex flex-col gap-1">
+                          {isRequestedByMe ? (
+                            <Button 
+                              size="sm" 
+                              variant="destructive" 
+                              className="px-3 rounded-full shrink-0 font-bold text-[9px] h-7 gap-1"
+                              onClick={(e) => { e.stopPropagation(); handleCancelRequest(user.id); }}
+                            >
+                              <XCircle className="h-3 w-3" /> Cancel
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="default" 
+                              className="px-3 rounded-full shrink-0 font-bold text-[9px] h-7"
+                              onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id, user.name); }}
+                            >
+                              {hasRequestedMe ? "Follow Back" : "Connect"}
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
