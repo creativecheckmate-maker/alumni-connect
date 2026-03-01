@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -11,11 +10,69 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { Search, Briefcase, Plus, MapPin, Building2, ExternalLink, Trash2 } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, useUser, useFirebase } from '@/firebase';
-import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
-import type { JobPosting } from '@/lib/definitions';
+import { Search, Briefcase, Plus, MapPin, Building2, ExternalLink, Trash2, Edit, Loader2 } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useFirebase, useDoc } from '@/firebase';
+import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc, setDoc } from 'firebase/firestore';
+import type { JobPosting, SiteContent } from '@/lib/definitions';
 import { ADMIN_EMAIL } from '@/lib/config';
+
+function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string, initialData: any, label: string }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', `jobs_${sectionId}`), {
+        id: `jobs_${sectionId}`,
+        pageId: 'jobs',
+        sectionId,
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Updated", description: `${label} saved.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to save." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="secondary" className="rounded-full shadow-lg">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit {label}</DialogTitle>
+        </DialogHeader>
+        <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+          {Object.keys(initialData).map((key) => (
+            <div key={key} className="space-y-2">
+              <Label className="capitalize">{key.replace(/([Z])/g, ' $1')}</Label>
+              <Textarea 
+                value={data[key]} 
+                onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+              />
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function JobsPage() {
   const { user: authUser, isEditMode } = useFirebase();
@@ -24,12 +81,20 @@ export default function JobsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const isAdmin = authUser?.email === ADMIN_EMAIL;
 
+  const introDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'jobs_intro'), [firestore]);
+  const { data: introContent } = useDoc<SiteContent>(introDocRef);
+
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'jobPostings'), orderBy('createdAt', 'desc'));
   }, [firestore]);
 
   const { data: jobs } = useCollection<JobPosting>(jobsQuery);
+
+  const defaultIntro = {
+    description: "Connect with exclusive career opportunities shared by our global alumni network and partner organizations."
+  };
+  const currentIntro = introContent?.data || defaultIntro;
 
   const handlePostJob = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -78,6 +143,7 @@ export default function JobsPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          {isAdmin && isEditMode && <AdminEditDialog sectionId="intro" initialData={currentIntro} label="Page Intro" />}
           <Dialog>
             <DialogTrigger asChild>
               <Button className="gap-2 shadow-lg shadow-primary/20">
@@ -118,6 +184,10 @@ export default function JobsPage() {
           </Dialog>
         </div>
       </PageHeader>
+
+      <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
+        {currentIntro.description}
+      </p>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 pb-10">
         {filteredJobs.length > 0 ? (

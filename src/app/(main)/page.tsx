@@ -65,7 +65,7 @@ function UserRatingCard({ user }: { user: User }) {
   );
 }
 
-function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: string, sectionId: string, initialData: any, label: string }) {
+function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = false }: { pageId: string, sectionId: string, initialData: any, label: string, overlay?: boolean }) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [data, setData] = useState(initialData);
@@ -90,18 +90,22 @@ function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: st
     }
   };
 
+  const trigger = (
+    <Button size="icon" variant="secondary" className={`${overlay ? 'absolute top-4 right-4 z-50' : ''} rounded-full shadow-lg`}>
+      <Edit className="h-4 w-4" />
+    </Button>
+  );
+
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button size="icon" variant="secondary" className="absolute top-4 right-4 z-50 rounded-full shadow-lg">
-          <Edit className="h-4 w-4" />
-        </Button>
+        {trigger}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit {label}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
           {Object.keys(initialData).map((key) => (
             <div key={key} className="space-y-2">
               <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
@@ -144,6 +148,12 @@ export default function HomePage() {
   const statsDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'home_stats'), [firestore]);
   const { data: statsContent } = useDoc<SiteContent>(statsDocRef);
 
+  const communityDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'home_community'), [firestore]);
+  const { data: communityContent } = useDoc<SiteContent>(communityDocRef);
+
+  const bannerDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'home_banner'), [firestore]);
+  const { data: bannerContent } = useDoc<SiteContent>(bannerDocRef);
+
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -169,7 +179,23 @@ export default function HomePage() {
     imageUrl: heroImage.imageUrl
   };
 
+  const defaultCommunity = {
+    badge: "Community Highlights",
+    title: "Recognizing Excellence",
+    description: "Discover the most impactful members of our network, ranked by the community for their contributions and expertise."
+  };
+
+  const defaultBanner = {
+    badge: "Global Ranking",
+    title: "Top 5 Globally for Teaching Excellence",
+    description: "Our commitment to academic brilliance is reflected in the success of our graduates across every major industry worldwide.",
+    imageUrl: professorImage.imageUrl,
+    buttonText: "Our Academic Journey"
+  };
+
   const currentHero = heroContent?.data || defaultHero;
+  const currentCommunity = communityContent?.data || defaultCommunity;
+  const currentBanner = bannerContent?.data || defaultBanner;
   const currentStats = statsContent?.data?.stats || [
     { label: 'Global Alumni', value: '25K+', icon: 'Globe' },
     { label: 'Job Placements', value: '12K+', icon: 'Briefcase' },
@@ -181,7 +207,7 @@ export default function HomePage() {
     <div className="flex-1 space-y-20 pb-20">
       {/* Hero Section */}
       <section className="relative h-[70vh] min-h-[600px] w-full rounded-[2rem] overflow-hidden shadow-2xl">
-        {isAdmin && isEditMode && <AdminEditDialog pageId="home" sectionId="hero" initialData={currentHero} label="Hero Section" />}
+        {isAdmin && isEditMode && <AdminEditDialog pageId="home" sectionId="hero" initialData={currentHero} label="Hero Section" overlay />}
         <Image
           src={currentHero.imageUrl || heroImage.imageUrl}
           alt="Nexus Hero"
@@ -223,6 +249,7 @@ export default function HomePage() {
 
       {/* Quick Stats */}
       <section className="container mx-auto px-4 -mt-32 relative z-20">
+        {isAdmin && isEditMode && <AdminEditDialog pageId="home" sectionId="stats" initialData={{ stats: currentStats }} label="Stats Section" overlay />}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {currentStats.map((stat: any, i: number) => (
             <Card key={i} className="border-none shadow-xl bg-background/80 backdrop-blur-lg">
@@ -242,13 +269,14 @@ export default function HomePage() {
       </section>
 
       {/* Community Section */}
-      <section className="py-10">
+      <section className="py-10 relative">
+          {isAdmin && isEditMode && <AdminEditDialog pageId="home" sectionId="community" initialData={currentCommunity} label="Community Intro" overlay />}
           <div className="container mx-auto px-4">
               <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-6">
                   <div className="max-w-2xl space-y-4">
-                    <Badge variant="outline" className="text-primary border-primary/20 font-bold px-3 py-1">Community Highlights</Badge>
-                    <h2 className="font-headline text-4xl md:text-5xl font-bold tracking-tight">Recognizing Excellence</h2>
-                    <p className="text-muted-foreground text-lg">Discover the most impactful members of our network, ranked by the community for their contributions and expertise.</p>
+                    <Badge variant="outline" className="text-primary border-primary/20 font-bold px-3 py-1">{currentCommunity.badge}</Badge>
+                    <h2 className="font-headline text-4xl md:text-5xl font-bold tracking-tight">{currentCommunity.title}</h2>
+                    <p className="text-muted-foreground text-lg">{currentCommunity.description}</p>
                   </div>
                   <Link href="/directory">
                       <Button variant="ghost" className="text-primary font-bold hover:bg-primary/5 gap-2">
@@ -318,24 +346,25 @@ export default function HomePage() {
       </section>
 
       {/* Global Recognition Banner */}
-      <section className="container mx-auto px-4">
+      <section className="container mx-auto px-4 relative">
+        {isAdmin && isEditMode && <AdminEditDialog pageId="home" sectionId="banner" initialData={currentBanner} label="Banner Section" overlay />}
         <div className="bg-primary text-white rounded-[3rem] overflow-hidden shadow-2xl relative">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div className="p-10 md:p-20 space-y-8">
                   <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1 rounded-full text-sm font-bold border border-white/20">
-                    <Trophy className="h-4 w-4 text-secondary" /> Global Ranking
+                    <Trophy className="h-4 w-4 text-secondary" /> {currentBanner.badge}
                   </div>
-                  <h2 className="font-headline text-4xl md:text-6xl font-bold leading-tight">Top 5 Globally for Teaching Excellence</h2>
-                  <p className="text-xl text-white/80 leading-relaxed font-body">Our commitment to academic brilliance is reflected in the success of our graduates across every major industry worldwide.</p>
+                  <h2 className="font-headline text-4xl md:text-6xl font-bold leading-tight">{currentBanner.title}</h2>
+                  <p className="text-xl text-white/80 leading-relaxed font-body">{currentBanner.description}</p>
                   <div className="flex gap-4 pt-4">
-                    <Button size="lg" variant="secondary" className="font-bold h-14 px-8 rounded-xl shadow-lg">Our Academic Journey</Button>
+                    <Button size="lg" variant="secondary" className="font-bold h-14 px-8 rounded-xl shadow-lg">{currentBanner.buttonText}</Button>
                     <Button size="lg" variant="ghost" className="text-white hover:bg-white/10 font-bold h-14 px-8 rounded-xl">Learn More</Button>
                   </div>
               </div>
               <div className="relative h-full min-h-[400px]">
                   <Image 
-                    src={professorImage.imageUrl} 
-                    alt={professorImage.description} 
+                    src={currentBanner.imageUrl || professorImage.imageUrl} 
+                    alt="Recognition" 
                     fill 
                     className="object-cover" 
                   />

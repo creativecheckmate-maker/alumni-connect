@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
-function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string, initialData: any, label: string }) {
+function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { sectionId: string, initialData: any, label: string, overlay?: boolean }) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [data, setData] = useState(initialData);
@@ -43,7 +43,7 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button size="icon" variant="outline" className="rounded-full shadow-sm ml-2">
+        <Button size="icon" variant="secondary" className={`${overlay ? 'absolute top-2 right-2 z-50' : 'ml-2'} rounded-full shadow-lg`}>
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
@@ -51,7 +51,7 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
         <DialogHeader>
           <DialogTitle>Edit {label}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
           {Object.keys(initialData).map((key) => (
             <div key={key} className="space-y-2">
               <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
@@ -89,6 +89,7 @@ export default function AboutPage() {
   const { data: mainContent } = useDoc<SiteContent>(contentDocRef);
 
   const defaultContent = {
+    intro: 'We are more than just a network; we are a family of global innovators and leaders committed to excellence.',
     mission: 'To foster a lifelong connection between the university and its alumni, providing a platform for professional growth and meaningful engagement.',
     vision: 'To be the most impactful alumni network globally, where every graduate is empowered to reach their full potential through community support.',
     community: 'A diverse and vibrant global network of professionals, researchers, and leaders across every industry imaginable.',
@@ -131,13 +132,13 @@ export default function AboutPage() {
            {isAdmin && isEditMode && <AdminEditDialog sectionId="main" initialData={content} label="Main Content" />}
         </PageHeader>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          We are more than just a network; we are a family of global innovators and leaders committed to excellence.
+          {content.intro}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
         {features.map((feature, index) => (
-          <Card key={index} className="border-none shadow-sm bg-muted/20">
+          <Card key={index} className="border-none shadow-sm bg-muted/20 relative group">
             <CardHeader>
               <div className="mb-4 inline-block p-3 rounded-2xl bg-background shadow-sm">
                 {feature.icon}
@@ -151,7 +152,7 @@ export default function AboutPage() {
         ))}
       </div>
 
-      <Card className="border-none shadow-lg bg-primary text-primary-foreground">
+      <Card className="border-none shadow-lg bg-primary text-primary-foreground relative">
         <CardContent className="p-10 text-center space-y-6">
           <h2 className="text-3xl font-bold font-headline">Join Our Journey</h2>
           <p className="text-primary-foreground/80 max-w-xl mx-auto">

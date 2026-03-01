@@ -1,21 +1,79 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Newspaper, ArrowRight, Calendar, Edit, Loader2, Plus } from 'lucide-react';
+import { Newspaper, ArrowRight, Calendar, Edit, Loader2, Plus, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { ADMIN_EMAIL } from '@/lib/config';
-import { collection, addDoc, serverTimestamp, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, deleteDoc, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import type { SiteContent } from '@/lib/definitions';
+
+function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string, initialData: any, label: string }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', `news_${sectionId}`), {
+        id: `news_${sectionId}`,
+        pageId: 'news',
+        sectionId,
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Updated", description: `${label} saved.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to save." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="secondary" className="rounded-full shadow-lg">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit {label}</DialogTitle>
+        </DialogHeader>
+        <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+          {Object.keys(initialData).map((key) => (
+            <div key={key} className="space-y-2">
+              <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
+              <Textarea 
+                value={data[key]} 
+                onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+              />
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function NewsPage() {
   const { user: authUser, isEditMode } = useFirebase();
@@ -26,13 +84,21 @@ export default function NewsPage() {
   const [isPosting, setIsPosting] = useState(false);
   const [open, setOpen] = useState(false);
 
+  const introDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'news_intro'), [firestore]);
+  const { data: introContent } = useDoc<SiteContent>(introDocRef);
+
   const newsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'siteContent');
   }, [firestore]);
 
   const { data: newsDocs } = useCollection(newsQuery);
-  const newsItems = newsDocs?.filter(doc => doc.pageId === 'news') || [];
+  const newsItems = newsDocs?.filter(doc => doc.pageId === 'news' && doc.sectionId === 'article') || [];
+
+  const defaultIntro = {
+    description: "Stay updated with the latest breakthroughs, achievements, and community stories from across the Nexus network."
+  };
+  const currentIntro = introContent?.data || defaultIntro;
 
   const handleAddNews = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -74,41 +140,48 @@ export default function NewsPage() {
         <div className="flex items-center gap-4">
           <Newspaper className="h-6 w-6 text-primary" />
           {isAdmin && isEditMode && (
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-2">
-                  <Plus className="h-4 w-4" /> Add Article
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Publish News Article</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleAddNews} className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Title</Label>
-                    <Input name="title" placeholder="Article Title" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Category</Label>
-                    <Input name="category" placeholder="e.g. Achievement, Research" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Textarea name="description" placeholder="Summary of the article..." required />
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={isPosting}>
-                      {isPosting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Publish
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <>
+              <AdminEditDialog sectionId="intro" initialData={currentIntro} label="Page Intro" />
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="gap-2 rounded-full">
+                    <Plus className="h-4 w-4" /> Add Article
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Publish News Article</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleAddNews} className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Title</Label>
+                      <Input name="title" placeholder="Article Title" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Category</Label>
+                      <Input name="category" placeholder="e.g. Achievement, Research" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Textarea name="description" placeholder="Summary of the article..." required />
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit" disabled={isPosting}>
+                        {isPosting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Publish
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </>
           )}
         </div>
       </PageHeader>
+
+      <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
+        {currentIntro.description}
+      </p>
 
       <div className="grid gap-8">
         {newsItems.length > 0 ? (

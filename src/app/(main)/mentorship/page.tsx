@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -18,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
-function AdminEditDialog({ initialData }: { initialData: any }) {
+function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string, initialData: any, label: string }) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [data, setData] = useState(initialData);
@@ -28,14 +27,14 @@ function AdminEditDialog({ initialData }: { initialData: any }) {
     if (!firestore) return;
     setIsSaving(true);
     try {
-      await setDoc(doc(firestore, 'siteContent', 'mentorship_main'), {
-        id: 'mentorship_main',
+      await setDoc(doc(firestore, 'siteContent', `mentorship_${sectionId}`), {
+        id: `mentorship_${sectionId}`,
         pageId: 'mentorship',
-        sectionId: 'main',
+        sectionId,
         data,
         updatedAt: serverTimestamp(),
       });
-      toast({ title: "Updated", description: "Mentorship description saved." });
+      toast({ title: "Updated", description: `${label} saved.` });
     } catch (e) {
       toast({ variant: 'destructive', title: "Error", description: "Failed to save content." });
     } finally {
@@ -46,20 +45,24 @@ function AdminEditDialog({ initialData }: { initialData: any }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button size="icon" variant="ghost" className="h-8 w-8 ml-2">
+        <Button size="icon" variant="secondary" className="ml-2 rounded-full shadow-lg">
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Page Description</DialogTitle>
+          <DialogTitle>Edit {label}</DialogTitle>
         </DialogHeader>
-        <div className="py-4 space-y-2">
-          <Label>Page Description</Label>
-          <Textarea 
-            value={data.description} 
-            onChange={(e) => setData({ description: e.target.value })} 
-          />
+        <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+          {Object.keys(initialData).map((key) => (
+            <div key={key} className="space-y-2">
+              <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
+              <Textarea 
+                value={data[key]} 
+                onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+              />
+            </div>
+          ))}
         </div>
         <DialogFooter>
           <Button onClick={handleSave} disabled={isSaving}>
@@ -114,7 +117,7 @@ export default function MentorshipPage() {
               />
           </div>
           <Button variant="outline" className="font-bold">Become a Mentor</Button>
-          {isAdmin && isEditMode && <AdminEditDialog initialData={{ description }} />}
+          {isAdmin && isEditMode && <AdminEditDialog sectionId="main" initialData={{ description }} label="Intro Description" />}
         </div>
       </PageHeader>
       
