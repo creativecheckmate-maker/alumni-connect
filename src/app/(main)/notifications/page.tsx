@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -18,10 +17,14 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState('all');
 
   const notificationsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    let q = query(collection(firestore, 'notifications'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
-    return q;
-  }, [firestore, user]);
+    if (!firestore || !user?.uid) return null;
+    // Explicitly filter by userId to match security rules for list operations
+    return query(
+      collection(firestore, 'notifications'), 
+      where('userId', '==', user.uid), 
+      orderBy('createdAt', 'desc')
+    );
+  }, [firestore, user?.uid]);
 
   const { data: notifications } = useCollection<Notification>(notificationsQuery);
 
@@ -41,33 +44,39 @@ export default function NotificationsPage() {
       </Tabs>
 
       <div className="space-y-3">
-        {filteredNotifications.map((n) => (
-          <Card key={n.id} className={`border-none ${!n.read ? 'bg-primary/5 ring-1 ring-primary/10' : 'bg-muted/20'}`}>
-            <CardContent className="p-4">
-              <div className="flex items-start gap-4">
-                <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
-                  n.type === 'connection' ? 'bg-blue-100 text-blue-600' :
-                  n.type === 'event' ? 'bg-red-100 text-red-600' :
-                  'bg-gray-100 text-gray-600'
-                }`}>
-                  {n.type === 'connection' && <UserPlus className="h-5 w-5" />}
-                  {n.type === 'event' && <Calendar className="h-5 w-5" />}
-                  {n.type === 'general' && <Info className="h-5 w-5" />}
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <p className={`text-sm ${!n.read ? 'font-bold' : 'font-medium'}`}>{n.message}</p>
-                    <span className="text-[10px] text-muted-foreground">{n.createdAt?.toDate?.()?.toLocaleDateString()}</span>
+        {filteredNotifications.length > 0 ? (
+          filteredNotifications.map((n) => (
+            <Card key={n.id} className={`border-none ${!n.read ? 'bg-primary/5 ring-1 ring-primary/10' : 'bg-muted/20'}`}>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-4">
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
+                    n.type === 'connection' ? 'bg-blue-100 text-blue-600' :
+                    n.type === 'event' ? 'bg-red-100 text-red-600' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {n.type === 'connection' && <UserPlus className="h-5 w-5" />}
+                    {n.type === 'event' && <Calendar className="h-5 w-5" />}
+                    {n.type === 'general' && <Info className="h-5 w-5" />}
                   </div>
-                  {!n.read && <Badge variant="default" className="text-[10px] h-4">New</Badge>}
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <p className={`text-sm ${!n.read ? 'font-bold' : 'font-medium'}`}>{n.message}</p>
+                      <span className="text-[10px] text-muted-foreground">{n.createdAt?.toDate?.()?.toLocaleDateString() || 'Just now'}</span>
+                    </div>
+                    {!n.read && <Badge variant="default" className="text-[10px] h-4">New</Badge>}
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                    < MoreHorizontal className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="text-center py-20 bg-muted/20 rounded-2xl border-2 border-dashed">
+            <p className="text-muted-foreground font-medium">No notifications found.</p>
+          </div>
+        )}
       </div>
     </div>
   );
