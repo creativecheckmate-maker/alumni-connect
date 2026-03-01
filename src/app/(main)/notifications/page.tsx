@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, UserPlus, Calendar, Info, Bell, Loader2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, limit } from 'firebase/firestore';
+import { collection, query, where, limit, orderBy } from 'firebase/firestore';
 import type { Notification } from '@/lib/definitions';
 import Link from 'next/link';
 
@@ -24,6 +24,7 @@ export default function NotificationsPage() {
     return query(
       collection(firestore, 'notifications'), 
       where('userId', '==', user.uid), 
+      orderBy('createdAt', 'desc'),
       limit(50)
     );
   }, [firestore, user?.uid, isUserLoading]);
