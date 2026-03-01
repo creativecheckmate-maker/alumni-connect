@@ -26,31 +26,41 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Friendships Collection
+    // Friendships Collection - Consolidated read rule for optimized listing
     match /friendships/{friendshipId} {
-      allow list: if isSignedIn() && request.auth.uid in resource.data.uids;
-      allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.uids);
+      allow read: if isSignedIn() && (
+        isAdmin() || 
+        (resource != null && 'uids' in resource.data && request.auth.uid in resource.data.uids)
+      );
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && request.auth.uid in resource.data.uids;
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        (resource != null && 'uids' in resource.data && request.auth.uid in resource.data.uids)
+      );
     }
 
-    // Messages Collection - Split list/get to resolve permission optimization errors
+    // Messages Collection - Consolidated read rule for optimized listing
     match /messages/{messageId} {
-      allow list: if isSignedIn() && request.auth.uid in resource.data.participants;
-      allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
-      
+      allow read: if isSignedIn() && (
+        isAdmin() || 
+        (resource != null && 'participants' in resource.data && request.auth.uid in resource.data.participants)
+      );
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
-      allow delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        (resource != null && 'participants' in resource.data && request.auth.uid in resource.data.participants)
+      );
+      allow delete: if isAdmin() || (isSignedIn() && resource != null && resource.data.senderId == request.auth.uid);
     }
 
-    // Notifications Collection - Split list/get to resolve permission optimization errors
+    // Notifications Collection - Consolidated read rule for optimized listing
     match /notifications/{notificationId} {
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
-      
+      allow read: if isSignedIn() && (
+        isAdmin() || 
+        (resource != null && resource.data.userId == request.auth.uid)
+      );
       allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin() || (isSignedIn() && resource != null && resource.data.userId == request.auth.uid);
     }
 
     // Public community content

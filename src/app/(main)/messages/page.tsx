@@ -26,7 +26,8 @@ import {
   UserCheck,
   Video,
   Phone,
-  PhoneCall
+  ShieldCheck,
+  Users as UsersIcon
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { 
@@ -60,30 +61,29 @@ export default function MessagesPage() {
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch all friendships for the current user
+  // Fetch all friendships for the current user - Query strictly filtered to satisfy rules
   const friendshipQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser || isUserLoading) return null;
+    if (!firestore || !authUser?.uid || isUserLoading) return null;
     return query(
       collection(firestore, 'friendships'),
       where('uids', 'array-contains', authUser.uid)
     );
-  }, [firestore, authUser, isUserLoading]);
+  }, [firestore, authUser?.uid, isUserLoading]);
 
   const { data: friendships } = useCollection<Friendship>(friendshipQuery);
 
   // Fetch all users for the Network tab
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser || isUserLoading) return null;
+    if (!firestore || !authUser?.uid || isUserLoading) return null;
     return query(
       collection(firestore, 'users'), 
       where('isVisibleInDirectory', '==', true),
       limit(100)
     );
-  }, [firestore, authUser, isUserLoading]);
+  }, [firestore, authUser?.uid, isUserLoading]);
 
   const { data: allUsers, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
 
-  // Filter users based on friendship status for "Active" vs "Network"
   const getFriendshipWith = (otherId: string) => {
     return friendships?.find(f => f.uids.includes(otherId));
   };
@@ -93,10 +93,16 @@ export default function MessagesPage() {
     return f?.status === 'mutual';
   };
 
+  const isFollowing = (otherId: string) => {
+    const f = getFriendshipWith(otherId);
+    return f?.followedBy.includes(authUser?.uid || '');
+  };
+
   const followingList = allUsers?.filter(u => {
     if (u.id === authUser?.uid) return false;
     if (activeTab === 'active') return isMutualFriend(u.id);
-    return (u.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
   }) || [];
 
   const selectedUser = allUsers?.find(u => u.id === activeChat);
@@ -105,7 +111,7 @@ export default function MessagesPage() {
     ? [authUser.uid, activeChat].sort().join('_') 
     : null;
 
-  // Fetch messages for the active chat
+  // Fetch messages for the active chat - Query strictly filtered
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId || !authUser?.uid || isUserLoading) return null;
     
@@ -138,8 +144,9 @@ export default function MessagesPage() {
 
   const handleSendMessage = async () => {
     if (!firestore || !authUser || !activeChat || !messageText.trim() || !chatId) return;
+    
     if (!isMutualFriend(activeChat)) {
-      toast({ variant: 'destructive', title: "Chat Restricted", description: "You must both follow each other to chat." });
+      toast({ variant: 'destructive', title: "Mutual Connection Required", description: "Both alumni must follow each other to unlock private chat." });
       return;
     }
 
@@ -164,10 +171,10 @@ export default function MessagesPage() {
 
     if (existing) {
       if (existing.followedBy.includes(authUser.uid)) {
-        toast({ title: "Already Following", description: "You are already following this alumnus." });
+        toast({ title: "Already Following", description: "You have already sent a request to this alumnus." });
         return;
       }
-      // Follow back!
+      // Follow back logic
       const newFollowedBy = [...existing.followedBy, authUser.uid];
       const newStatus = newFollowedBy.length === 2 ? 'mutual' : 'pending';
       updateDocumentNonBlocking(doc(firestore, 'friendships', existing.id), {
@@ -175,32 +182,36 @@ export default function MessagesPage() {
         status: newStatus,
         updatedAt: serverTimestamp()
       });
-      if (newStatus === 'mutual') toast({ title: "Connected!", description: "You can now chat with this alumnus." });
+      if (newStatus === 'mutual') {
+        toast({ title: "Connected!", description: "Mutual connection established. Chat is now active." });
+      }
     } else {
-      // New friendship request
-      const data: Friendship = {
+      // New friendship record
+      const data = {
         id: friendshipId,
         uids: [authUser.uid, otherId],
         followedBy: [authUser.uid],
         status: 'pending',
         updatedAt: serverTimestamp()
-      } as any;
+      };
       setDocumentNonBlocking(doc(firestore, 'friendships', friendshipId), data, { merge: true });
-      toast({ title: "Followed", description: "Request sent. Once they follow back, you can chat." });
+      toast({ title: "Request Sent", description: "You are now following this alumnus." });
     }
   };
 
   const getInitials = (name: string) => name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U';
 
-  if (!authUser) {
+  if (!authUser && !isUserLoading) {
     return (
       <div className="flex-1 flex items-center justify-center p-10">
-        <Card className="max-w-md w-full p-8 text-center space-y-4 shadow-lg border-none">
-          <MessageCircle className="h-12 w-12 text-primary mx-auto opacity-20" />
-          <h2 className="text-xl font-bold">Messaging is Private</h2>
-          <p className="text-muted-foreground text-sm">Please log in to build your alumni network and start conversations.</p>
-          <Button asChild className="w-full font-bold h-12 rounded-xl">
-            <a href="/login">Log In to Messages</a>
+        <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-none bg-card/50 backdrop-blur-sm">
+          <ShieldCheck className="h-16 w-16 text-primary mx-auto opacity-20" />
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold font-headline">Private Network</h2>
+            <p className="text-muted-foreground text-sm leading-relaxed">Please log in to browse the alumni network, build connections, and start secure conversations.</p>
+          </div>
+          <Button asChild className="w-full font-bold h-12 rounded-xl shadow-lg shadow-primary/20">
+            <a href="/login">Access Alumni Hub</a>
           </Button>
         </Card>
       </div>
@@ -209,191 +220,242 @@ export default function MessagesPage() {
 
   return (
     <div className="flex h-[calc(100vh-140px)] gap-4 flex-col md:flex-row max-w-6xl mx-auto w-full">
-      {/* Sidebar */}
-      <Card className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-md bg-card ${activeChat && !isVideoCallActive ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-4 border-b space-y-4">
+      {/* Sidebar - Connection Lists */}
+      <Card className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-xl bg-card ${activeChat && !isVideoCallActive ? 'hidden md:flex' : 'flex'}`}>
+        <div className="p-4 border-b space-y-4 bg-muted/10">
           <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="active" className="text-xs font-bold">Chats</TabsTrigger>
-              <TabsTrigger value="network" className="text-xs font-bold">Network</TabsTrigger>
+            <TabsList className="grid grid-cols-2 w-full h-10 p-1 bg-muted/50 rounded-lg">
+              <TabsTrigger value="active" className="text-xs font-bold gap-2">
+                <MessageCircle className="h-3.5 w-3.5" /> Chats
+              </TabsTrigger>
+              <TabsTrigger value="network" className="text-xs font-bold gap-2">
+                <UsersIcon className="h-3.5 w-3.5" /> Network
+              </TabsTrigger>
             </TabsList>
           </Tabs>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder={activeTab === 'active' ? "Search chats..." : "Find alumni..."}
-              className="pl-9 bg-muted/20 border-none rounded-xl h-10"
+              placeholder={activeTab === 'active' ? "Search active chats..." : "Find fellow alumni..."}
+              className="pl-9 bg-background border-none rounded-xl h-10 shadow-sm focus-visible:ring-1"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
         <ScrollArea className="flex-1">
-          <div className="p-2 space-y-1">
-            {followingList.map((user) => (
-              <div key={user.id} className="group relative">
-                <button
-                  onClick={() => isMutualFriend(user.id) ? setActiveChat(user.id) : null}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
-                    activeChat === user.id ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'
-                  } ${!isMutualFriend(user.id) && activeTab === 'active' ? 'opacity-50' : ''}`}
-                >
-                  <div className="relative">
-                    <Avatar className="h-12 w-12 ring-2 ring-background shrink-0">
-                      <AvatarImage src={user.avatarUrl} />
-                      <AvatarFallback className="font-bold">{getInitials(user.name)}</AvatarFallback>
-                    </Avatar>
-                    {isMutualFriend(user.id) && <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></span>}
-                  </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="text-sm font-bold truncate">{user.name}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
-                      {isMutualFriend(user.id) ? 'Connected' : 'Alumni'}
-                    </p>
-                  </div>
-                  {activeTab === 'network' && !isMutualFriend(user.id) && (
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-8 w-8 rounded-full text-primary hover:bg-primary/10"
-                      onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id); }}
+          <div className="p-3 space-y-1">
+            {isUsersLoading ? (
+              <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20" /></div>
+            ) : followingList.length > 0 ? (
+              followingList.map((user) => {
+                const friendship = getFriendshipWith(user.id);
+                const isMutual = friendship?.status === 'mutual';
+                const isSentByMe = friendship?.followedBy.includes(authUser?.uid || '');
+
+                return (
+                  <div key={user.id} className="group relative">
+                    <button
+                      onClick={() => isMutual ? setActiveChat(user.id) : null}
+                      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
+                        activeChat === user.id ? 'bg-primary/10 text-primary shadow-inner' : 'hover:bg-muted/50'
+                      } ${!isMutual && activeTab === 'active' ? 'opacity-50 grayscale' : ''}`}
                     >
-                      {getFriendshipWith(user.id)?.followedBy.includes(authUser.uid) ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                    </Button>
-                  )}
-                </button>
+                      <div className="relative">
+                        <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background shadow-md">
+                          <AvatarImage src={user.avatarUrl} />
+                          <AvatarFallback className="font-bold bg-muted">{getInitials(user.name)}</AvatarFallback>
+                        </Avatar>
+                        {isMutual && <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></span>}
+                      </div>
+                      <div className="flex-1 text-left min-w-0">
+                        <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{user.name}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest truncate font-medium">
+                          {isMutual ? 'Connected' : (isSentByMe ? 'Requested' : 'Alumni')}
+                        </p>
+                      </div>
+                      {activeTab === 'network' && !isMutual && (
+                        <Button 
+                          size="icon" 
+                          variant={isSentByMe ? "secondary" : "ghost"} 
+                          className="h-9 w-9 rounded-full shrink-0"
+                          onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id); }}
+                        >
+                          {isSentByMe ? <UserCheck className="h-4 w-4 text-green-600" /> : <UserPlus className="h-4 w-4 text-primary" />}
+                        </Button>
+                      )}
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-10 px-4">
+                <p className="text-xs text-muted-foreground font-medium">No results found.</p>
               </div>
-            ))}
+            )}
           </div>
         </ScrollArea>
       </Card>
 
-      {/* Chat / Video Window */}
-      <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-md bg-card ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
+      {/* Main Interaction Window (Chat/Voice/Video) */}
+      <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-2xl bg-card ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
         {isVideoCallActive ? (
           <div className="flex-1 bg-zinc-950 relative flex items-center justify-center p-4">
-             <div className="absolute top-4 left-4 z-10">
-                <Badge variant="outline" className="bg-red-500/20 text-red-500 border-red-500/50 flex items-center gap-2 px-3 h-8">
-                   <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div> LIVE SECURE CALL
+             <div className="absolute top-6 left-6 z-10">
+                <Badge variant="outline" className="bg-red-500/20 text-red-500 border-red-500/50 flex items-center gap-2 px-4 h-9 font-black tracking-tighter">
+                   <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div> SECURE END-TO-END CALL
                 </Badge>
              </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full h-full max-w-5xl">
-                <div className="relative rounded-3xl overflow-hidden bg-zinc-900 border border-zinc-800 shadow-2xl flex items-center justify-center">
-                   <Avatar className="h-24 w-24 border-4 border-primary/20">
-                      <AvatarImage src={authUser.photoURL || ''} />
-                      <AvatarFallback className="text-2xl">YOU</AvatarFallback>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full h-full max-w-5xl">
+                <div className="relative rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800 shadow-2xl flex items-center justify-center group">
+                   <Avatar className="h-32 w-32 border-4 border-primary/20 ring-8 ring-black/50 transition-transform group-hover:scale-110 duration-500">
+                      <AvatarImage src={authUser?.photoURL || ''} />
+                      <AvatarFallback className="text-2xl font-black">YOU</AvatarFallback>
                    </Avatar>
-                   <p className="absolute bottom-4 left-4 text-xs font-bold text-white/50">Your Camera</p>
+                   <div className="absolute bottom-6 left-6 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full">
+                      <p className="text-[10px] font-black text-white/70 uppercase tracking-widest">Local Feed (Encrypted)</p>
+                   </div>
                 </div>
-                <div className="relative rounded-3xl overflow-hidden bg-zinc-900 border border-zinc-800 shadow-2xl flex items-center justify-center">
-                   <Avatar className="h-24 w-24 border-4 border-primary/20">
+                <div className="relative rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800 shadow-2xl flex items-center justify-center group">
+                   <Avatar className="h-32 w-32 border-4 border-primary/20 ring-8 ring-black/50 transition-transform group-hover:scale-110 duration-500">
                       <AvatarImage src={selectedUser?.avatarUrl} />
-                      <AvatarFallback className="text-2xl">{getInitials(selectedUser?.name || 'U')}</AvatarFallback>
+                      <AvatarFallback className="text-2xl font-black">{getInitials(selectedUser?.name || 'U')}</AvatarFallback>
                    </Avatar>
-                   <p className="absolute bottom-4 left-4 text-xs font-bold text-white/50">{selectedUser?.name}'s Stream</p>
+                   <div className="absolute bottom-6 left-6 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full">
+                      <p className="text-[10px] font-black text-white/70 uppercase tracking-widest">{selectedUser?.name?.split(' ')[0]}'s Stream</p>
+                   </div>
                 </div>
              </div>
-             <div className="absolute bottom-10 flex gap-4">
-                <Button size="lg" variant="destructive" className="rounded-full h-16 w-16 shadow-xl" onClick={() => setIsVideoCallActive(false)}>
-                   <Phone className="h-6 w-6 rotate-[135deg]" />
+             <div className="absolute bottom-12 flex gap-6">
+                <Button size="lg" variant="destructive" className="rounded-full h-20 w-20 shadow-2xl hover:scale-110 transition-transform" onClick={() => setIsVideoCallActive(false)}>
+                   <Phone className="h-8 w-8 rotate-[135deg]" />
                 </Button>
-                <Button size="lg" variant="secondary" className="rounded-full h-16 w-16 shadow-xl bg-white/10 hover:bg-white/20 text-white">
-                   <MicOff className="h-6 w-6" />
+                <Button size="lg" variant="secondary" className="rounded-full h-20 w-20 shadow-2xl bg-white/10 hover:bg-white/20 text-white backdrop-blur-xl">
+                   <MicOff className="h-8 w-8" />
                 </Button>
              </div>
           </div>
         ) : selectedUser ? (
           <>
-            {/* PUBG Header */}
-            <div className="p-4 border-b flex items-center justify-between bg-zinc-900 text-white">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setActiveChat(null)} className="md:hidden p-2 hover:bg-zinc-800 rounded-full">
-                  <ArrowLeft className="h-5 w-5" />
+            {/* PUBG Inspired Voice Header */}
+            <div className="p-4 border-b flex items-center justify-between bg-zinc-900 text-white shadow-lg z-10">
+              <div className="flex items-center gap-4">
+                <button onClick={() => setActiveChat(null)} className="md:hidden p-2 hover:bg-zinc-800 rounded-full transition-colors">
+                  <ArrowLeft className="h-6 w-6" />
                 </button>
                 <div className="relative">
-                  <Avatar className="h-10 w-10 ring-2 ring-zinc-700 shadow-sm">
+                  <Avatar className="h-12 w-12 ring-2 ring-zinc-700 shadow-xl">
                     <AvatarImage src={selectedUser.avatarUrl} />
-                    <AvatarFallback className="bg-zinc-800 text-zinc-400 font-bold">{getInitials(selectedUser.name)}</AvatarFallback>
+                    <AvatarFallback className="bg-zinc-800 text-zinc-400 font-black">{getInitials(selectedUser.name)}</AvatarFallback>
                   </Avatar>
-                  {isMicOn && <span className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span>}
+                  {isMicOn && <span className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.9)]"></span>}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold leading-none">{selectedUser.name}</p>
-                    <Badge variant="outline" className="h-4 px-1.5 text-[8px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800">ALUMNI</Badge>
+                    <p className="text-base font-black leading-none tracking-tight">{selectedUser.name}</p>
+                    <Badge variant="outline" className="h-5 px-2 text-[9px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800/50">ALUMNI ID: {selectedUser.id.substring(0, 6)}</Badge>
                   </div>
-                  <p className="text-[10px] text-zinc-500 font-bold flex items-center gap-1 mt-1 uppercase">
-                    <Radio className="h-3 w-3 text-green-500" /> Voice Channel Active
+                  <p className="text-[10px] text-zinc-500 font-black flex items-center gap-1.5 mt-1.5 uppercase tracking-widest">
+                    <Radio className={`h-3 w-3 ${isMicOn ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> Team Channel Active
                   </p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                <div className="flex items-center bg-zinc-800 rounded-lg p-1 border border-zinc-700">
-                  <Button variant="ghost" size="icon" className={`h-8 w-8 rounded-md ${isSpeakerOn ? 'text-white' : 'text-zinc-600'}`} onClick={() => setIsSpeakerOn(!isSpeakerOn)}>
-                    {isSpeakerOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center bg-zinc-800/50 rounded-xl p-1.5 border border-zinc-700/50 shadow-inner">
+                  <Button variant="ghost" size="icon" className={`h-10 w-10 rounded-lg transition-all ${isSpeakerOn ? 'text-white' : 'text-zinc-600 bg-zinc-900/50'}`} onClick={() => setIsSpeakerOn(!isSpeakerOn)}>
+                    {isSpeakerOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                   </Button>
-                  <div className="w-[1px] h-4 bg-zinc-700 mx-1"></div>
-                  <Button variant="ghost" size="icon" className={`h-8 w-8 rounded-md ${isMicOn ? 'text-green-500 bg-green-500/10' : 'text-zinc-600'}`} onClick={() => setIsMicOn(!isMicOn)}>
-                    {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                  <div className="w-[1px] h-6 bg-zinc-700 mx-2"></div>
+                  <Button variant="ghost" size="icon" className={`h-10 w-10 rounded-lg transition-all ${isMicOn ? 'text-green-500 bg-green-500/10 shadow-[0_0_10px_rgba(34,197,94,0.2)]' : 'text-zinc-600 bg-zinc-900/50'}`} onClick={() => setIsMicOn(!isMicOn)}>
+                    {isMicOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
                   </Button>
                 </div>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-green-400 hover:text-green-300" onClick={() => setIsVideoCallActive(true)}>
-                   <Video className="h-5 w-5" />
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="ghost" size="icon" className="h-11 w-11 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl" onClick={() => setIsVideoCallActive(true)}>
+                        <Video className="h-6 w-6" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-11 w-11 text-green-400 hover:text-green-300 hover:bg-green-500/10 rounded-xl">
+                        <Phone className="h-5 w-5" />
+                    </Button>
+                </div>
               </div>
             </div>
 
+            {/* Messaging Feed with WhatsApp-style checkmarks */}
             <ScrollArea className="flex-1 p-6 bg-zinc-50/50">
-              <div className="space-y-6">
+              <div className="space-y-8 max-w-4xl mx-auto">
                 {isMessagesLoading ? (
-                  <div className="flex justify-center p-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+                  <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
                 ) : messages?.length ? (
                   messages.map((msg) => (
-                    <div key={msg.id} className={`flex ${msg.senderId === authUser.uid ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
-                      <div className={`max-w-[75%] p-4 rounded-2xl text-sm shadow-sm ${msg.senderId === authUser.uid ? 'bg-zinc-900 text-white rounded-tr-none' : 'bg-white text-zinc-900 rounded-tl-none border'}`}>
-                        <p className="leading-relaxed font-medium">{msg.text}</p>
-                        <div className={`flex items-center gap-1 mt-2 ${msg.senderId === authUser.uid ? 'justify-end' : 'justify-start'}`}>
-                          <p className="text-[9px] font-black uppercase opacity-50">{msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Just now'}</p>
-                          {msg.senderId === authUser.uid && (
-                            msg.status === 'seen' ? <CheckCheck className="h-3 w-3 text-blue-400" /> : <Check className="h-3 w-3 opacity-50" />
+                    <div key={msg.id} className={`flex ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+                      <div className={`max-w-[80%] p-4 rounded-2xl shadow-xl transition-all ${
+                        msg.senderId === authUser?.uid 
+                          ? 'bg-zinc-900 text-white rounded-tr-none ring-1 ring-zinc-800' 
+                          : 'bg-white text-zinc-900 rounded-tl-none border border-zinc-200 shadow-zinc-200/50'
+                      }`}>
+                        <p className="text-sm leading-relaxed font-medium tracking-tight">{msg.text}</p>
+                        <div className={`flex items-center gap-2 mt-3 ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'}`}>
+                          <p className="text-[10px] font-black uppercase opacity-40 tracking-tighter">
+                            {msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'JUST NOW'}
+                          </p>
+                          {msg.senderId === authUser?.uid && (
+                            <div className="flex -space-x-1">
+                                {msg.status === 'seen' ? (
+                                    <CheckCheck className="h-3.5 w-3.5 text-blue-400" />
+                                ) : (
+                                    <Check className="h-3.5 w-3.5 opacity-40" />
+                                )}
+                            </div>
                           )}
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
-                    <MessageCircle className="h-16 w-16 mb-4" />
-                    <p className="text-sm font-bold">Encrypted Communication</p>
-                    <p className="text-xs">Start a conversation with {selectedUser.name}</p>
+                  <div className="flex flex-col items-center justify-center py-32 text-center space-y-6 opacity-30">
+                    <div className="h-24 w-24 rounded-[2rem] bg-muted flex items-center justify-center">
+                        <ShieldCheck className="h-12 w-12" />
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-lg font-black tracking-tighter">ENCRYPTED CHANNEL</p>
+                        <p className="text-sm font-medium">Messages are isolated between you and {selectedUser.name}</p>
+                    </div>
                   </div>
                 )}
                 <div ref={scrollRef} />
               </div>
             </ScrollArea>
 
-            <div className="p-4 border-t bg-white">
-              <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
+            {/* Secure Message Input */}
+            <div className="p-5 border-t bg-white/80 backdrop-blur-xl">
+              <form className="flex gap-3 max-w-4xl mx-auto" onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
                 <Input 
-                  placeholder="Type secure message..." 
-                  className="bg-zinc-100 border-none shadow-none rounded-xl h-11 pr-10"
+                  placeholder={`Send secure message to ${selectedUser.name.split(' ')[0]}...`} 
+                  className="bg-zinc-100 border-none shadow-none rounded-[1.25rem] h-12 px-6 text-sm font-medium focus-visible:ring-2 focus-visible:ring-zinc-900/5 transition-all"
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
                 />
-                <Button type="submit" size="icon" className="rounded-xl h-11 w-11 bg-zinc-900" disabled={!messageText.trim()}>
-                  <Send className="h-4 w-4" />
+                <Button type="submit" size="icon" className="rounded-2xl h-12 w-12 bg-zinc-900 shadow-xl shadow-zinc-900/20 hover:scale-105 active:scale-95 transition-all" disabled={!messageText.trim()}>
+                  <Send className="h-5 w-5" />
                 </Button>
               </form>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-10 text-center">
-            <Radio className="h-12 w-12 mb-6 animate-pulse opacity-20" />
-            <h3 className="font-bold text-2xl text-foreground mb-2">Alumni Secure Hub</h3>
-            <p className="text-sm max-w-xs leading-relaxed">
-              Connect with fellow alumni. Follow each other to unlock voice, video, and text messaging channels.
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-12 text-center bg-zinc-50/30">
+            <div className="h-24 w-24 rounded-[2.5rem] bg-white shadow-2xl flex items-center justify-center mb-8 border border-zinc-100">
+                <Radio className="h-10 w-10 text-primary animate-pulse opacity-40" />
+            </div>
+            <h3 className="font-black text-3xl text-zinc-900 mb-3 tracking-tighter">ALUMNI SECURE HUB</h3>
+            <p className="text-sm max-w-xs leading-relaxed font-medium">
+              Start conversations with fellow alumni. Mutual follow is required to establish an encrypted voice and text channel.
             </p>
+            <div className="mt-10 flex gap-2">
+                <Badge variant="secondary" className="px-3 py-1 font-bold text-[10px] tracking-widest uppercase">Privacy Guaranteed</Badge>
+                <Badge variant="secondary" className="px-3 py-1 font-bold text-[10px] tracking-widest uppercase">Verified Network</Badge>
+            </div>
           </div>
         )}
       </Card>
