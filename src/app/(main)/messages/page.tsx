@@ -19,7 +19,7 @@ export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Guard users query to only run for authenticated users
+  // Fetch all users for the sidebar
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !authUser) return null;
     return query(
@@ -38,15 +38,15 @@ export default function MessagesPage() {
 
   const selectedUser = allUsers?.find(u => u.id === activeChat);
 
-   const chatId = activeChat && authUser?.uid 
+  const chatId = activeChat && authUser?.uid 
     ? [authUser.uid, activeChat].sort().join('_') 
     : null;
 
+  // Fetch messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId || !authUser?.uid) return null;
     return query(
       collection(firestore, 'messages'),
-      where('participants', 'array-contains', authUser.uid),
       where('chatId', '==', chatId),
       orderBy('createdAt', 'asc'),
       limit(100)
@@ -55,7 +55,8 @@ export default function MessagesPage() {
 
   const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
 
-  useEffect (() => {
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -71,7 +72,7 @@ export default function MessagesPage() {
       chatId: chatId,
       text: messageText,
       createdAt: serverTimestamp(),
-     };
+    };
 
     setMessageText('');
     addDocumentNonBlocking(collection(firestore, 'messages'), msgData);
@@ -97,9 +98,9 @@ export default function MessagesPage() {
     );
   }
 
-   return (
+  return (
     <div className="flex h-[calc(100vh-140px)] gap-4 flex-col md:flex-row max-w-6xl mx-auto w-full">
-      {/* Sidebar List */}
+      {/* Contact List Sidebar */}
       <Card className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-md bg-card ${activeChat ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b">
           <h2 className="text-xl font-bold font-headline mb-4">Messages</h2>
@@ -119,12 +120,12 @@ export default function MessagesPage() {
               <div className="flex justify-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-            ) : users.length > 0  ? (
+            ) : users.length > 0 ? (
               users.map((user) => (
                 <button
                   key={user.id}
                   onClick={() => setActiveChat(user.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200  ${
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${
                     activeChat === user.id 
                       ? 'bg-primary/10 text-primary shadow-sm' 
                       : 'hover:bg-muted/50'
@@ -132,7 +133,7 @@ export default function MessagesPage() {
                 >
                   <Avatar className="h-12 w-12 ring-2 ring-background ring-offset-2 shrink-0 shadow-sm">
                     <AvatarImage src={user.avatarUrl} alt={user.name || 'User'} />
-                    <AvatarFallback className="bg-muted text-muted-foreground font-bold">{getInitials(user.name || 'U') }</AvatarFallback>
+                    <AvatarFallback className="bg-muted text-muted-foreground font-bold">{getInitials(user.name || 'U')}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 text-left min-w-0">
                     <p className="text-sm font-bold truncate">{user.name || 'Nexus Alumnus'}</p>
@@ -153,7 +154,7 @@ export default function MessagesPage() {
       </Card>
 
       {/* Chat Window */}
-      <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-md min-h-[400px] bg-card ${ !activeChat ? 'hidden md:flex' : 'flex'}`}>
+      <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-md min-h-[400px] bg-card ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
         {selectedUser ? (
           <>
             <div className="p-4 border-b flex items-center justify-between">
@@ -164,7 +165,7 @@ export default function MessagesPage() {
                 <Avatar className="h-10 w-10 ring-2 ring-primary/20 shadow-sm">
                   <AvatarImage src={selectedUser.avatarUrl} />
                   <AvatarFallback className="bg-primary/5 text-primary font-bold">{getInitials(selectedUser.name || 'U')}</AvatarFallback>
-                 </Avatar>
+                </Avatar>
                 <div>
                   <p className="text-sm font-bold leading-none mb-1">{selectedUser.name || 'Nexus Alumnus'}</p>
                   <p className="text-[10px] text-green-500 font-bold flex items-center gap-1">
@@ -175,7 +176,7 @@ export default function MessagesPage() {
               </div>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary"><Phone className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground  hover:text-primary"><Video className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary"><Video className="h-4 w-4" /></Button>
                 <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary"><Info className="h-4 w-4" /></Button>
               </div>
             </div>
@@ -199,7 +200,7 @@ export default function MessagesPage() {
                             : 'bg-background text-foreground rounded-tl-none border border-muted'
                         }`}
                       >
-                        <p className="leading-relaxed whitespace-pre-wrap">{ msg.text}</p>
+                        <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                         <p className={`text-[9px] mt-2 font-bold uppercase tracking-widest opacity-70 ${msg.senderId === authUser?.uid ? 'text-right' : 'text-left'}`}>
                           {msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Sending...'}
                         </p>
@@ -240,7 +241,7 @@ export default function MessagesPage() {
                   <Send className="h-4 w-4" />
                 </Button>
               </form>
-             </div>
+            </div>
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-10 text-center">
