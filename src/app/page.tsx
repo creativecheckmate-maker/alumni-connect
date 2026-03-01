@@ -1,10 +1,18 @@
 
+'use client';
+
+import MainLayout from './(main)/layout';
+import HomePage from './(main)/page';
+
 /**
- * This file is kept as a placeholder to ensure the root route correctly
- * falls through to the (main) route group which contains the sidebar layout.
- * In Next.js App Router, (group) routes resolve to the root if no root-level
- * page.tsx exists or if it doesn't conflict.
+ * The root page component.
+ * To ensure the sidebar and header are visible on the landing page, 
+ * we explicitly wrap the homepage content with the MainLayout.
  */
 export default function RootPage() {
-  return null;
+  return (
+    <MainLayout>
+      <HomePage />
+    </MainLayout>
+  );
 }

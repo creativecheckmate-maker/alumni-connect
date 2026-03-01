@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -48,7 +49,7 @@ const menuItems = [
 const frontPageOptions = [
   { href: '/about', label: 'About Us', icon: Info },
   { href: '/news', label: 'News', icon: Newspaper },
-  { href: '/community', label: 'Community', icon: Globe },
+  { href: '/community', label: 'Community Hub', icon: Globe },
 ];
 
 export function MainNav() {
@@ -66,9 +67,11 @@ export function MainNav() {
   const filteredItems = menuItems.filter(item => item.public || !!user);
 
   return (
-    <Sidebar className="border-r-0 shadow-xl">
+    <Sidebar className="border-r-0 shadow-xl" collapsible="offcanvas">
       <SidebarHeader className="p-6">
-        <Logo />
+        <Link href="/">
+          <Logo />
+        </Link>
       </SidebarHeader>
       <SidebarContent className="px-3">
         <SidebarMenu>
@@ -134,7 +137,7 @@ export function MainNav() {
             </Button>
             <Button 
               variant="default" 
-              className="w-full justify-between h-12 rounded-xl shadow-lg shadow-primary/20"
+              className="w-full justify-between h-12 rounded-xl shadow-lg shadow-primary/20 bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={handleLogout}
             >
               <span className="font-bold">Sign Out</span>
@@ -144,7 +147,7 @@ export function MainNav() {
         ) : (
           <div className="space-y-2">
             <Link href="/login" className="w-full">
-               <Button className="w-full rounded-xl">Join the Network</Button>
+               <Button className="w-full rounded-xl font-bold h-12">Join the Network</Button>
             </Link>
           </div>
         )}
