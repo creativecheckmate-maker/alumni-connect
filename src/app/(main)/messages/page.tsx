@@ -43,6 +43,7 @@ export default function MessagesPage() {
   // Fetch real-time messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId || !authUser?.uid) return null;
+    // Explicitly including participants filter to match security rules
     return query(
       collection(firestore, 'messages'),
       where('participants', 'array-contains', authUser.uid),
@@ -74,7 +75,7 @@ export default function MessagesPage() {
     };
 
     setMessageText('');
-    await addDoc(collection(firestore, 'messages'), msgData);
+    addDoc(collection(firestore, 'messages'), msgData);
   };
 
   const getInitials = (name: string) => {
@@ -144,9 +145,9 @@ export default function MessagesPage() {
             {/* Chat Header */}
             <div className="p-4 border-b bg-card flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setActiveChat(null)}>
+                <button onClick={() => setActiveChat(null)} className="md:hidden p-2 hover:bg-muted rounded-full">
                   <ArrowLeft className="h-5 w-5" />
-                </Button>
+                </button>
                 <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                   <AvatarImage src={selectedUser.avatarUrl} />
                   <AvatarFallback className="bg-primary/5 text-primary font-bold">{getInitials(selectedUser.name)}</AvatarFallback>
