@@ -93,7 +93,6 @@ export function LoginForm() {
         title: 'Login Failed',
         description: message,
       });
-      console.error('Login error:', error);
       setIsLoading(false);
     }
   }
@@ -115,7 +114,6 @@ export function LoginForm() {
         description: `If an account exists for ${resetEmail}, a password reset link has been sent.`,
       });
     } catch (error: any) {
-      console.error('Password reset error:', error);
       toast({
         title: 'Password Reset Email Sent',
         description: `If an account exists for ${resetEmail}, a password reset link has been sent.`,
