@@ -17,7 +17,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // Users Collection - Publicly viewable, Owner/Admin writable
+    // Users Collection - Publicly viewable
     match /users/{userId} {
       allow read: if true;
       allow create: if isSignedIn();
@@ -39,29 +39,25 @@ service cloud.firestore {
       allow update, delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
 
-    // Community Feed - Publicly viewable, Authenticated writable
+    // Publicly viewable content sections
     match /feed/{postId} {
       allow read: if true;
       allow create: if isSignedIn();
-      allow update: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
-      allow delete: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
     }
 
-    // Events - Publicly viewable, Authenticated/Admin writable
     match /events/{eventId} {
       allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.organizerId == request.auth.uid);
     }
 
-    // Job Postings - Publicly viewable, Authenticated/Admin writable
     match /jobPostings/{jobPostingId} {
       allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.posterId == request.auth.uid);
     }
 
-    // Site Content (CMS) - Publicly viewable, Admin writable
     match /siteContent/{contentId} {
       allow read: if true;
       allow write: if isAdmin();
