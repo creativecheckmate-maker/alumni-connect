@@ -20,7 +20,7 @@ service cloud.firestore {
 
     // Users Collection - Publicly viewable for directory features
     match /users/{userId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create: if isSignedIn();
       allow update: if isAdmin() || isOwner(userId);
       allow delete: if isAdmin();
@@ -28,8 +28,8 @@ service cloud.firestore {
 
     // Messages Collection - Private to participants with feedback support
     match /messages/{messageId} {
-      // Explicitly allow list if the query filters for current user's participation
-      allow get, list: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
+      // allow read (get + list) if the user is a participant
+      allow read: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
       
       allow create: if isSignedIn();
       // Allow update for participants to mark as 'seen'
@@ -39,33 +39,33 @@ service cloud.firestore {
 
     // Notifications Collection - Private to target user
     match /notifications/{notificationId} {
-      allow get, list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
-    // Public content sections
+    // Public community content
     match /feed/{postId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
     }
 
     match /events/{eventId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.organizerId == request.auth.uid);
     }
 
     match /jobPostings/{jobPostingId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.posterId == request.auth.uid);
     }
 
     match /siteContent/{contentId} {
-      allow get, list: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
   }

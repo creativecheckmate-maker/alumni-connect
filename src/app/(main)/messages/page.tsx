@@ -28,7 +28,7 @@ import { collection, query, where, serverTimestamp, limit, doc, orderBy } from '
 import type { User, Message } from '@/lib/definitions';
 
 export default function MessagesPage() {
-  const { user: authUser, isUserLoading: isAuthLoading } = useUser();
+  const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
@@ -39,13 +39,13 @@ export default function MessagesPage() {
 
   // Fetch all users for the sidebar (excluding self)
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser || isAuthLoading) return null;
+    if (!firestore || !authUser || isUserLoading) return null;
     return query(
       collection(firestore, 'users'), 
       where('isVisibleInDirectory', '==', true),
       limit(100)
     );
-  }, [firestore, authUser, isAuthLoading]);
+  }, [firestore, authUser, isUserLoading]);
 
   const { data: allUsers, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
 
@@ -62,15 +62,17 @@ export default function MessagesPage() {
 
   // Fetch messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
-    if (!firestore || !chatId || !authUser?.uid || isAuthLoading) return null;
+    // CRITICAL: Must filter by 'participants' array-contains to satisfy security rules for 'list'
+    if (!firestore || !chatId || !authUser?.uid || isUserLoading) return null;
     
     return query(
       collection(firestore, 'messages'),
       where('chatId', '==', chatId),
+      where('participants', 'array-contains', authUser.uid),
       orderBy('createdAt', 'asc'),
       limit(100)
     );
-  }, [firestore, chatId, authUser?.uid, isAuthLoading]);
+  }, [firestore, chatId, authUser?.uid, isUserLoading]);
 
   const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
 
@@ -81,16 +83,18 @@ export default function MessagesPage() {
     }
   }, [messages, activeChat]);
 
-  // Mark messages as seen
+  // Mark messages as seen (WhatsApp Feedback Logic)
   useEffect(() => {
     if (!firestore || !authUser || !activeChat || !messages || messages.length === 0) return;
 
+    // Only mark messages sent by the OTHER person as seen
     const unreadMessages = messages.filter(
       (msg) => msg.senderId === activeChat && msg.status !== 'seen'
     );
 
     unreadMessages.forEach((msg) => {
       const msgRef = doc(firestore, 'messages', msg.id);
+      // Non-blocking update to avoid UI lag
       updateDocumentNonBlocking(msgRef, { status: 'seen' });
     });
   }, [messages, activeChat, authUser?.uid, firestore]);
@@ -104,7 +108,7 @@ export default function MessagesPage() {
       participants: [authUser.uid, activeChat],
       chatId: chatId,
       text: messageText,
-      status: 'sent',
+      status: 'sent', // Initial status
       createdAt: serverTimestamp(),
     };
 
@@ -117,7 +121,7 @@ export default function MessagesPage() {
     return name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
-  if (isAuthLoading) {
+  if (isUserLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -297,7 +301,7 @@ export default function MessagesPage() {
                       <MessageCircle className="h-8 w-8 text-zinc-400" />
                     </div>
                     <p className="text-sm font-bold text-zinc-900">Encrypted Communication</p>
-                    <p className="text-xs text-zinc-500">Messages are private between you and {(selectedUser.name || 'this user').split(' ')[0]}</p>
+                    <p className="text-xs text-zinc-500">Messages are private between you and {(selectedUser?.name || 'this user').split(' ')[0]}</p>
                   </div>
                 )}
                 <div ref={scrollRef} />
