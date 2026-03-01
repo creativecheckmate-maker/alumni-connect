@@ -154,6 +154,9 @@ export default function HomePage() {
   const bannerDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'home_banner'), [firestore]);
   const { data: bannerContent } = useDoc<SiteContent>(bannerDocRef);
 
+  const reconnectDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'home_reconnect'), [firestore]);
+  const { data: reconnectContent } = useDoc<SiteContent>(reconnectDocRef);
+
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -193,9 +196,17 @@ export default function HomePage() {
     buttonText: "Our Academic Journey"
   };
 
+  const defaultReconnect = {
+    title: "Ready to re-connect?",
+    description: "Join the official Nexus Alumni Network today and unlock a world of professional mentorship, job opportunities, and lifelong friendships.",
+    primaryButton: "Create My Profile",
+    secondaryButton: "How it Works"
+  };
+
   const currentHero = heroContent?.data || defaultHero;
   const currentCommunity = communityContent?.data || defaultCommunity;
   const currentBanner = bannerContent?.data || defaultBanner;
+  const currentReconnect = reconnectContent?.data || defaultReconnect;
   const currentStats = statsContent?.data?.stats || [
     { label: 'Global Alumni', value: '25K+', icon: 'Globe' },
     { label: 'Job Placements', value: '12K+', icon: 'Briefcase' },
@@ -375,15 +386,16 @@ export default function HomePage() {
       </section>
 
       {/* Call to Action */}
-      <section className="container mx-auto px-4 text-center py-20 space-y-8">
-        <h2 className="font-headline text-5xl font-bold tracking-tight">Ready to re-connect?</h2>
-        <p className="text-muted-foreground text-xl max-w-2xl mx-auto">Join the official Nexus Alumni Network today and unlock a world of professional mentorship, job opportunities, and lifelong friendships.</p>
+      <section className="container mx-auto px-4 text-center py-20 space-y-8 relative">
+        {isAdmin && isEditMode && <AdminEditDialog pageId="home" sectionId="reconnect" initialData={currentReconnect} label="CTA Section" overlay />}
+        <h2 className="font-headline text-5xl font-bold tracking-tight">{currentReconnect.title}</h2>
+        <p className="text-muted-foreground text-xl max-w-2xl mx-auto">{currentReconnect.description}</p>
         <div className="flex justify-center gap-6">
           <Link href="/login">
-            <Button size="lg" className="h-16 px-12 rounded-2xl text-xl font-bold shadow-xl shadow-primary/20">Create My Profile</Button>
+            <Button size="lg" className="h-16 px-12 rounded-2xl text-xl font-bold shadow-xl shadow-primary/20">{currentReconnect.primaryButton}</Button>
           </Link>
           <Link href="/about">
-            <Button size="lg" variant="outline" className="h-16 px-12 rounded-2xl text-xl font-bold border-2">How it Works</Button>
+            <Button size="lg" variant="outline" className="h-16 px-12 rounded-2xl text-xl font-bold border-2">{currentReconnect.secondaryButton}</Button>
           </Link>
         </div>
       </section>
