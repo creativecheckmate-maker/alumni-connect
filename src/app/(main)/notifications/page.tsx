@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, UserPlus, Calendar, Info, Bell, Loader2 } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Calendar, Info, Bell, Loader2, ShieldAlert } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, limit, orderBy } from 'firebase/firestore';
 import type { Notification } from '@/lib/definitions';
@@ -44,18 +44,18 @@ export default function NotificationsPage() {
   if (!user) {
     return (
       <div className="flex-1 flex items-center justify-center p-10">
-        <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-xl border-none">
+        <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-xl border-none bg-card/50 backdrop-blur-sm">
           <div className="h-20 w-20 bg-primary/5 rounded-3xl flex items-center justify-center mx-auto">
-            <Bell className="h-10 w-10 text-primary opacity-40" />
+            <ShieldAlert className="h-10 w-10 text-primary opacity-40" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold">Private Notifications</h2>
+            <h2 className="text-2xl font-bold font-headline tracking-tight">Private Alerts</h2>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Log in to see your personalized network activity and connection requests.
+              Log in to see your personalized network activity, connection requests, and career alerts.
             </p>
           </div>
           <Link href="/login" className="block">
-            <Button className="w-full font-bold h-12 rounded-xl">Log In to Notifications</Button>
+            <Button className="w-full font-bold h-12 rounded-xl shadow-lg">Log In to Notifications</Button>
           </Link>
         </Card>
       </div>
@@ -64,7 +64,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
-      <PageHeader title="Notifications" description="Your personal alumni alerts and connection updates." />
+      <PageHeader title="Notifications" description="Your secure alumni activity log and connection updates." />
 
       <Tabs value={filter} onValueChange={setFilter} className="w-full">
         <TabsList className="grid grid-cols-4 w-full h-auto p-1 bg-muted/50 rounded-xl mb-6">
@@ -113,7 +113,7 @@ export default function NotificationsPage() {
         ) : (
           <div className="text-center py-20 bg-muted/20 rounded-[2rem] border-2 border-dashed border-muted">
             <Bell className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-muted-foreground font-bold">No notifications found.</p>
+            <p className="text-muted-foreground font-bold">No active notifications found.</p>
           </div>
         )}
       </div>

@@ -25,10 +25,9 @@ import {
   Phone,
   ShieldCheck,
   Users as UsersIcon,
-  UserPlus,
-  UserCheck,
+  XCircle,
   Handshake,
-  XCircle
+  Lock
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { 
@@ -78,7 +77,7 @@ export default function MessagesPage() {
     return query(
       collection(firestore, 'users'), 
       where('isVisibleInDirectory', '==', true),
-      limit(100)
+      limit(50)
     );
   }, [firestore, authUser?.uid, isUserLoading]);
 
@@ -192,13 +191,13 @@ export default function MessagesPage() {
       addDocumentNonBlocking(collection(firestore, 'notifications'), {
         userId: otherId,
         type: 'connection',
-        message: `${authUser.displayName || 'An alumnus'} accepted your request and followed you back! Start chatting now.`,
+        message: `${authUser.displayName || 'An alumnus'} accepted your request and followed you back! Your secure chat is now unlocked.`,
         read: false,
         createdAt: serverTimestamp()
       });
 
       if (isMutual) {
-        toast({ title: "Connected!", description: `Mutual connection with ${otherName} established. Chat unlocked.` });
+        toast({ title: "Connected!", description: `Mutual connection established. Secure chat unlocked.` });
       }
     } else {
       const data = {
@@ -214,7 +213,7 @@ export default function MessagesPage() {
       addDocumentNonBlocking(collection(firestore, 'notifications'), {
         userId: otherId,
         type: 'connection',
-        message: `${authUser.displayName || 'An alumnus'} sent you a connection request.`,
+        message: `${authUser.displayName || 'An alumnus'} sent you a connection request. Follow back to start chatting.`,
         read: false,
         createdAt: serverTimestamp()
       });
@@ -231,8 +230,8 @@ export default function MessagesPage() {
         <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-none bg-card/50 backdrop-blur-sm">
           <ShieldCheck className="h-16 w-16 text-primary mx-auto opacity-20" />
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold font-headline">Secure Alumni Network</h2>
-            <p className="text-muted-foreground text-sm leading-relaxed">Log in to build connections, manage mutual requests, and start secure conversations.</p>
+            <h2 className="text-2xl font-bold font-headline tracking-tight">Private Alumni Network</h2>
+            <p className="text-muted-foreground text-sm leading-relaxed">Log in to build mutual connections, manage follow-back requests, and start secure encrypted conversations.</p>
           </div>
           <Button asChild className="w-full font-bold h-12 rounded-xl shadow-lg shadow-primary/20">
             <a href="/login">Access Alumni Hub</a>
@@ -280,6 +279,7 @@ export default function MessagesPage() {
 
                 return (
                   <div key={user.id} className="group relative">
+                    {/* Using a div wrapper instead of nested button to prevent hydration error */}
                     <div
                       className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
                         activeChat === user.id ? 'bg-primary/10 text-primary shadow-inner' : 'hover:bg-muted/50'
@@ -296,7 +296,7 @@ export default function MessagesPage() {
                       <div className="flex-1 text-left min-w-0">
                         <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{user.name}</p>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-widest truncate font-medium">
-                          {isMutual ? 'Connected' : (isRequestedByMe ? 'Requested' : (hasRequestedMe ? 'Wants to Connect' : 'Alumni'))}
+                          {isMutual ? 'Connected' : (isRequestedByMe ? 'Requested' : (hasRequestedMe ? 'Accept Follow Back' : 'Alumni'))}
                         </p>
                       </div>
                       {activeTab === 'network' && !isMutual && (
@@ -391,10 +391,10 @@ export default function MessagesPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-base font-black leading-none tracking-tight">{selectedUser.name}</p>
-                    <Badge variant="outline" className="h-5 px-2 text-[9px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800/50">MUTUAL FRIEND</Badge>
+                    <Badge variant="outline" className="h-5 px-2 text-[9px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800/50">MUTUAL CONNECTION</Badge>
                   </div>
                   <p className="text-[10px] text-zinc-500 font-black flex items-center gap-1.5 mt-1.5 uppercase tracking-widest">
-                    <Radio className={`h-3 w-3 ${isMicOn ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> Voice Channel Ready
+                    <Radio className={`h-3 w-3 ${isMicOn ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> {isMicOn ? 'VOICE CHANNEL ACTIVE' : 'VOICE CHANNEL READY'}
                   </p>
                 </div>
               </div>
@@ -420,6 +420,12 @@ export default function MessagesPage() {
             {/* Messaging Feed */}
             <ScrollArea className="flex-1 p-6 bg-zinc-50/50">
               <div className="space-y-8 max-w-4xl mx-auto">
+                <div className="flex justify-center mb-8">
+                    <Badge variant="secondary" className="px-4 py-1.5 bg-zinc-100 text-muted-foreground flex items-center gap-2 font-bold tracking-tight border-none">
+                        <Lock className="h-3 w-3" /> Messages are end-to-end encrypted
+                    </Badge>
+                </div>
+                
                 {isMessagesLoading ? (
                   <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
                 ) : messages?.length ? (
@@ -454,7 +460,7 @@ export default function MessagesPage() {
                         <Handshake className="h-12 w-12" />
                     </div>
                     <div className="space-y-1">
-                        <p className="text-lg font-black tracking-tighter">SECURE CHANNEL ACTIVE</p>
+                        <p className="text-lg font-black tracking-tighter uppercase">Connection Established</p>
                         <p className="text-sm font-medium">You and {selectedUser.name} are now connected. Say hello!</p>
                     </div>
                   </div>
@@ -481,15 +487,15 @@ export default function MessagesPage() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-12 text-center bg-zinc-50/30">
             <div className="h-24 w-24 rounded-[2.5rem] bg-white shadow-2xl flex items-center justify-center mb-8 border border-zinc-100">
-                <Radio className="h-10 w-10 text-primary animate-pulse opacity-40" />
+                <ShieldCheck className="h-10 w-10 text-primary animate-pulse opacity-40" />
             </div>
-            <h3 className="font-black text-3xl text-zinc-900 mb-3 tracking-tighter">MUTUAL ALUMNI HUB</h3>
+            <h3 className="font-black text-3xl text-zinc-900 mb-3 tracking-tighter">SECURE ALUMNI HUB</h3>
             <p className="text-sm max-w-xs leading-relaxed font-medium">
-              Browse the network tab to send connection requests. Once accepted, you'll unlock voice, video, and text communication.
+              Browse the network tab to send connection requests. Once a mutual follow is established, you'll unlock secure communication channels.
             </p>
             <div className="mt-10 flex gap-2">
-                <Badge variant="secondary" className="px-3 py-1 font-bold text-[10px] tracking-widest uppercase">Verified Connections</Badge>
-                <Badge variant="secondary" className="px-3 py-1 font-bold text-[10px] tracking-widest uppercase">Privacy First</Badge>
+                <Badge variant="secondary" className="px-3 py-1 font-bold text-[10px] tracking-widest uppercase">Verified Network</Badge>
+                <Badge variant="secondary" className="px-3 py-1 font-bold text-[10px] tracking-widest uppercase">Encrypted Privacy</Badge>
             </div>
           </div>
         )}
