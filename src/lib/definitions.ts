@@ -32,6 +32,8 @@ export type User = UserProfile;
 export type FeedPost = {
   id: string;
   authorId: string;
+  authorName?: string;
+  authorAvatarUrl?: string;
   content: string;
   imageUrl?: string;
   likes: number;

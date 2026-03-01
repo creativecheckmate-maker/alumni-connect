@@ -7,10 +7,6 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-    
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'creativecheckmate@gmail.com' ||
@@ -18,53 +14,49 @@ service cloud.firestore {
       );
     }
 
-    function isStudent() {
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isSignedIn() && userDoc != null && userDoc.data.role == 'student';
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     match /users/{userId} {
-      allow get: if isOwner(userId) || resource.data.isVisibleInDirectory == true || isAdmin();
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /messages/{messageId} {
+      // Allow listing if signed in; query filters in the app ensure data isolation
       allow list: if isSignedIn();
-      allow create: if isOwner(userId) && request.resource.data.externalAuthId == userId;
-      allow update: if (isOwner(userId) && request.resource.data.externalAuthId == resource.data.externalAuthId) 
-                    || isAdmin()
-                    || (isStudent() && resource.data.role in ['professor', 'non-teaching-staff'] && 
-                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['feedbackRating', 'feedbackCount', 'totalFeedbackPoints', 'updatedAt']));
-      allow delete: if isOwner(userId) || isAdmin();
-    }
-
-    match /events/{eventId} {
-      allow read: if isSignedIn();
-      allow create: if (isSignedIn() && request.resource.data.organizerId == request.auth.uid) || isAdmin();
-      allow update, delete: if (isSignedIn() && resource.data.organizerId == request.auth.uid) || isAdmin();
-    }
-
-    match /jobPostings/{jobPostingId} {
-      allow read: if isSignedIn();
-      allow create: if (isSignedIn() && request.resource.data.posterId == request.auth.uid) || isAdmin();
-      allow update, delete: if (isSignedIn() && resource.data.posterId == request.auth.uid) || isAdmin();
-    }
-
-    match /feed/{postId} {
-      allow read: if isSignedIn();
-      allow create: if (isSignedIn() && request.resource.data.authorId == request.auth.uid) || isAdmin();
-      allow update: if (isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin())) || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
-      allow delete: if (isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin()));
+      allow get: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
+      allow create: if isSignedIn() && (request.resource.data.senderId == request.auth.uid && request.auth.uid in request.resource.data.participants);
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
     }
 
     match /notifications/{notificationId} {
-      // Admin sees all, users see their own
-      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn();
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
-    match /messages/{messageId} {
-      // Participant based access for chat security
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
-      allow create: if isSignedIn() && (request.resource.data.senderId == request.auth.uid && request.auth.uid in request.resource.data.participants);
-      allow delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
+    match /feed/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
+    }
+
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.organizerId == request.auth.uid);
+    }
+
+    match /jobPostings/{jobPostingId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.posterId == request.auth.uid);
     }
 
     match /siteContent/{contentId} {

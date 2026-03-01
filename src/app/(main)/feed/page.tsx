@@ -33,7 +33,8 @@ export default function FeedPage() {
     if (!firestore || !user || !content.trim()) return;
     await addDoc(collection(firestore, 'feed'), {
       authorId: user.uid,
-      authorName: user.displayName,
+      authorName: user.displayName || 'Nexus Alumnus',
+      authorAvatarUrl: user.photoURL || '',
       content,
       likes: 0,
       createdAt: serverTimestamp(),
@@ -84,6 +85,7 @@ export default function FeedPage() {
             <CardHeader className="p-4 flex flex-row items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
+                  <AvatarImage src={post.authorAvatarUrl} />
                   <AvatarFallback>{post.authorName?.[0] || 'U'}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
