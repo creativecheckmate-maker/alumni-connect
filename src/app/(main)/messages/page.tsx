@@ -12,7 +12,7 @@ import { collection, query, where, orderBy, serverTimestamp, limit } from 'fireb
 import type { User, Message } from '@/lib/definitions';
 
 export default function MessagesPage() {
-  const { user: authUser } = useUser();
+  const { user: authUser, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
@@ -21,13 +21,13 @@ export default function MessagesPage() {
 
   // Fetch all users for the sidebar
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser) return null;
+    if (!firestore || !authUser || isAuthLoading) return null;
     return query(
       collection(firestore, 'users'), 
       where('isVisibleInDirectory', '==', true),
       limit(100)
     );
-  }, [firestore, authUser]);
+  }, [firestore, authUser, isAuthLoading]);
 
   const { data: allUsers, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
 
@@ -44,16 +44,18 @@ export default function MessagesPage() {
 
   // Fetch messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
-    if (!firestore || !chatId || !authUser?.uid) return null;
+    // CRITICAL: Prevent query if auth state is not settled or chatId is missing.
+    if (!firestore || !chatId || !authUser?.uid || isAuthLoading) return null;
+    
     return query(
       collection(firestore, 'messages'),
-      // Adding participants filter is MANDATORY for security rules authorization
+      // Adding participants filter is MANDATORY for security rules authorization for individual users.
       where('participants', 'array-contains', authUser.uid),
       where('chatId', '==', chatId),
       orderBy('createdAt', 'asc'),
       limit(100)
     );
-  }, [firestore, chatId, authUser?.uid]);
+  }, [firestore, chatId, authUser?.uid, isAuthLoading]);
 
   const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
 
@@ -84,6 +86,14 @@ export default function MessagesPage() {
     if (!name) return 'U';
     return name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
   };
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!authUser) {
     return (

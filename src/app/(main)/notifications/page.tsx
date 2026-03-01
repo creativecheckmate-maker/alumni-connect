@@ -18,15 +18,18 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState('all');
 
   const notificationsQuery = useMemoFirebase(() => {
-    if (!firestore || !user?.uid) return null;
+    // CRITICAL: Ensure we have a stable user ID and auth is not loading before initiating query.
+    // This prevents "Missing or insufficient permissions" during auth transitions.
+    if (!firestore || !user?.uid || isUserLoading) return null;
+    
     return query(
       collection(firestore, 'notifications'), 
-      // This filter is MANDATORY to satisfy security rules
+      // This filter is MANDATORY to satisfy security rules for individual users.
       where('userId', '==', user.uid), 
       orderBy('createdAt', 'desc'),
       limit(50)
     );
-  }, [firestore, user?.uid]);
+  }, [firestore, user?.uid, isUserLoading]);
 
   const { data: notifications, isLoading } = useCollection<Notification>(notificationsQuery);
 

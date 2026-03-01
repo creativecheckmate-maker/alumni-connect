@@ -29,7 +29,10 @@ service cloud.firestore {
     match /messages/{messageId} {
       // Explicitly separate get and list for better rule optimization
       allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
-      allow list: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
+      // Independent list rule ensures queries with 'participants' filter are authorized correctly
+      allow list: if isAdmin();
+      allow list: if isSignedIn() && request.auth.uid in resource.data.participants;
+      
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
     }
@@ -37,7 +40,10 @@ service cloud.firestore {
     // Notifications Collection - Private to target user
     match /notifications/{notificationId} {
       allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
-      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      // Independent list rule allows users to fetch their own notifications without admin interference
+      allow list: if isAdmin();
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
