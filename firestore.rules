@@ -31,8 +31,9 @@ service cloud.firestore {
 
     // Messages Collection
     match /messages/{messageId} {
-      // Allow read if admin or participant
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
+      // Split get and list for robust permission handling
+      allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
+      allow list: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
       
       allow create: if isSignedIn() && (
         request.resource.data.senderId == request.auth.uid && 
@@ -43,9 +44,10 @@ service cloud.firestore {
 
     // Notifications Collection
     match /notifications/{notificationId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
 
     // Community Feed
