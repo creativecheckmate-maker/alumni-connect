@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 const getPlaceholderImage = (id: string) => {

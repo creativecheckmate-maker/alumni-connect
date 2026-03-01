@@ -12,7 +12,7 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return request.auth.token.email == 'creativecheckmate@gmail.com';
+      return isSignedIn() && request.auth.token.email == 'creativecheckmate@gmail.com';
     }
 
     function isStudent() {
