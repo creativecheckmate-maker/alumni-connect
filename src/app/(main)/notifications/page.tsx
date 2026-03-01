@@ -21,6 +21,7 @@ export default function NotificationsPage() {
     if (!firestore || !user?.uid) return null;
     return query(
       collection(firestore, 'notifications'), 
+      // This filter is MANDATORY to satisfy security rules
       where('userId', '==', user.uid), 
       orderBy('createdAt', 'desc'),
       limit(50)

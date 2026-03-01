@@ -47,7 +47,7 @@ export default function MessagesPage() {
     if (!firestore || !chatId || !authUser?.uid) return null;
     return query(
       collection(firestore, 'messages'),
-      // Adding participants filter is CRITICAL for security rules authorization
+      // Adding participants filter is MANDATORY for security rules authorization
       where('participants', 'array-contains', authUser.uid),
       where('chatId', '==', chatId),
       orderBy('createdAt', 'asc'),
