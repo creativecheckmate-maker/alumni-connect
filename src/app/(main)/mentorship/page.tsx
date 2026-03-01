@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc, useFirebase } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { User, SiteContent } from '@/lib/definitions';
 import { ADMIN_EMAIL } from '@/lib/config';
@@ -73,7 +73,7 @@ function AdminEditDialog({ initialData }: { initialData: any }) {
 }
 
 export default function MentorshipPage() {
-  const { user: authUser } = useUser();
+  const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -114,7 +114,7 @@ export default function MentorshipPage() {
               />
           </div>
           <Button variant="outline" className="font-bold">Become a Mentor</Button>
-          {isAdmin && <AdminEditDialog initialData={{ description }} />}
+          {isAdmin && isEditMode && <AdminEditDialog initialData={{ description }} />}
         </div>
       </PageHeader>
       

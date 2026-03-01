@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2 } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import type { FeedPost } from '@/lib/definitions';
 import { ADMIN_EMAIL } from '@/lib/config';
@@ -16,7 +16,7 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function FeedPage() {
-  const { user } = useUser();
+  const { user, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [content, setContent] = useState('');
@@ -92,7 +92,7 @@ export default function FeedPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                {isAdmin && (
+                {isAdmin && isEditMode && (
                   <Button 
                     variant="ghost" 
                     size="icon" 

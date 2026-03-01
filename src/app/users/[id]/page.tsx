@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/logo';
-import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useFirebase } from '@/firebase';
 import { doc, serverTimestamp } from 'firebase/firestore';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -34,7 +34,7 @@ export default function UserProfilePage() {
   const userId = params.id as string;
   const { toast } = useToast();
 
-  const { user: authUser, isUserLoading: isAuthLoading } = useUser();
+  const { user: authUser, isUserLoading: isAuthLoading, isEditMode } = useFirebase();
   const firestore = useFirestore();
 
   const viewerDocRef = useMemoFirebase(() => {
@@ -153,7 +153,7 @@ export default function UserProfilePage() {
                         <Button variant="ghost" className="text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" /> Back to {authUser ? "Directory" : "Homepage"}</Button>
                     </Link>
                     <div className="flex gap-2">
-                        {isAdmin && !isOwnProfile && (
+                        {isAdmin && !isOwnProfile && isEditMode && (
                             <Dialog>
                                 <DialogTrigger asChild>
                                     <Button variant="outline"><Edit className="mr-2 h-4 w-4"/>Edit Profile</Button>

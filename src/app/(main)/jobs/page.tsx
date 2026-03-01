@@ -12,13 +12,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { Search, Briefcase, Plus, MapPin, Building2, ExternalLink, Trash2 } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import type { JobPosting } from '@/lib/definitions';
 import { ADMIN_EMAIL } from '@/lib/config';
 
 export default function JobsPage() {
-  const { user: authUser } = useUser();
+  const { user: authUser, isEditMode } = useFirebase();
   const { toast } = useToast();
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
@@ -132,7 +132,7 @@ export default function JobsPage() {
                       <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex justify-between items-start">
                             <CardTitle className="text-lg font-bold leading-none truncate">{job.title}</CardTitle>
-                            {isAdmin && (
+                            {isAdmin && isEditMode && (
                               <Button 
                                 variant="ghost" 
                                 size="icon" 

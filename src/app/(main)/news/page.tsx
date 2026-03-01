@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Newspaper, ArrowRight, Calendar, Edit, Loader2, Plus } from 'lucide-react';
 import Image from 'next/image';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase } from '@/firebase';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { collection, addDoc, serverTimestamp, doc, deleteDoc } from 'firebase/firestore';
 import { useState } from 'react';
@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
 export default function NewsPage() {
-  const { user: authUser } = useUser();
+  const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
   const isAdmin = authUser?.email === ADMIN_EMAIL;
@@ -73,7 +73,7 @@ export default function NewsPage() {
       <PageHeader title="University News">
         <div className="flex items-center gap-4">
           <Newspaper className="h-6 w-6 text-primary" />
-          {isAdmin && (
+          {isAdmin && isEditMode && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-2">
@@ -132,9 +132,9 @@ export default function NewsPage() {
                           <Calendar className="h-3 w-3" /> {news.data.date}
                         </span>
                       </div>
-                      {isAdmin && (
+                      {isAdmin && isEditMode && (
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(news.id)}>
-                          <Plus className="h-4 w-4 rotate-45" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
