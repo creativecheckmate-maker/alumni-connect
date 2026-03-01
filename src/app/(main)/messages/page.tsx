@@ -255,10 +255,13 @@ export default function MessagesPage() {
 
                 return (
                   <div key={user.id} className="group relative">
-                    <button
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => isMutual ? setActiveChat(user.id) : null}
+                      onKeyDown={(e) => e.key === 'Enter' && (isMutual ? setActiveChat(user.id) : null)}
                       className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
-                        activeChat === user.id ? 'bg-primary/10 text-primary shadow-inner' : 'hover:bg-muted/50'
+                        activeChat === user.id ? 'bg-primary/10 text-primary shadow-inner' : 'hover:bg-muted/50 cursor-pointer'
                       } ${!isMutual && activeTab === 'active' ? 'opacity-50 grayscale' : ''}`}
                     >
                       <div className="relative">
@@ -284,7 +287,7 @@ export default function MessagesPage() {
                           {isSentByMe ? <UserCheck className="h-4 w-4 text-green-600" /> : <UserPlus className="h-4 w-4 text-primary" />}
                         </Button>
                       )}
-                    </button>
+                    </div>
                   </div>
                 );
               })

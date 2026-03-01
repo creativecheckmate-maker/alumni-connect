@@ -82,6 +82,22 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "senderId", "receiverId", "participants", "chatId", "text", "status", "createdAt"]
+    },
+    "JobPosting": {
+      "title": "JobPosting",
+      "type": "object",
+      "description": "A career opportunity shared by an alumnus.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "company": { "type": "string" },
+        "location": { "type": "string" },
+        "description": { "type": "string" },
+        "posterId": { "type": "string" },
+        "companyLogoUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "company", "posterId", "createdAt"]
     }
   },
   "auth": {
@@ -127,6 +143,14 @@
           "entityName": "Message",
           "schema": { "$ref": "#/backend/entities/Message" },
           "description": "Private messages between users."
+        }
+      },
+      {
+        "path": "jobPostings/{jobId}",
+        "definition": {
+          "entityName": "JobPosting",
+          "schema": { "$ref": "#/backend/entities/JobPosting" },
+          "description": "Alumni career opportunities."
         }
       }
     ]
