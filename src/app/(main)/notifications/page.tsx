@@ -19,8 +19,6 @@ export default function NotificationsPage() {
 
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
-    // Explicitly filter by userId to match security rules for list operations
-    // This filter is MANDATORY to satisfy the 'resource.data.userId == request.auth.uid' rule
     return query(
       collection(firestore, 'notifications'), 
       where('userId', '==', user.uid), 
