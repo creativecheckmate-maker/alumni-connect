@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -87,10 +88,15 @@ export default function MentorshipPage() {
 
   const mentorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'users'), where('role', 'in', ['professor', 'non-teaching-staff']));
+    // Ensure we only query visible profiles to satisfy security rules for public access
+    return query(
+      collection(firestore, 'users'), 
+      where('role', 'in', ['professor', 'non-teaching-staff']),
+      where('isVisibleInDirectory', '==', true)
+    );
   }, [firestore]);
 
-  const { data: mentors } = useCollection<User>(mentorsQuery);
+  const { data: mentors, isLoading } = useCollection<User>(mentorsQuery);
 
   const defaultDescription = "Find and connect with experienced alumni and faculty members who are ready to guide your professional journey.";
   const description = mainContent?.data?.description || defaultDescription;
@@ -100,7 +106,8 @@ export default function MentorshipPage() {
   ) || [];
 
   const getInitials = (name: string) => {
-    return name.split(' ').map((n) => n[0]).join('');
+    if (!name) return 'U';
+    return name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
   return (
@@ -126,7 +133,11 @@ export default function MentorshipPage() {
       </p>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-20">
-        {filteredMentors.length > 0 ? (
+        {isLoading ? (
+          [...Array(4)].map((_, i) => (
+            <div key={i} className="h-64 bg-muted animate-pulse rounded-2xl" />
+          ))
+        ) : filteredMentors.length > 0 ? (
           filteredMentors.map((mentor) => (
             <Card key={mentor.id} className="text-center border-none shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
               <CardContent className="p-8">

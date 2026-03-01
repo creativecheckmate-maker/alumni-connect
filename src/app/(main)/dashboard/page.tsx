@@ -8,7 +8,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Bell, ArrowRight } from 'lucide-react';
 import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, limit, orderBy } from 'firebase/firestore';
+import { doc, collection, query, limit, orderBy, where } from 'firebase/firestore';
 import type { User, Event } from '@/lib/definitions';
 import Link from 'next/link';
 
@@ -24,9 +24,13 @@ export default function DashboardPage() {
   const { data: currentUser } = useDoc<User>(userDocRef);
 
   const recentUsersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'users'), limit(10));
-  }, [firestore]);
+    if (!firestore || !authUser) return null; // Private query: don't run if not signed in
+    return query(
+      collection(firestore, 'users'), 
+      where('isVisibleInDirectory', '==', true),
+      limit(10)
+    );
+  }, [firestore, authUser]);
 
   const { data: users } = useCollection<User>(recentUsersQuery);
 
@@ -37,13 +41,29 @@ export default function DashboardPage() {
 
   const { data: events } = useCollection<Event>(upcomingEventsQuery);
 
+  if (!authUser) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="max-w-md w-full text-center p-8 space-y-6">
+          <CardHeader>
+            <CardTitle>Welcome to Nexus Alumni</CardTitle>
+            <CardDescription>Please log in to view your personalized dashboard and network updates.</CardDescription>
+          </CardHeader>
+          <Link href="/login">
+            <Button className="w-full font-bold h-12">Log In to Dashboard</Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-10">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Avatar className="h-14 w-14 ring-2 ring-primary/20 ring-offset-2">
             <AvatarImage src={currentUser?.avatarUrl} />
-            <AvatarFallback>{currentUser?.name?.substring(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{currentUser?.name?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
           <div>
             <h1 className="text-2xl font-bold font-headline leading-tight">Hello {currentUser?.name?.split(' ')[0]}</h1>
@@ -69,9 +89,9 @@ export default function DashboardPage() {
               <Link key={u.id} href={`/users/${u.id}`} className="flex flex-col items-center gap-2 group cursor-pointer">
                 <Avatar className="h-16 w-16 border-2 border-transparent group-hover:border-primary transition-all">
                   <AvatarImage src={u.avatarUrl} />
-                  <AvatarFallback>{u.name[0]}</AvatarFallback>
+                  <AvatarFallback>{u.name?.[0] || 'U'}</AvatarFallback>
                 </Avatar>
-                <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">{u.name.split(' ')[0]}</span>
+                <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">{u.name?.split(' ')[0]}</span>
               </Link>
             ))}
           </div>
