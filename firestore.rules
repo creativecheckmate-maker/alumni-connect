@@ -9,15 +9,14 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.token.email == 'creativecheckmate@gmail.com' ||
-        request.auth.uid == 'XuRuoj1HWaS5nIiVZVoEdbaGX052'
+        request.auth.uid == 'XuRuoj1HWaS5nIiVZVoEdbaGX052' ||
+        (request.auth.token.keys().contains('email') && request.auth.token.email == 'creativecheckmate@gmail.com')
       );
     }
 
     // Users Collection
     match /users/{userId} {
-      allow get: if true;
-      allow list: if true;
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow update: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
       allow delete: if isAdmin();
@@ -49,24 +48,21 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
-    // Community Content
+    // Community Content (Public Read)
     match /feed/{postId} {
-      allow get: if true;
-      allow list: if true;
+      allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.authorId == request.auth.uid);
     }
 
     match /events/{eventId} {
-      allow get: if true;
-      allow list: if true;
+      allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.organizerId == request.auth.uid);
     }
 
     match /jobPostings/{jobId} {
-      allow get: if true;
-      allow list: if true;
+      allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.posterId == request.auth.uid);
     }

@@ -19,7 +19,6 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState('all');
 
   const notificationsQuery = useMemoFirebase(() => {
-    // CRITICAL: Ensure auth is not loading and we have a uid to satisfy security rules
     if (!firestore || !user?.uid || isUserLoading) return null;
     
     return query(
