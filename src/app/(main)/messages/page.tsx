@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Send, Phone, Video, Info, Loader2 } from 'lucide-react';
+import { Search, Send, Phone, Video, Info, Loader2, ArrowLeft } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, query, where, orderBy, addDoc, serverTimestamp, limit } from 'firebase/firestore';
@@ -19,9 +19,10 @@ export default function MessagesPage() {
   const [messageText, setMessageText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch real users from Firestore
+  // Fetch real users from Firestore to populate the sidebar
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
+    // We fetch users who are visible in the directory
     return query(collection(firestore, 'users'), limit(50));
   }, [firestore]);
 
@@ -30,21 +31,22 @@ export default function MessagesPage() {
 
   const selectedUser = users.find(u => u.id === activeChat);
 
-  // Determine chat ID (deterministic sorting of UIDs)
+  // Determine chat ID (deterministic sorting of UIDs to ensure uid1_uid2 always equals uid2_uid1)
   const chatId = activeChat && authUser?.uid 
     ? [authUser.uid, activeChat].sort().join('_') 
     : null;
 
   // Fetch real-time messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
-    if (!firestore || !chatId) return null;
+    if (!firestore || !chatId || !authUser?.uid) return null;
     return query(
       collection(firestore, 'messages'),
+      where('participants', 'array-contains', authUser.uid), // Filter for security & correctness
       where('chatId', '==', chatId),
       orderBy('createdAt', 'asc'),
       limit(100)
     );
-  }, [firestore, chatId]);
+  }, [firestore, chatId, authUser?.uid]);
 
   const { data: messages } = useCollection<Message>(messagesQuery);
 
@@ -61,6 +63,7 @@ export default function MessagesPage() {
     const msgData = {
       senderId: authUser.uid,
       receiverId: activeChat,
+      participants: [authUser.uid, activeChat], // Crucial for security rules
       chatId: chatId,
       text: messageText,
       createdAt: serverTimestamp(),
@@ -71,13 +74,14 @@ export default function MessagesPage() {
   };
 
   const getInitials = (name: string) => {
-    return name.split(' ').map((n) => n[0]).join('').substring(0, 2);
+    if (!name) return 'U';
+    return name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
   return (
     <div className="flex h-[calc(100vh-140px)] gap-4 flex-col md:flex-row">
       {/* Sidebar: User List */}
-      <Card className="w-full md:w-80 flex flex-col overflow-hidden border-none shadow-md">
+      <Card className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-md ${activeChat ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b bg-card">
           <h2 className="text-lg font-bold mb-3">Messages</h2>
           <div className="relative">
@@ -104,7 +108,7 @@ export default function MessagesPage() {
                   </Avatar>
                   <div className="flex-1 text-left min-w-0">
                     <p className="text-sm font-bold truncate">{user.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.college}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.role === 'student' ? user.major : user.department}</p>
                   </div>
                 </button>
               ))
@@ -116,11 +120,14 @@ export default function MessagesPage() {
       </Card>
 
       {/* Main Chat Window */}
-      <Card className="flex-1 flex flex-col overflow-hidden border-none shadow-md min-h-[400px]">
+      <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-md min-h-[400px] ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
         {selectedUser ? (
           <>
             <div className="p-4 border-b bg-card flex items-center justify-between">
               <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setActiveChat(null)}>
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
                 <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                   <AvatarImage src={selectedUser.avatarUrl} />
                   <AvatarFallback>{getInitials(selectedUser.name)}</AvatarFallback>
@@ -179,7 +186,7 @@ export default function MessagesPage() {
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
                 />
-                <Button type="submit" size="icon" className="shrink-0 rounded-full h-10 w-10 shadow-lg">
+                <Button type="submit" size="icon" className="shrink-0 rounded-full h-10 w-10 shadow-lg" disabled={!messageText.trim()}>
                   <Send className="h-4 w-4" />
                 </Button>
               </form>

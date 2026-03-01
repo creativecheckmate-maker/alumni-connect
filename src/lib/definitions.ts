@@ -51,6 +51,7 @@ export type Message = {
   id: string;
   senderId: string;
   receiverId: string;
+  participants: string[];
   chatId: string;
   text: string;
   createdAt: any;

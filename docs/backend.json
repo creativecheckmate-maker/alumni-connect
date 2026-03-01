@@ -17,6 +17,8 @@
         "university": { "type": "string" },
         "college": { "type": "string" },
         "feedbackRating": { "type": "number" },
+        "feedbackCount": { "type": "number" },
+        "totalFeedbackPoints": { "type": "number" },
         "isVisibleInDirectory": { "type": "boolean" },
         "status": { "type": "string", "enum": ["active", "deactivated"] },
         "createdAt": { "type": "string", "format": "date-time" },
@@ -60,11 +62,12 @@
         "id": { "type": "string" },
         "senderId": { "type": "string" },
         "receiverId": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
         "chatId": { "type": "string", "description": "Unique ID for the conversation (e.g. uid1_uid2)" },
         "text": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "senderId", "receiverId", "chatId", "text", "createdAt"]
+      "required": ["id", "senderId", "receiverId", "participants", "chatId", "text", "createdAt"]
     },
     "SiteContent": {
       "title": "SiteContent",
