@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -26,7 +27,8 @@ import {
   Newspaper,
   Globe,
   Edit,
-  Loader2
+  Loader2,
+  TrendingUp
 } from 'lucide-react';
 import { Logo } from './logo';
 import { usePathname, useRouter } from 'next/navigation';
@@ -128,6 +130,7 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
     mentorship: 'Mentorship',
     notifications: 'Notifications',
     messages: 'Messages',
+    analytics: 'Career Insights',
     about: 'About Us',
     news: 'News',
     community: 'Community Hub',
@@ -147,6 +150,7 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
     { href: '/events', label: labels.events, icon: Calendar, public: true },
     { href: '/jobs', label: labels.jobs, icon: Briefcase, public: true },
     { href: '/mentorship', label: labels.mentorship, icon: GraduationCap, public: true },
+    { href: '/analytics', label: labels.analytics, icon: TrendingUp, public: true },
     { href: '/notifications', label: labels.notifications, icon: Bell, public: false },
     { href: '/messages', label: labels.messages, icon: MessageCircle, public: false },
   ];

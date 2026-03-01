@@ -16,6 +16,7 @@ export type UserProfile = {
   feedbackCount?: number;
   totalFeedbackPoints?: number;
   isVisibleInDirectory: boolean;
+  isVerified?: boolean; // Added for project depth
   status: 'active' | 'deactivated';
   createdAt: any;
   updatedAt: any;
@@ -28,6 +29,9 @@ export type UserProfile = {
 };
 
 export type User = UserProfile;
+
+export type Student = UserProfile & { role: 'student'; major: string; graduationYear: number };
+export type Professor = UserProfile & { role: 'professor'; department: string; researchInterests: string[] };
 
 export type FeedPost = {
   id: string;
@@ -81,6 +85,7 @@ export type JobPosting = {
   posterId: string;
   companyLogoUrl?: string;
   university?: string;
+  createdAt?: any;
 };
 
 export type SiteContent = {
