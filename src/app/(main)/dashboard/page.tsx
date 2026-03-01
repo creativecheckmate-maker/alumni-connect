@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -145,10 +144,12 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="flex gap-2">
-            <Button variant="outline" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full"></span>
-            </Button>
+            <Link href="/notifications">
+                <Button variant="outline" size="icon" className="relative transition-transform hover:scale-105 active:scale-95">
+                    <Bell className="h-5 w-5" />
+                    <span className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full"></span>
+                </Button>
+            </Link>
         </div>
       </div>
 

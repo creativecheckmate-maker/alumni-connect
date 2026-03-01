@@ -21,8 +21,8 @@ service cloud.firestore {
     match /users/{userId} {
       // Allow individual reads for everyone
       allow get: if true;
-      // Allow listing if filtering by public visibility
-      allow list: if isAdmin() || (request.query.limit <= 100 && resource.data.isVisibleInDirectory == true);
+      // Allow listing if filtering by public visibility or if admin
+      allow list: if isAdmin() || resource.data.isVisibleInDirectory == true;
       
       allow create: if isAdmin() || isOwner(userId);
       allow update: if isAdmin() || isOwner(userId);
@@ -31,10 +31,8 @@ service cloud.firestore {
 
     // Messages Collection
     match /messages/{messageId} {
-      // Crucial: Allow list ONLY if the query filter ensures the user is a participant.
-      // This allows the client to query their own messages without a permission error.
-      allow list: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
-      allow get: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
+      // Allow read if admin or participant
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
       
       allow create: if isSignedIn() && (
         request.resource.data.senderId == request.auth.uid && 
@@ -45,8 +43,7 @@ service cloud.firestore {
 
     // Notifications Collection
     match /notifications/{notificationId} {
-      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
