@@ -279,13 +279,12 @@ export default function MessagesPage() {
 
                 return (
                   <div key={user.id} className="group relative">
-                    {/* Using a div wrapper instead of nested button to prevent hydration error */}
                     <div
                       role="button"
                       tabIndex={0}
-                      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
+                      className={`relative w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer z-0 ${
                         activeChat === user.id ? 'bg-primary/10 text-primary shadow-inner' : 'hover:bg-muted/50'
-                      } ${!isMutual && activeTab === 'active' ? 'opacity-50 grayscale' : 'cursor-pointer'}`}
+                      } ${!isMutual && activeTab === 'active' ? 'opacity-50 grayscale' : ''}`}
                       onClick={() => isMutual ? setActiveChat(user.id) : null}
                       onKeyDown={(e) => e.key === 'Enter' && isMutual && setActiveChat(user.id)}
                     >
@@ -302,14 +301,16 @@ export default function MessagesPage() {
                           {isMutual ? 'Connected' : (isRequestedByMe ? 'Requested' : (hasRequestedMe ? 'Accept Follow Back' : 'Alumni'))}
                         </p>
                       </div>
+                      
+                      {/* Action Layer - Isolated from item click */}
                       {activeTab === 'network' && !isMutual && (
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1 relative z-10" onClick={(e) => e.stopPropagation()}>
                           {isRequestedByMe ? (
                             <Button 
                               size="sm" 
                               variant="destructive" 
                               className="px-3 rounded-full shrink-0 font-bold text-[9px] h-7 gap-1"
-                              onClick={(e) => { e.stopPropagation(); handleCancelRequest(user.id); }}
+                              onClick={() => handleCancelRequest(user.id)}
                             >
                               <XCircle className="h-3 w-3" /> Cancel
                             </Button>
@@ -318,7 +319,7 @@ export default function MessagesPage() {
                               size="sm" 
                               variant="default" 
                               className="px-3 rounded-full shrink-0 font-bold text-[9px] h-7"
-                              onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id, user.name); }}
+                              onClick={() => handleFollowUser(user.id, user.name)}
                             >
                               {hasRequestedMe ? "Follow Back" : "Connect"}
                             </Button>
