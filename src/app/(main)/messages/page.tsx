@@ -27,7 +27,8 @@ import {
   Users as UsersIcon,
   XCircle,
   Handshake,
-  Lock
+  Lock,
+  UserPlus
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { 
@@ -100,6 +101,7 @@ export default function MessagesPage() {
   }) || [];
 
   const selectedUser = allUsers?.find(u => u.id === activeChat);
+  const isChatMutual = activeChat ? isMutualFriend(activeChat) : false;
 
   const chatId = activeChat && authUser?.uid 
     ? [authUser.uid, activeChat].sort().join('_') 
@@ -107,7 +109,7 @@ export default function MessagesPage() {
 
   // Fetch messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
-    if (!firestore || !chatId || !authUser?.uid || isUserLoading) return null;
+    if (!firestore || !chatId || !authUser?.uid || isUserLoading || !isChatMutual) return null;
     
     return query(
       collection(firestore, 'messages'),
@@ -116,7 +118,7 @@ export default function MessagesPage() {
       orderBy('createdAt', 'asc'),
       limit(100)
     );
-  }, [firestore, chatId, authUser?.uid, isUserLoading]);
+  }, [firestore, chatId, authUser?.uid, isUserLoading, isChatMutual]);
 
   const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
 
@@ -129,17 +131,17 @@ export default function MessagesPage() {
 
   // Mark messages as seen
   useEffect(() => {
-    if (!firestore || !authUser || !activeChat || !messages) return;
+    if (!firestore || !authUser || !activeChat || !messages || !isChatMutual) return;
     const unreadMessages = messages.filter(m => m.senderId === activeChat && m.status !== 'seen');
     unreadMessages.forEach(msg => {
       updateDocumentNonBlocking(doc(firestore, 'messages', msg.id), { status: 'seen' });
     });
-  }, [messages, activeChat, authUser?.uid, firestore]);
+  }, [messages, activeChat, authUser?.uid, firestore, isChatMutual]);
 
   const handleSendMessage = async () => {
     if (!firestore || !authUser || !activeChat || !messageText.trim() || !chatId) return;
     
-    if (!isMutualFriend(activeChat)) {
+    if (!isChatMutual) {
       toast({ variant: 'destructive', title: "Connection Required", description: "Mutual connection is required to send messages." });
       return;
     }
@@ -284,9 +286,9 @@ export default function MessagesPage() {
                       tabIndex={0}
                       className={`relative w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer z-0 ${
                         activeChat === user.id ? 'bg-primary/10 text-primary shadow-inner' : 'hover:bg-muted/50'
-                      } ${!isMutual && activeTab === 'active' ? 'opacity-50 grayscale' : ''}`}
-                      onClick={() => isMutual ? setActiveChat(user.id) : null}
-                      onKeyDown={(e) => e.key === 'Enter' && isMutual && setActiveChat(user.id)}
+                      }`}
+                      onClick={() => setActiveChat(user.id)}
+                      onKeyDown={(e) => e.key === 'Enter' && setActiveChat(user.id)}
                     >
                       <div className="relative">
                         <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background shadow-md">
@@ -379,114 +381,157 @@ export default function MessagesPage() {
           </div>
         ) : selectedUser ? (
           <>
-            {/* PUBG Inspired Voice Header */}
-            <div className="p-4 border-b flex items-center justify-between bg-zinc-900 text-white shadow-lg z-10">
+            {/* Header */}
+            <div className={`p-4 border-b flex items-center justify-between shadow-lg z-10 ${isChatMutual ? 'bg-zinc-900 text-white' : 'bg-muted/30'}`}>
               <div className="flex items-center gap-4">
-                <button onClick={() => setActiveChat(null)} className="md:hidden p-2 hover:bg-zinc-800 rounded-full transition-colors">
+                <button onClick={() => setActiveChat(null)} className="md:hidden p-2 hover:bg-muted rounded-full transition-colors">
                   <ArrowLeft className="h-6 w-6" />
                 </button>
                 <div className="relative">
-                  <Avatar className="h-12 w-12 ring-2 ring-zinc-700 shadow-xl">
+                  <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background">
                     <AvatarImage src={selectedUser.avatarUrl} />
                     <AvatarFallback className="bg-zinc-800 text-zinc-400 font-black">{getInitials(selectedUser.name)}</AvatarFallback>
                   </Avatar>
-                  {isMicOn && <span className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.9)]"></span>}
+                  {isChatMutual && isMicOn && <span className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.9)]"></span>}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-base font-black leading-none tracking-tight">{selectedUser.name}</p>
-                    <Badge variant="outline" className="h-5 px-2 text-[9px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800/50">MUTUAL CONNECTION</Badge>
+                    <p className={`text-base font-black leading-none tracking-tight ${!isChatMutual && 'text-foreground'}`}>{selectedUser.name}</p>
+                    {isChatMutual && <Badge variant="outline" className="h-5 px-2 text-[9px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800/50">MUTUAL CONNECTION</Badge>}
                   </div>
-                  <p className="text-[10px] text-zinc-500 font-black flex items-center gap-1.5 mt-1.5 uppercase tracking-widest">
-                    <Radio className={`h-3 w-3 ${isMicOn ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> {isMicOn ? 'VOICE CHANNEL ACTIVE' : 'VOICE CHANNEL READY'}
-                  </p>
+                  {isChatMutual ? (
+                    <p className="text-[10px] text-zinc-500 font-black flex items-center gap-1.5 mt-1.5 uppercase tracking-widest">
+                      <Radio className={`h-3 w-3 ${isMicOn ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> {isMicOn ? 'VOICE CHANNEL ACTIVE' : 'VOICE CHANNEL READY'}
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground font-bold mt-1 uppercase tracking-widest">Connection Request Pending</p>
+                  )}
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
-                <div className="flex items-center bg-zinc-800/50 rounded-xl p-1.5 border border-zinc-700/50 shadow-inner">
-                  <Button variant="ghost" size="icon" className={`h-10 w-10 rounded-lg transition-all ${isSpeakerOn ? 'text-white' : 'text-zinc-600 bg-zinc-900/50'}`} onClick={() => setIsSpeakerOn(!isSpeakerOn)}>
-                    {isSpeakerOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-                  </Button>
-                  <div className="w-[1px] h-6 bg-zinc-700 mx-2"></div>
-                  <Button variant="ghost" size="icon" className={`h-10 w-10 rounded-lg transition-all ${isMicOn ? 'text-green-500 bg-green-500/10 shadow-[0_0_10px_rgba(34,197,94,0.2)]' : 'text-zinc-600 bg-zinc-900/50'}`} onClick={() => setIsMicOn(!isMicOn)}>
-                    {isMicOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" className="h-11 w-11 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl" onClick={() => setIsVideoCallActive(true)}>
-                        <Video className="h-6 w-6" />
+              {isChatMutual && (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center bg-zinc-800/50 rounded-xl p-1.5 border border-zinc-700/50 shadow-inner">
+                    <Button variant="ghost" size="icon" className={`h-10 w-10 rounded-lg transition-all ${isSpeakerOn ? 'text-white' : 'text-zinc-600 bg-zinc-900/50'}`} onClick={() => setIsSpeakerOn(!isSpeakerOn)}>
+                      {isSpeakerOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                     </Button>
+                    <div className="w-[1px] h-6 bg-zinc-700 mx-2"></div>
+                    <Button variant="ghost" size="icon" className={`h-10 w-10 rounded-lg transition-all ${isMicOn ? 'text-green-500 bg-green-500/10 shadow-[0_0_10px_rgba(34,197,94,0.2)]' : 'text-zinc-600 bg-zinc-900/50'}`} onClick={() => setIsMicOn(!isMicOn)}>
+                      {isMicOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                      <Button variant="ghost" size="icon" className="h-11 w-11 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl" onClick={() => setIsVideoCallActive(true)}>
+                          <Video className="h-6 w-6" />
+                      </Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Messaging Feed */}
+            {/* Messaging Feed or Locked State */}
             <ScrollArea className="flex-1 p-6 bg-zinc-50/50">
-              <div className="space-y-8 max-w-4xl mx-auto">
-                <div className="flex justify-center mb-8">
-                    <Badge variant="secondary" className="px-4 py-1.5 bg-zinc-100 text-muted-foreground flex items-center gap-2 font-bold tracking-tight border-none">
-                        <Lock className="h-3 w-3" /> Messages are end-to-end encrypted
-                    </Badge>
-                </div>
-                
-                {isMessagesLoading ? (
-                  <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
-                ) : messages?.length ? (
-                  messages.map((msg) => (
-                    <div key={msg.id} className={`flex ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
-                      <div className={`max-w-[80%] p-4 rounded-2xl shadow-xl transition-all ${
-                        msg.senderId === authUser?.uid 
-                          ? 'bg-zinc-900 text-white rounded-tr-none ring-1 ring-zinc-800' 
-                          : 'bg-white text-zinc-900 rounded-tl-none border border-zinc-200 shadow-zinc-200/50'
-                      }`}>
-                        <p className="text-sm leading-relaxed font-medium tracking-tight">{msg.text}</p>
-                        <div className={`flex items-center gap-2 mt-3 ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'}`}>
-                          <p className="text-[10px] font-black uppercase opacity-40 tracking-tighter">
-                            {msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'RECENT'}
-                          </p>
-                          {msg.senderId === authUser?.uid && (
-                            <div className="flex -space-x-1">
-                                {msg.status === 'seen' ? (
-                                    <CheckCheck className="h-3.5 w-3.5 text-blue-400" />
-                                ) : (
-                                    <Check className="h-3.5 w-3.5 opacity-40" />
-                                )}
-                            </div>
-                          )}
+              {isChatMutual ? (
+                <div className="space-y-8 max-w-4xl mx-auto">
+                  <div className="flex justify-center mb-8">
+                      <Badge variant="secondary" className="px-4 py-1.5 bg-zinc-100 text-muted-foreground flex items-center gap-2 font-bold tracking-tight border-none">
+                          <Lock className="h-3 w-3" /> Messages are end-to-end encrypted
+                      </Badge>
+                  </div>
+                  
+                  {isMessagesLoading ? (
+                    <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
+                  ) : messages?.length ? (
+                    messages.map((msg) => (
+                      <div key={msg.id} className={`flex ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+                        <div className={`max-w-[80%] p-4 rounded-2xl shadow-xl transition-all ${
+                          msg.senderId === authUser?.uid 
+                            ? 'bg-zinc-900 text-white rounded-tr-none ring-1 ring-zinc-800' 
+                            : 'bg-white text-zinc-900 rounded-tl-none border border-zinc-200 shadow-zinc-200/50'
+                        }`}>
+                          <p className="text-sm leading-relaxed font-medium tracking-tight">{msg.text}</p>
+                          <div className={`flex items-center gap-2 mt-3 ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'}`}>
+                            <p className="text-[10px] font-black uppercase opacity-40 tracking-tighter">
+                              {msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'RECENT'}
+                            </p>
+                            {msg.senderId === authUser?.uid && (
+                              <div className="flex -space-x-1">
+                                  {msg.status === 'seen' ? (
+                                      <CheckCheck className="h-3.5 w-3.5 text-blue-400" />
+                                  ) : (
+                                      <Check className="h-3.5 w-3.5 opacity-40" />
+                                  )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-32 text-center space-y-6 opacity-30">
+                      <div className="h-24 w-24 rounded-[2rem] bg-muted flex items-center justify-center">
+                          <Handshake className="h-12 w-12" />
+                      </div>
+                      <div className="space-y-1">
+                          <p className="text-lg font-black tracking-tighter uppercase">Connection Established</p>
+                          <p className="text-sm font-medium">You and {selectedUser.name} are now connected. Say hello!</p>
+                      </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-32 text-center space-y-6 opacity-30">
-                    <div className="h-24 w-24 rounded-[2rem] bg-muted flex items-center justify-center">
-                        <Handshake className="h-12 w-12" />
-                    </div>
-                    <div className="space-y-1">
-                        <p className="text-lg font-black tracking-tighter uppercase">Connection Established</p>
-                        <p className="text-sm font-medium">You and {selectedUser.name} are now connected. Say hello!</p>
-                    </div>
+                  )}
+                  <div ref={scrollRef} />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-32 text-center space-y-8 max-w-sm mx-auto">
+                  <div className="h-24 w-24 rounded-[2.5rem] bg-muted/20 flex items-center justify-center relative">
+                      <UsersIcon className="h-10 w-10 text-muted-foreground" />
+                      <Lock className="h-6 w-6 text-primary absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow-md" />
                   </div>
-                )}
-                <div ref={scrollRef} />
-              </div>
+                  <div className="space-y-3">
+                      <h3 className="text-xl font-black tracking-tighter uppercase">Mutual Connection Required</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed font-medium">
+                        To protect the privacy of our alumni, secure chat, voice, and video features are only available once both individuals have followed each other.
+                      </p>
+                  </div>
+                  <div className="flex flex-col gap-3 w-full">
+                    {(() => {
+                      const friendship = getFriendshipWith(selectedUser.id);
+                      const isRequestedByMe = friendship && friendship.followedBy.includes(authUser?.uid || '');
+                      const hasRequestedMe = friendship && !friendship.followedBy.includes(authUser?.uid || '');
+
+                      if (isRequestedByMe) {
+                        return (
+                          <Button variant="outline" className="w-full h-12 rounded-xl gap-2 font-bold" onClick={() => handleCancelRequest(selectedUser.id)}>
+                            <XCircle className="h-4 w-4" /> Cancel Connection Request
+                          </Button>
+                        );
+                      }
+                      return (
+                        <Button className="w-full h-12 rounded-xl gap-2 font-bold" onClick={() => handleFollowUser(selectedUser.id, selectedUser.name)}>
+                          {hasRequestedMe ? <><UserPlus className="h-4 w-4" /> Accept & Follow Back</> : <><UserPlus className="h-4 w-4" /> Send Connection Request</>}
+                        </Button>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
             </ScrollArea>
 
-            {/* Secure Message Input */}
-            <div className="p-5 border-t bg-white/80 backdrop-blur-xl">
-              <form className="flex gap-3 max-w-4xl mx-auto" onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
-                <Input 
-                  placeholder={`Type a message to ${selectedUser.name.split(' ')[0]}...`} 
-                  className="bg-zinc-100 border-none shadow-none rounded-[1.25rem] h-12 px-6 text-sm font-medium focus-visible:ring-2 focus-visible:ring-zinc-900/5 transition-all"
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                />
-                <Button type="submit" size="icon" className="rounded-2xl h-12 w-12 bg-zinc-900 shadow-xl shadow-zinc-900/20 hover:scale-105 active:scale-95 transition-all" disabled={!messageText.trim()}>
-                  <Send className="h-5 w-5" />
-                </Button>
-              </form>
-            </div>
+            {/* Message Input (only if mutual) */}
+            {isChatMutual && (
+              <div className="p-5 border-t bg-white/80 backdrop-blur-xl">
+                <form className="flex gap-3 max-w-4xl mx-auto" onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
+                  <Input 
+                    placeholder={`Type a message to ${selectedUser.name.split(' ')[0]}...`} 
+                    className="bg-zinc-100 border-none shadow-none rounded-[1.25rem] h-12 px-6 text-sm font-medium focus-visible:ring-2 focus-visible:ring-zinc-900/5 transition-all"
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                  />
+                  <Button type="submit" size="icon" className="rounded-2xl h-12 w-12 bg-zinc-900 shadow-xl shadow-zinc-900/20 hover:scale-105 active:scale-95 transition-all" disabled={!messageText.trim()}>
+                    <Send className="h-5 w-5" />
+                  </Button>
+                </form>
+              </div>
+            )}
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-12 text-center bg-zinc-50/30">
