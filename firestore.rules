@@ -25,7 +25,7 @@ service cloud.firestore {
     // Friendships Collection
     match /friendships/{friendshipId} {
       allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.uids);
-      allow list: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
+      allow list: if isSignedIn() && (request.auth.uid in resource.data.uids);
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.uids);
       allow delete: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.uids);
@@ -34,7 +34,7 @@ service cloud.firestore {
     // Messages Collection
     match /messages/{messageId} {
       allow get: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
-      allow list: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
+      allow list: if isSignedIn() && (request.auth.uid in resource.data.participants);
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (isAdmin() || request.auth.uid in resource.data.participants);
       allow delete: if isAdmin() || (isSignedIn() && resource.data.senderId == request.auth.uid);
@@ -43,7 +43,7 @@ service cloud.firestore {
     // Notifications Collection
     match /notifications/{notificationId} {
       allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }

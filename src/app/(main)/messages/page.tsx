@@ -35,9 +35,9 @@ import {
   useFirestore, 
   useMemoFirebase, 
   useCollection, 
-  addDocumentNonBlocking, 
   updateDocumentNonBlocking,
   setDocumentNonBlocking,
+  addDocumentNonBlocking,
   deleteDocumentNonBlocking
 } from '@/firebase';
 import { collection, query, where, serverTimestamp, limit, doc, orderBy } from 'firebase/firestore';
@@ -191,13 +191,13 @@ export default function MessagesPage() {
       addDocumentNonBlocking(collection(firestore, 'notifications'), {
         userId: otherId,
         type: 'connection',
-        message: `${authUser.displayName || 'An alumnus'} accepted your request and followed you back! Your secure chat is now unlocked.`,
+        message: `${authUser.displayName || 'An alumnus'} followed you back! Your secure communication channel is now unlocked.`,
         read: false,
         createdAt: serverTimestamp()
       });
 
       if (isMutual) {
-        toast({ title: "Connected!", description: `Mutual connection established. Secure chat unlocked.` });
+        toast({ title: "Connected!", description: `Mutual follow established. Secure chat unlocked.` });
       }
     } else {
       const data = {
@@ -281,10 +281,13 @@ export default function MessagesPage() {
                   <div key={user.id} className="group relative">
                     {/* Using a div wrapper instead of nested button to prevent hydration error */}
                     <div
+                      role="button"
+                      tabIndex={0}
                       className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
                         activeChat === user.id ? 'bg-primary/10 text-primary shadow-inner' : 'hover:bg-muted/50'
                       } ${!isMutual && activeTab === 'active' ? 'opacity-50 grayscale' : 'cursor-pointer'}`}
                       onClick={() => isMutual ? setActiveChat(user.id) : null}
+                      onKeyDown={(e) => e.key === 'Enter' && isMutual && setActiveChat(user.id)}
                     >
                       <div className="relative">
                         <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background shadow-md">

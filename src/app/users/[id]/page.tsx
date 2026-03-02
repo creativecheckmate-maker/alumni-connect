@@ -128,7 +128,7 @@ export default function UserProfilePage() {
       addDocumentNonBlocking(collection(firestore, 'notifications'), {
         userId: userId,
         type: 'connection',
-        message: `${authUser.displayName || 'An alumnus'} accepted your request and followed you back!`,
+        message: `${authUser.displayName || 'An alumnus'} followed you back! Your secure communication channel is now unlocked.`,
         read: false,
         createdAt: serverTimestamp()
       });
@@ -250,7 +250,7 @@ export default function UserProfilePage() {
                               </Button>
                             ) : (
                               <Button className="gap-2" onClick={handleFollowUser}>
-                                {hasRequestedMe ? <><UserCheck className="h-4 w-4" /> Accept & Follow Back</> : <><UserPlus className="h-4 w-4" /> Connect</>}
+                                {hasRequestedMe ? <><UserCheck className="h-4 w-4" /> Follow Back</> : <><UserPlus className="h-4 w-4" /> Connect</>}
                               </Button>
                             )}
                           </div>
