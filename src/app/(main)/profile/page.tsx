@@ -8,7 +8,7 @@ import type { User, Student, Professor } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, RefreshCcw, X } from 'lucide-react';
+import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, RefreshCcw, X, Image as ImageIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EditProfileForm } from '@/components/profile/edit-profile-form';
 import { CldUploadWidget } from 'next-cloudinary';

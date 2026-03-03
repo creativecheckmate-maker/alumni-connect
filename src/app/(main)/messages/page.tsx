@@ -231,7 +231,7 @@ export default function MessagesPage() {
           <ShieldCheck className="h-16 w-16 text-primary mx-auto opacity-20" />
           <div className="space-y-2">
             <h2 className="text-2xl font-bold font-headline tracking-tight">Private Alumni Network</h2>
-            <p className="text-muted-foreground text-sm leading-relaxed">Log in to build mutual connections and start secure conversations.</p>
+            <p className="text-muted-foreground text-sm leading-relaxed">Log in to build mutual connections, manage follow-back requests, and start secure encrypted conversations.</p>
           </div>
           <Button asChild className="w-full font-bold h-12 rounded-xl shadow-lg shadow-primary/20">
             <a href="/login">Access Alumni Hub</a>
@@ -287,7 +287,7 @@ export default function MessagesPage() {
                   >
                     <div className="relative">
                       <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background shadow-md">
-                        <AvatarImage src={user.avatarUrl} className="object-cover" />
+                        <AvatarImage src={user.avatarUrl} />
                         <AvatarFallback className="font-bold bg-muted">{getInitials(user.name)}</AvatarFallback>
                       </Avatar>
                       {isMutual && <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></span>}

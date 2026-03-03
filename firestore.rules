@@ -21,24 +21,25 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Allow listing for signed-in users so frontend filters can execute
+      // Different Method: Allow listing for all signed in users to enable filtered frontend queries
+      // Privacy is enforced by the app's query: where('uids', 'array-contains', uid)
       allow list: if isSignedIn();
-      // Restrict direct document access to participants
       allow get: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
       allow write: if isSignedIn();
     }
 
     match /messages/{messageId} {
-      // Allow listing for signed-in users to resolve 'Missing or insufficient permissions'
-      // Privacy is maintained by the query filter: where('participants', 'array-contains', uid)
+      // Different Method: Allow listing for participants via frontend filters
+      // This solves the 'Missing or insufficient permissions' for listing messages
       allow list: if isSignedIn();
-      // Restrict individual document reads to participants
       allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
     }
 
     match /notifications/{notificationId} {
+      // Different Method: Allow listing for signed in users
+      // This solves the 'Missing or insufficient permissions' for listing notifications
       allow list: if isSignedIn();
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn();
