@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useFirebase, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { ArrowRight, Star, GraduationCap, Briefcase, Users, Globe, Trophy, Edit, Loader2, Image as ImageIcon, Upload } from 'lucide-react';
+import { ArrowRight, Star, GraduationCap, Briefcase, Users, Globe, Trophy, Edit, Loader2, Image as ImageIcon, Upload, Check } from 'lucide-react';
 import { collection, query, where, limit, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { User, SiteContent } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -160,8 +159,12 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
                     />
                     {key.toLowerCase().includes('url') ? (
                       <CldUploadWidget 
-                        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-                        onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
+                        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
+                        options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
+                        onSuccess={(result: any) => {
+                          setData({ ...data, [key]: result.info.secure_url });
+                          toast({ title: "Image Uploaded", description: "Click 'Save Changes' to update the site." });
+                        }}
                       >
                         {({ open }) => (
                           <Button variant="outline" size="icon" onClick={() => open()}>
@@ -181,7 +184,7 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
         <DialogFooter className="pt-4 border-t">
           <Button onClick={handleSave} disabled={isSaving} className="w-full font-bold">
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Changes
+            Save and Update Site
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -8,11 +8,12 @@ import type { User, Student, Professor } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit } from 'lucide-react';
+import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, Image as ImageIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EditProfileForm } from '@/components/profile/edit-profile-form';
 import { CldUploadWidget } from 'next-cloudinary';
 import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 const getInitials = (name: string) => {
     if (!name) return '';
@@ -28,6 +29,8 @@ export default function ProfilePage() {
   const { user: authUser } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [newAvatarUrl, setNewAvatarUrl] = useState<string | null>(null);
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !authUser?.uid) return null;
@@ -38,16 +41,28 @@ export default function ProfilePage() {
 
   const handleUploadSuccess = (result: any) => {
     if (result.event === 'success' && result.info?.secure_url) {
-      if (!userDocRef) return;
-      
-      const newAvatarUrl = result.info.secure_url;
-  
-      updateDocumentNonBlocking(userDocRef, { avatarUrl: newAvatarUrl });
-  
+      setNewAvatarUrl(result.info.secure_url);
       toast({
-        title: "Profile Picture Updated",
-        description: "Your new picture has been saved.",
+        title: "Image Uploaded",
+        description: "Click 'Save Profile Photo' to update your account.",
       });
+    }
+  };
+
+  const handleSaveAvatar = async () => {
+    if (!userDocRef || !newAvatarUrl) return;
+    setIsSavingAvatar(true);
+    try {
+      updateDocumentNonBlocking(userDocRef, { avatarUrl: newAvatarUrl });
+      toast({
+        title: "Profile Updated",
+        description: "Your new picture is now live for all users.",
+      });
+      setNewAvatarUrl(null);
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to save image." });
+    } finally {
+      setIsSavingAvatar(false);
     }
   };
 
@@ -74,17 +89,17 @@ export default function ProfilePage() {
   }
 
   return (
-    <>
+    <div className="max-w-4xl mx-auto space-y-8 pb-20">
         <PageHeader title="Your Profile">
              <Dialog>
                 <DialogTrigger asChild>
-                    <Button><Edit className="mr-2 h-4 w-4"/>Edit Profile</Button>
+                    <Button variant="outline" className="gap-2"><Edit className="h-4 w-4"/>Edit Details</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[625px]">
                     <DialogHeader>
-                        <DialogTitle>Edit Profile</DialogTitle>
+                        <DialogTitle>Edit Professional Profile</DialogTitle>
                         <DialogDescription>
-                            Make changes to your profile here. Click save when you're done.
+                            Keep your academic and professional details updated for the AI recommendation engine.
                         </DialogDescription>
                     </DialogHeader>
                     <EditProfileForm currentUser={currentUser} />
@@ -92,81 +107,115 @@ export default function ProfilePage() {
             </Dialog>
         </PageHeader>
         
-        <Card className="overflow-hidden">
-            <CardHeader className="relative flex flex-col items-center justify-center space-y-4 bg-card p-6 text-center">
-                <div className="absolute top-0 left-0 w-full h-24 bg-primary/10 -z-1"></div>
-                <CldUploadWidget
-                  uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!}
-                  onSuccess={handleUploadSuccess}
-                >
-                  {({ open }) => (
-                    <div className="relative group cursor-pointer" onClick={() => open()}>
-                      <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-background bg-background shadow-md">
-                        <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
-                        <AvatarFallback className="text-4xl">{getInitials(currentUser.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center rounded-full transition-all duration-200">
-                          <Edit className="h-8 w-8 text-white opacity-0 group-hover:opacity-100" />
-                      </div>
-                    </div>
+        <Card className="overflow-hidden border-none shadow-xl">
+            <CardHeader className="relative flex flex-col items-center justify-center space-y-6 bg-card p-10 text-center">
+                <div className="absolute top-0 left-0 w-full h-32 bg-primary/5 -z-1"></div>
+                
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative group">
+                    <Avatar className="h-32 w-32 md:h-40 md:w-40 border-8 border-background bg-background shadow-2xl transition-transform duration-500 group-hover:scale-105">
+                      <AvatarImage src={newAvatarUrl || currentUser.avatarUrl} alt={currentUser.name} />
+                      <AvatarFallback className="text-4xl font-black bg-muted">{getInitials(currentUser.name)}</AvatarFallback>
+                    </Avatar>
+                    
+                    <CldUploadWidget
+                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
+                      options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
+                      onSuccess={handleUploadSuccess}
+                    >
+                      {({ open }) => (
+                        <Button 
+                          size="icon" 
+                          variant="secondary" 
+                          className="absolute bottom-2 right-2 h-10 w-10 rounded-full shadow-lg border-2 border-background"
+                          onClick={() => open()}
+                        >
+                          <ImageIcon className="h-5 w-5" />
+                        </Button>
+                      )}
+                    </CldUploadWidget>
+                  </div>
+
+                  {newAvatarUrl && (
+                    <Button 
+                      onClick={handleSaveAvatar} 
+                      disabled={isSavingAvatar}
+                      className="bg-green-600 hover:bg-green-700 animate-in zoom-in-95 duration-300"
+                    >
+                      {isSavingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                      Save Profile Photo
+                    </Button>
                   )}
-                </CldUploadWidget>
-                <div className="space-y-1">
-                <CardTitle className="text-3xl font-bold font-headline">{currentUser.name}</CardTitle>
-                <CardDescription>{currentUser.college} at {currentUser.university}</CardDescription>
-                <Badge variant={currentUser.role === 'student' ? 'secondary' : 'outline'} className="capitalize !mt-2 text-sm">{currentUser.role}</Badge>
+                </div>
+
+                <div className="space-y-2">
+                  <CardTitle className="text-4xl font-bold font-headline tracking-tight">{currentUser.name}</CardTitle>
+                  <CardDescription className="text-lg font-medium">{currentUser.college} at {currentUser.university}</CardDescription>
+                  <Badge variant={currentUser.role === 'student' ? 'secondary' : 'outline'} className="capitalize mt-2 px-4 py-1 text-sm font-bold uppercase tracking-wider">{currentUser.role}</Badge>
                 </div>
             </CardHeader>
-            <CardContent className="p-6 grid gap-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                    <div className="flex items-start gap-3">
-                        <Mail className="h-5 w-5 text-muted-foreground mt-1" />
+            <CardContent className="p-10 grid gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+                    <div className="flex items-start gap-4">
+                        <div className="p-2 rounded-xl bg-primary/5 text-primary">
+                          <Mail className="h-6 w-6" />
+                        </div>
                         <div>
-                            <h3 className="font-semibold text-muted-foreground">Email</h3>
-                            <a href={`mailto:${currentUser.email}`} className="text-primary hover:underline">{currentUser.email}</a>
+                            <h3 className="font-bold text-muted-foreground uppercase text-[10px] tracking-widest mb-1">Direct Contact</h3>
+                            <a href={`mailto:${currentUser.email}`} className="text-primary font-bold text-base hover:underline">{currentUser.email}</a>
                         </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
-                        <School className="h-5 w-5 text-muted-foreground mt-1" />
+                    <div className="flex items-start gap-4">
+                        <div className="p-2 rounded-xl bg-primary/5 text-primary">
+                          <School className="h-6 w-6" />
+                        </div>
                         <div>
-                            <h3 className="font-semibold text-muted-foreground">Education</h3>
-                            <p>{currentUser.university}</p>
-                            <p className="text-muted-foreground">{currentUser.college}</p>
+                            <h3 className="font-bold text-muted-foreground uppercase text-[10px] tracking-widest mb-1">Institution</h3>
+                            <p className="font-bold text-base">{currentUser.university}</p>
+                            <p className="text-muted-foreground font-medium">{currentUser.college}</p>
                         </div>
                     </div>
 
                     {currentUser.role === 'student' ? (
                     <>
-                        <div className="flex items-start gap-3">
-                            <GraduationCap className="h-5 w-5 text-muted-foreground mt-1" />
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 rounded-xl bg-primary/5 text-primary">
+                              <GraduationCap className="h-6 w-6" />
+                            </div>
                             <div>
-                                <h3 className="font-semibold text-muted-foreground">Major</h3>
-                                <p>{(currentUser as Student).major}</p>
+                                <h3 className="font-bold text-muted-foreground uppercase text-[10px] tracking-widest mb-1">Academic Major</h3>
+                                <p className="font-bold text-base">{(currentUser as Student).major}</p>
                             </div>
                         </div>
-                        <div className="flex items-start gap-3">
-                            <GraduationCap className="h-5 w-5 text-muted-foreground mt-1" />
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 rounded-xl bg-primary/5 text-primary">
+                              <GraduationCap className="h-6 w-6" />
+                            </div>
                             <div>
-                                <h3 className="font-semibold text-muted-foreground">Class of</h3>
-                                <p>{(currentUser as Student).graduationYear}</p>
+                                <h3 className="font-bold text-muted-foreground uppercase text-[10px] tracking-widest mb-1">Graduation Batch</h3>
+                                <p className="font-bold text-base">Class of {(currentUser as Student).graduationYear}</p>
                             </div>
                         </div>
                     </>
                     ) : (
                     <>
-                        <div className="flex items-start gap-3">
-                            <Briefcase className="h-5 w-5 text-muted-foreground mt-1" />
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 rounded-xl bg-primary/5 text-primary">
+                              <Briefcase className="h-6 w-6" />
+                            </div>
                             <div>
-                                <h3 className="font-semibold text-muted-foreground">Department</h3>
-                                <p>{(currentUser as Professor).department}</p>
+                                <h3 className="font-bold text-muted-foreground uppercase text-[10px] tracking-widest mb-1">Department</h3>
+                                <p className="font-bold text-base">{(currentUser as Professor).department}</p>
                             </div>
                         </div>
-                        <div className="flex items-start gap-3">
-                            <BrainCircuit className="h-5 w-5 text-muted-foreground mt-1" />
+                        <div className="flex items-start gap-4">
+                            <div className="p-2 rounded-xl bg-primary/5 text-primary">
+                              <BrainCircuit className="h-6 w-6" />
+                            </div>
                             <div>
-                                <h3 className="font-semibold text-muted-foreground">Research Interests</h3>
-                                <p>{(currentUser as Professor).researchInterests?.join(', ')}</p>
+                                <h3 className="font-bold text-muted-foreground uppercase text-[10px] tracking-widest mb-1">Expertise Areas</h3>
+                                <p className="font-bold text-base">{(currentUser as Professor).researchInterests?.join(', ') || 'General'}</p>
                             </div>
                         </div>
                     </>
@@ -174,23 +223,24 @@ export default function ProfilePage() {
                 </div>
     
                 {currentUser.preferences && currentUser.preferences.length > 0 && (
-                        <div>
-                        <h3 className="font-semibold text-base mb-2">Interests & Preferences</h3>
+                    <div className="pt-8 border-t">
+                        <h3 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-4">Interests & Academic Preferences</h3>
                         <div className="flex flex-wrap gap-2">
                             {currentUser.preferences.map(preference => (
-                                <Badge key={preference} variant="secondary">{preference}</Badge>
+                                <Badge key={preference} variant="secondary" className="px-4 py-1 font-bold">{preference}</Badge>
                             ))}
                         </div>
                     </div>
                 )}
-                    {currentUser.networkActivity && (
-                        <div>
-                        <h3 className="font-semibold text-base mb-2">Recent Activity</h3>
-                        <p className="text-sm text-muted-foreground italic">"{currentUser.networkActivity}"</p>
+                
+                {currentUser.networkActivity && (
+                    <div className="pt-8 border-t">
+                        <h3 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-4">Platform Engagement</h3>
+                        <p className="text-base text-muted-foreground italic leading-relaxed">"{currentUser.networkActivity}"</p>
                     </div>
                 )}
             </CardContent>
         </Card>
-    </>
+    </div>
   );
 }

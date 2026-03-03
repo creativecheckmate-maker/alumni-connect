@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -6,7 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2, X } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2, X, Loader2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import type { FeedPost, User } from '@/lib/definitions';
@@ -23,9 +22,10 @@ export default function FeedPage() {
   const { toast } = useToast();
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isPosting, setIsPosting] = useState(false);
   const isAdmin = user?.email === ADMIN_EMAIL;
 
-  // Fetch the current user's full profile to get the real avatarUrl
+  // Fetch the current user's full profile
   const userProfileDocRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return doc(firestore, 'users', user.uid);
@@ -42,102 +42,118 @@ export default function FeedPage() {
   const handlePost = async () => {
     if (!firestore || !user || (!content.trim() && !imageUrl)) return;
     
-    await addDoc(collection(firestore, 'feed'), {
-      authorId: user.uid,
-      authorName: userProfile?.name || user.displayName || 'Nexus Alumnus',
-      authorAvatarUrl: userProfile?.avatarUrl || user.photoURL || '',
-      content,
-      imageUrl: imageUrl || null,
-      likes: 0,
-      createdAt: serverTimestamp(),
-    });
-    setContent('');
-    setImageUrl(null);
-    toast({ title: "Post Shared", description: "Your update has been shared with the community." });
+    setIsPosting(true);
+    try {
+      await addDoc(collection(firestore, 'feed'), {
+        authorId: user.uid,
+        authorName: userProfile?.name || user.displayName || 'Nexus Alumnus',
+        authorAvatarUrl: userProfile?.avatarUrl || user.photoURL || '',
+        content,
+        imageUrl: imageUrl || null,
+        likes: 0,
+        createdAt: serverTimestamp(),
+      });
+      setContent('');
+      setImageUrl(null);
+      toast({ title: "Update Published", description: "Your memory has been shared with the network." });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to publish post." });
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   const handleDeletePost = async (id: string) => {
     if (!firestore) return;
     await deleteDoc(doc(firestore, 'feed', id));
-    toast({ title: "Post Deleted", description: "The post has been removed." });
+    toast({ title: "Post Deleted", description: "The update has been removed." });
   };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <PageHeader title="Community Feed" />
+      <PageHeader title="Community Feed" description="Real-time updates and memories from the Nexus global network." />
 
       {user ? (
-        <Card className="border-none shadow-sm">
-          <CardContent className="p-4 space-y-4">
+        <Card className="border-none shadow-xl bg-card overflow-hidden">
+          <CardContent className="p-6 space-y-6">
             <div className="flex gap-4">
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-12 w-12 ring-2 ring-primary/10">
                 <AvatarImage src={userProfile?.avatarUrl || user?.photoURL || ''} />
-                <AvatarFallback>{userProfile?.name?.[0] || user?.displayName?.[0] || 'U'}</AvatarFallback>
+                <AvatarFallback className="font-bold">{userProfile?.name?.[0] || user?.displayName?.[0] || 'U'}</AvatarFallback>
               </Avatar>
               <div className="flex-1 space-y-4">
                 <Textarea 
-                    placeholder="Share an update or a memory with the community..." 
-                    className="min-h-[100px] border-none focus-visible:ring-0 bg-muted/20 resize-none p-4 text-sm rounded-xl"
+                    placeholder="Share a professional milestone or a campus memory..." 
+                    className="min-h-[120px] border-none focus-visible:ring-0 bg-muted/20 resize-none p-5 text-base rounded-[1.5rem] font-medium placeholder:text-muted-foreground/50"
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                 />
                 {imageUrl && (
-                  <div className="relative rounded-xl overflow-hidden group h-48">
+                  <div className="relative rounded-2xl overflow-hidden group h-64 border-4 border-muted/30">
                     <Image src={imageUrl} alt="Upload preview" fill className="object-cover" />
                     <Button 
                       variant="destructive" 
                       size="icon" 
-                      className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-3 right-3 h-10 w-10 rounded-full shadow-2xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100"
                       onClick={() => setImageUrl(null)}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-5 w-5" />
                     </Button>
                   </div>
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-between border-t pt-3">
+            <div className="flex items-center justify-between border-t border-muted/50 pt-4 px-2">
               <CldUploadWidget 
-                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
+                options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
                 onSuccess={(result: any) => setImageUrl(result.info.secure_url)}
               >
                 {({ open }) => (
-                  <Button variant="ghost" size="sm" className="text-muted-foreground gap-2" onClick={() => open()}>
-                    <ImageIcon className="h-4 w-4 text-primary" />
-                    <span className="text-xs">Add Photo</span>
+                  <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/5 gap-2 px-4 rounded-full font-bold" onClick={() => open()}>
+                    <ImageIcon className="h-5 w-5" />
+                    <span className="text-sm">Add Photo</span>
                   </Button>
                 )}
               </CldUploadWidget>
-              <Button size="sm" className="rounded-full px-6 font-bold" onClick={handlePost} disabled={!content.trim() && !imageUrl}>
-                Post <Send className="ml-2 h-4 w-4" />
+              <Button size="lg" className="rounded-full px-8 font-black shadow-lg shadow-primary/20" onClick={handlePost} disabled={isPosting || (!content.trim() && !imageUrl)}>
+                {isPosting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Send className="h-5 w-5 mr-2" />}
+                Share Update
               </Button>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-none shadow-sm bg-primary/5">
-          <CardContent className="p-8 text-center space-y-4">
-            <h3 className="font-bold text-lg">Join the Conversation</h3>
-            <p className="text-sm text-muted-foreground">Log in to share updates, memories, and connect with the Nexus community.</p>
-            <Link href="/login">
-              <Button className="rounded-full px-8 font-bold">Log In to Post</Button>
+        <Card className="border-none shadow-xl bg-primary/5 overflow-hidden">
+          <CardContent className="p-10 text-center space-y-6">
+            <div className="h-20 w-20 bg-white rounded-[2rem] shadow-xl flex items-center justify-center mx-auto">
+                <Rss className="h-10 w-10 text-primary" />
+            </div>
+            <div className="space-y-2">
+                <h3 className="font-black text-2xl tracking-tighter uppercase">Join the Conversation</h3>
+                <p className="text-muted-foreground text-sm font-medium leading-relaxed max-w-sm mx-auto">Log in to share your journey, post memories, and stay connected with fellow alumni.</p>
+            </div>
+            <Link href="/login" className="block">
+              <Button className="rounded-full px-10 h-14 font-black shadow-xl shadow-primary/20">Access Private Feed</Button>
             </Link>
           </CardContent>
         </Card>
       )}
 
-      <div className="space-y-6 pb-10">
+      <div className="space-y-8 pb-20">
         {posts?.map((post) => (
-          <Card key={post.id} className="overflow-hidden border-none shadow-sm">
-            <CardHeader className="p-4 flex flex-row items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={post.authorAvatarUrl} />
-                  <AvatarFallback>{post.authorName?.[0] || 'U'}</AvatarFallback>
-                </Avatar>
+          <Card key={post.id} className="overflow-hidden border-none shadow-lg bg-card transition-all hover:shadow-2xl">
+            <CardHeader className="p-5 flex flex-row items-center justify-between border-b border-muted/30">
+              <div className="flex items-center gap-4">
+                <Link href={`/users/${post.authorId}`}>
+                    <Avatar className="h-12 w-12 ring-2 ring-primary/5 ring-offset-2 hover:scale-105 transition-transform">
+                    <AvatarImage src={post.authorAvatarUrl} />
+                    <AvatarFallback className="font-bold bg-muted">{post.authorName?.[0] || 'U'}</AvatarFallback>
+                    </Avatar>
+                </Link>
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold">{post.authorName || 'Nexus Alumnus'}</span>
-                  <span className="text-[10px] text-muted-foreground">{post.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}</span>
+                  <span className="text-base font-black tracking-tight leading-none mb-1">{post.authorName || 'Nexus Alumnus'}</span>
+                  <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{post.createdAt?.toDate?.()?.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) || 'JUST NOW'}</span>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -145,36 +161,36 @@ export default function FeedPage() {
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-8 w-8 text-destructive" 
+                    className="h-9 w-9 text-destructive hover:bg-red-50" 
                     onClick={() => handleDeletePost(post.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="px-4 pb-4">
-                <p className="text-sm leading-relaxed">{post.content}</p>
+              <div className="p-6">
+                <p className="text-base leading-relaxed font-medium text-zinc-800">{post.content}</p>
               </div>
               {post.imageUrl && (
-                <div className="relative h-64 w-full bg-muted">
-                  <Image src={post.imageUrl} alt="Post media" fill className="object-cover" />
+                <div className="relative h-[400px] w-full bg-zinc-100 group overflow-hidden">
+                  <Image src={post.imageUrl} alt="Post media" fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                  </div>
               )}
             </CardContent>
-            <CardFooter className="p-2 border-t flex items-center justify-around">
-              <Button variant="ghost" size="sm" className="flex-1 text-xs gap-2 font-medium hover:text-primary transition-colors">
-                <ThumbsUp className="h-4 w-4" /> {post.likes}
+            <CardFooter className="p-3 border-t border-muted/30 flex items-center justify-around bg-zinc-50/50">
+              <Button variant="ghost" size="sm" className="flex-1 text-xs gap-2 font-black uppercase tracking-widest hover:text-primary transition-colors h-11 rounded-xl">
+                <ThumbsUp className="h-4 w-4" /> {post.likes} <span className="hidden sm:inline">Likes</span>
               </Button>
-              <Button variant="ghost" size="sm" className="flex-1 text-xs gap-2 font-medium hover:text-primary transition-colors">
-                 <MessageSquare className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="flex-1 text-xs gap-2 font-black uppercase tracking-widest hover:text-primary transition-colors h-11 rounded-xl">
+                 <MessageSquare className="h-4 w-4" /> <span className="hidden sm:inline">Comment</span>
               </Button>
-              <Button variant="ghost" size="sm" className="flex-1 text-xs gap-2 font-medium hover:text-primary transition-colors">
-                <Share2 className="h-4 w-4" /> Share
+              <Button variant="ghost" size="sm" className="flex-1 text-xs gap-2 font-black uppercase tracking-widest hover:text-primary transition-colors h-11 rounded-xl">
+                <Share2 className="h-4 w-4" /> <span className="hidden sm:inline">Share</span>
               </Button>
             </CardFooter>
           </Card>
