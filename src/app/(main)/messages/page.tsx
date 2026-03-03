@@ -346,7 +346,7 @@ export default function MessagesPage() {
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full h-full max-w-5xl">
                 <div className="relative rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800 shadow-2xl flex items-center justify-center group">
                    <Avatar className="h-32 w-32 border-4 border-primary/20 ring-8 ring-black/50 transition-transform group-hover:scale-110 duration-500">
-                      <AvatarImage src={authUser?.photoURL || ''} className="object-cover" />
+                      <AvatarImage src={authUser?.photoURL || ''} />
                       <AvatarFallback className="text-2xl font-black">YOU</AvatarFallback>
                    </Avatar>
                    <div className="absolute bottom-6 left-6 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full">
@@ -355,7 +355,7 @@ export default function MessagesPage() {
                 </div>
                 <div className="relative rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800 shadow-2xl flex items-center justify-center group">
                    <Avatar className="h-32 w-32 border-4 border-primary/20 ring-8 ring-black/50 transition-transform group-hover:scale-110 duration-500">
-                      <AvatarImage src={selectedUser?.avatarUrl} className="object-cover" />
+                      <AvatarImage src={selectedUser?.avatarUrl} />
                       <AvatarFallback className="text-2xl font-black">{getInitials(selectedUser?.name || 'U')}</AvatarFallback>
                    </Avatar>
                    <div className="absolute bottom-6 left-6 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full">
@@ -382,7 +382,7 @@ export default function MessagesPage() {
                 </button>
                 <div className="relative">
                   <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background">
-                    <AvatarImage src={selectedUser.avatarUrl} className="object-cover" />
+                    <AvatarImage src={selectedUser.avatarUrl} />
                     <AvatarFallback className="bg-zinc-800 text-zinc-400 font-black">{getInitials(selectedUser.name)}</AvatarFallback>
                   </Avatar>
                   {isChatMutual && isMicOn && <span className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.9)]"></span>}

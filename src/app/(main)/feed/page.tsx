@@ -105,11 +105,13 @@ export default function FeedPage() {
             </div>
             <div className="flex items-center justify-between border-t border-muted/50 pt-4 px-2">
               <CldUploadWidget 
-                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
+                uploadPreset="ml_default"
                 options={{ 
-                  cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dnex9nw0f",
+                  cloudName: "dnex9nw0f",
                   cropping: true,
-                  croppingAspectRatio: 16/9
+                  showSkipCropButton: false,
+                  croppingAspectRatio: 16/9,
+                  multiple: false
                 }}
                 onSuccess={(result: any) => setImageUrl(result.info.secure_url)}
               >

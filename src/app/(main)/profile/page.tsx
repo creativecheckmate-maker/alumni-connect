@@ -122,13 +122,15 @@ export default function ProfilePage() {
                     </Avatar>
                     
                     <CldUploadWidget
-                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
+                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
                       options={{ 
-                        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dnex9nw0f",
+                        cloudName: "dnex9nw0f",
                         cropping: true,
                         showSkipCropButton: false,
                         croppingAspectRatio: 1,
-                        multiple: false
+                        multiple: false,
+                        maxImageWidth: 1080,
+                        maxImageHeight: 1080
                       }}
                       onSuccess={handleUploadSuccess}
                     >
