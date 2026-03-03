@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -10,12 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { Search, Briefcase, Plus, MapPin, Building2, ExternalLink, Trash2, Edit, Loader2 } from 'lucide-react';
+import { Search, Briefcase, Plus, MapPin, Building2, ExternalLink, Trash2, Edit, Loader2, Upload } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc, setDoc } from 'firebase/firestore';
 import type { JobPosting, SiteContent } from '@/lib/definitions';
 import { ADMIN_EMAIL } from '@/lib/config';
 import Link from 'next/link';
+import { CldUploadWidget } from 'next-cloudinary';
 
 function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string, initialData: any, label: string }) {
   const { toast } = useToast();
@@ -57,10 +59,24 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
           {Object.keys(initialData).map((key) => (
             <div key={key} className="space-y-2">
               <Label className="capitalize">{key.replace(/([Z])/g, ' $1')}</Label>
-              <Textarea 
-                value={data[key]} 
-                onChange={(e) => setData({ ...data, [key]: e.target.value })} 
-              />
+              <div className="flex gap-2">
+                <Textarea 
+                  value={data[key]} 
+                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                />
+                {key.toLowerCase().includes('url') && (
+                  <CldUploadWidget 
+                    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                    onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
+                  >
+                    {({ open }) => (
+                      <Button variant="outline" size="icon" onClick={() => open()}>
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </CldUploadWidget>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -80,6 +96,7 @@ export default function JobsPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const isAdmin = authUser?.email === ADMIN_EMAIL;
 
   const introDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'jobs_intro'), [firestore]);
@@ -108,12 +125,13 @@ export default function JobsPage() {
       location: formData.get('location') as string,
       description: formData.get('description') as string,
       posterId: authUser.uid,
-      companyLogoUrl: `https://picsum.photos/seed/${Math.random()}/100/100`,
+      companyLogoUrl: logoUrl || `https://picsum.photos/seed/${Math.random()}/100/100`,
       createdAt: serverTimestamp(),
     };
 
     await addDoc(collection(firestore, 'jobPostings'), jobData);
 
+    setLogoUrl(null);
     toast({
       title: "Job Posted Successfully",
       description: "Your job posting has been submitted.",
@@ -178,6 +196,22 @@ export default function JobsPage() {
                   <div className="grid gap-2">
                     <Label htmlFor="description">Job Description</Label>
                     <Textarea id="description" name="description" placeholder="Key responsibilities..." required />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Company Logo</Label>
+                    <div className="flex gap-2">
+                      <Input value={logoUrl || ""} placeholder="Logo will be set after upload" readOnly />
+                      <CldUploadWidget 
+                        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                        onSuccess={(result: any) => setLogoUrl(result.info.secure_url)}
+                      >
+                        {({ open }) => (
+                          <Button type="button" variant="outline" onClick={() => open()}>
+                            <Upload className="h-4 w-4 mr-2" /> Upload
+                          </Button>
+                        )}
+                      </CldUploadWidget>
+                    </div>
                   </div>
                   <DialogFooter className="pt-4">
                     <Button type="submit" className="w-full">Submit</Button>

@@ -1,10 +1,11 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Newspaper, ArrowRight, Calendar, Edit, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Newspaper, ArrowRight, Calendar, Edit, Loader2, Plus, Trash2, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { ADMIN_EMAIL } from '@/lib/config';
@@ -16,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { SiteContent } from '@/lib/definitions';
+import { CldUploadWidget } from 'next-cloudinary';
 
 function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string, initialData: any, label: string }) {
   const { toast } = useToast();
@@ -57,10 +59,31 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
           {Object.keys(initialData).map((key) => (
             <div key={key} className="space-y-2">
               <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
-              <Textarea 
-                value={data[key]} 
-                onChange={(e) => setData({ ...data, [key]: e.target.value })} 
-              />
+              <div className="flex gap-2">
+                {key.toLowerCase().includes('description') || key.toLowerCase().includes('content') ? (
+                  <Textarea 
+                    value={data[key]} 
+                    onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                  />
+                ) : (
+                  <Input 
+                    value={data[key]} 
+                    onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                  />
+                )}
+                {key.toLowerCase().includes('url') && (
+                  <CldUploadWidget 
+                    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                    onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
+                  >
+                    {({ open }) => (
+                      <Button variant="outline" size="icon" onClick={() => open()}>
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </CldUploadWidget>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -83,6 +106,7 @@ export default function NewsPage() {
 
   const [isPosting, setIsPosting] = useState(false);
   const [open, setOpen] = useState(false);
+  const [newsImageUrl, setNewsImageUrl] = useState<string | null>(null);
 
   const introDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'news_intro'), [firestore]);
   const { data: introContent } = useDoc<SiteContent>(introDocRef);
@@ -115,11 +139,12 @@ export default function NewsPage() {
           category: formData.get('category'),
           description: formData.get('description'),
           date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          imageUrl: `https://picsum.photos/seed/${Math.random()}/800/400`,
+          imageUrl: newsImageUrl || `https://picsum.photos/seed/${Math.random()}/800/400`,
         },
         updatedAt: serverTimestamp(),
       });
       toast({ title: "News Published", description: "The article is now live." });
+      setNewsImageUrl(null);
       setOpen(false);
     } catch (e) {
       toast({ variant: 'destructive', title: "Error", description: "Failed to post news." });
@@ -164,6 +189,22 @@ export default function NewsPage() {
                     <div className="space-y-2">
                       <Label>Description</Label>
                       <Textarea name="description" placeholder="Summary of the article..." required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Thumbnail Image</Label>
+                      <div className="flex gap-2">
+                        <Input value={newsImageUrl || ""} placeholder="Image URL (will be set after upload)" readOnly />
+                        <CldUploadWidget 
+                          uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                          onSuccess={(result: any) => setNewsImageUrl(result.info.secure_url)}
+                        >
+                          {({ open }) => (
+                            <Button type="button" variant="outline" onClick={() => open()}>
+                              <Upload className="h-4 w-4 mr-2" /> Upload
+                            </Button>
+                          )}
+                        </CldUploadWidget>
+                      </div>
                     </div>
                     <DialogFooter>
                       <Button type="submit" disabled={isPosting}>

@@ -7,7 +7,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useFirebase, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { ArrowRight, Star, GraduationCap, Briefcase, Users, Globe, Trophy, Edit, Loader2, Image as ImageIcon } from 'lucide-react';
+import { ArrowRight, Star, GraduationCap, Briefcase, Users, Globe, Trophy, Edit, Loader2, Image as ImageIcon, Upload } from 'lucide-react';
 import { collection, query, where, limit, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { User, SiteContent } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { CldUploadWidget } from 'next-cloudinary';
 
 const getPlaceholderImage = (id: string) => {
     const img = PlaceHolderImages.find(p => p.id === id);
@@ -157,7 +158,20 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
                       value={data[key]} 
                       onChange={(e) => setData({ ...data, [key]: e.target.value })} 
                     />
-                    {key.toLowerCase().includes('url') && <ImageIcon className="h-4 w-4 text-muted-foreground self-center opacity-50" />}
+                    {key.toLowerCase().includes('url') ? (
+                      <CldUploadWidget 
+                        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                        onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
+                      >
+                        {({ open }) => (
+                          <Button variant="outline" size="icon" onClick={() => open()}>
+                            <Upload className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </CldUploadWidget>
+                    ) : (
+                      <ImageIcon className="h-4 w-4 text-muted-foreground self-center opacity-50" />
+                    )}
                   </div>
                 )}
               </div>

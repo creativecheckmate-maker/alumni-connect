@@ -1,8 +1,9 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { GraduationCap, Target, Users, Heart, Edit, Loader2, Image as ImageIcon } from 'lucide-react';
+import { GraduationCap, Target, Users, Heart, Edit, Loader2, Image as ImageIcon, Upload } from 'lucide-react';
 import { useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -15,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { CldUploadWidget } from 'next-cloudinary';
 
 function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { sectionId: string, initialData: any, label: string, overlay?: boolean }) {
   const { toast } = useToast();
@@ -62,10 +64,24 @@ function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { s
                   onChange={(e) => setData({ ...data, [key]: e.target.value })} 
                 />
               ) : (
-                <Input 
-                  value={data[key]} 
-                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
-                />
+                <div className="flex gap-2">
+                  <Input 
+                    value={data[key]} 
+                    onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                  />
+                  {key.toLowerCase().includes('url') && (
+                    <CldUploadWidget 
+                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                      onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
+                    >
+                      {({ open }) => (
+                        <Button variant="outline" size="icon" onClick={() => open()}>
+                          <Upload className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </CldUploadWidget>
+                  )}
+                </div>
               )}
             </div>
           ))}

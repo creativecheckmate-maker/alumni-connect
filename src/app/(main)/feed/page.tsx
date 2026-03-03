@@ -6,7 +6,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2 } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2, X } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import type { FeedPost, User } from '@/lib/definitions';
@@ -15,12 +15,14 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { CldUploadWidget } from 'next-cloudinary';
 
 export default function FeedPage() {
   const { user, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [content, setContent] = useState('');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   // Fetch the current user's full profile to get the real avatarUrl
@@ -38,17 +40,19 @@ export default function FeedPage() {
   const { data: posts } = useCollection<FeedPost>(feedQuery);
 
   const handlePost = async () => {
-    if (!firestore || !user || !content.trim()) return;
+    if (!firestore || !user || (!content.trim() && !imageUrl)) return;
     
     await addDoc(collection(firestore, 'feed'), {
       authorId: user.uid,
       authorName: userProfile?.name || user.displayName || 'Nexus Alumnus',
       authorAvatarUrl: userProfile?.avatarUrl || user.photoURL || '',
       content,
+      imageUrl: imageUrl || null,
       likes: 0,
       createdAt: serverTimestamp(),
     });
     setContent('');
+    setImageUrl(null);
     toast({ title: "Post Shared", description: "Your update has been shared with the community." });
   };
 
@@ -70,19 +74,41 @@ export default function FeedPage() {
                 <AvatarImage src={userProfile?.avatarUrl || user?.photoURL || ''} />
                 <AvatarFallback>{userProfile?.name?.[0] || user?.displayName?.[0] || 'U'}</AvatarFallback>
               </Avatar>
-              <Textarea 
-                  placeholder="Share an update or a memory with the community..." 
-                  className="min-h-[100px] border-none focus-visible:ring-0 bg-muted/20 resize-none p-4 text-sm rounded-xl"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-              />
+              <div className="flex-1 space-y-4">
+                <Textarea 
+                    placeholder="Share an update or a memory with the community..." 
+                    className="min-h-[100px] border-none focus-visible:ring-0 bg-muted/20 resize-none p-4 text-sm rounded-xl"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                />
+                {imageUrl && (
+                  <div className="relative rounded-xl overflow-hidden group h-48">
+                    <Image src={imageUrl} alt="Upload preview" fill className="object-cover" />
+                    <Button 
+                      variant="destructive" 
+                      size="icon" 
+                      className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => setImageUrl(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex items-center justify-between border-t pt-3">
-              <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
-                <ImageIcon className="h-4 w-4 text-primary" />
-                <span className="text-xs">Add Photo</span>
-              </Button>
-              <Button size="sm" className="rounded-full px-6 font-bold" onClick={handlePost}>
+              <CldUploadWidget 
+                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                onSuccess={(result: any) => setImageUrl(result.info.secure_url)}
+              >
+                {({ open }) => (
+                  <Button variant="ghost" size="sm" className="text-muted-foreground gap-2" onClick={() => open()}>
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    <span className="text-xs">Add Photo</span>
+                  </Button>
+                )}
+              </CldUploadWidget>
+              <Button size="sm" className="rounded-full px-6 font-bold" onClick={handlePost} disabled={!content.trim() && !imageUrl}>
                 Post <Send className="ml-2 h-4 w-4" />
               </Button>
             </div>

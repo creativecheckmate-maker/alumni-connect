@@ -16,8 +16,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Trash2, Loader2, Calendar as CalendarIcon, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { CldUploadWidget } from 'next-cloudinary';
 
 export default function EventsPage() {
   const { user: authUser, isEditMode } = useFirebase();
@@ -27,6 +28,7 @@ export default function EventsPage() {
   const isAdmin = authUser?.email === ADMIN_EMAIL;
   const [isPosting, setIsPosting] = useState(false);
   const [open, setOpen] = useState(false);
+  const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
 
   const eventsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -47,10 +49,11 @@ export default function EventsPage() {
         date: formData.get('date'),
         description: formData.get('description'),
         organizerId: authUser.uid,
-        imageUrl: formData.get('imageUrl') || `https://picsum.photos/seed/${Math.random()}/800/400`,
+        imageUrl: eventImageUrl || `https://picsum.photos/seed/${Math.random()}/800/400`,
         createdAt: serverTimestamp(),
       });
       toast({ title: "Event Created", description: "The event has been added to the calendar." });
+      setEventImageUrl(null);
       setOpen(false);
     } catch (e) {
       toast({ variant: 'destructive', title: "Error", description: "Failed to create event." });
@@ -97,8 +100,20 @@ export default function EventsPage() {
                   <Input name="date" placeholder="e.g. August 12, 2024" required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Image URL (Optional)</Label>
-                  <Input name="imageUrl" placeholder="https://..." />
+                  <Label>Event Image</Label>
+                  <div className="flex gap-2">
+                    <Input value={eventImageUrl || ""} placeholder="Image URL (set after upload)" readOnly />
+                    <CldUploadWidget 
+                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                      onSuccess={(result: any) => setEventImageUrl(result.info.secure_url)}
+                    >
+                      {({ open }) => (
+                        <Button type="button" variant="outline" onClick={() => open()}>
+                          <Upload className="h-4 w-4 mr-2" /> Upload
+                        </Button>
+                      )}
+                    </CldUploadWidget>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Description</Label>
