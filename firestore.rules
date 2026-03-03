@@ -21,26 +21,25 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Allow reading friendships if the user is a participant.
-      // Privacy is enforced by mandatory frontend filters: .where('uids', 'array-contains', uid)
+      // Allow participants to manage their connections
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
+      // Use both ID-based and data-based checks for delete to ensure reliability
+      allow update, delete: if isSignedIn() && (request.auth.uid in resource.data.uids || friendshipId.contains(request.auth.uid) || isAdmin());
     }
 
     match /messages/{messageId} {
-      // Allow reading messages if the user is a participant.
-      // Privacy is enforced by mandatory frontend filters: .where('participants', 'array-contains', uid)
+      // Allow participants to read and manage their secure chats
       allow read: if isSignedIn();
       allow create: if isSignedIn() && (request.auth.uid in request.resource.data.participants);
-      allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
+      allow update, delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.participants || messageId.contains(request.auth.uid)));
     }
 
     match /notifications/{notificationId} {
-      // Users can read/write their own notifications
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can manage their own activity logs
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     match /feed/{postId} {

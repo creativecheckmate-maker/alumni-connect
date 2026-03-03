@@ -45,7 +45,7 @@ export default function ProfilePage() {
       setNewAvatarUrl(url);
       toast({
         title: "Photo Cropped & Uploaded",
-        description: "Click 'Save & Sync' to update your professional identity.",
+        description: "Click 'Save & Sync' to finalize your look.",
       });
     }
   };
@@ -60,8 +60,8 @@ export default function ProfilePage() {
       if (!moderation.isSafe) {
         toast({
           variant: 'destructive',
-          title: "Content Policy Alert",
-          description: moderation.reason || "NSFW imagery is strictly prohibited.",
+          title: "Policy Violation",
+          description: moderation.reason || "NSFW imagery is not allowed.",
         });
         setNewAvatarUrl(null);
         setIsSavingAvatar(false);
@@ -75,7 +75,7 @@ export default function ProfilePage() {
       
       toast({
         title: "Profile Synchronized",
-        description: "Your new avatar is now visible across the global network.",
+        description: "Your new avatar is now live across the network.",
       });
       setNewAvatarUrl(null);
     } catch (e) {
@@ -119,7 +119,7 @@ export default function ProfilePage() {
                     <DialogHeader>
                         <DialogTitle>Update Profile</DialogTitle>
                         <DialogDescription>
-                            Refine your academic and professional data. AI-moderation is active for all fields.
+                            Refine your academic and professional data.
                         </DialogDescription>
                     </DialogHeader>
                     <EditProfileForm currentUser={currentUser} />
@@ -145,6 +145,9 @@ export default function ProfilePage() {
                         cropping: true,
                         showSkipCropButton: false,
                         croppingAspectRatio: 1,
+                        croppingDefaultSelection: 'transform',
+                        croppingShowDimensions: true,
+                        croppingShowBackButton: true,
                         multiple: false,
                         maxImageWidth: 1080,
                         maxImageHeight: 1080,
@@ -170,7 +173,7 @@ export default function ProfilePage() {
                     <div className="flex flex-col gap-3 items-center animate-in zoom-in-95 duration-500 bg-primary/5 p-6 rounded-[2rem] border-2 border-primary/10 shadow-lg">
                         <div className="flex items-center gap-2 mb-1">
                             <ShieldCheck className="h-4 w-4 text-green-600" />
-                            <p className="text-[10px] font-black uppercase text-green-600 tracking-widest">Image Scanned & Verified</p>
+                            <p className="text-[10px] font-black uppercase text-green-600 tracking-widest">Image Cropped & Verified</p>
                         </div>
                         <div className="flex gap-2">
                             <Button 
@@ -179,7 +182,7 @@ export default function ProfilePage() {
                                 className="bg-green-600 hover:bg-green-700 shadow-xl font-black rounded-xl px-10 h-12 gap-2"
                             >
                                 {isSavingAvatar ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
-                                Save & Sync Globally
+                                Save Profile Photo
                             </Button>
                             <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl text-destructive border-destructive/20 hover:bg-red-50" onClick={() => setNewAvatarUrl(null)}>
                                 <X className="h-5 w-5" />

@@ -51,7 +51,7 @@ export default function EventsPage() {
         imageUrl: eventImageUrl || `https://picsum.photos/seed/${Math.random()}/800/400`,
         createdAt: serverTimestamp(),
       });
-      toast({ title: "Event Published", description: "The event has been synchronized globally." });
+      toast({ title: "Published", description: "The event is now live." });
       setEventImageUrl(null);
       setOpen(false);
     } catch (e) {
@@ -64,15 +64,7 @@ export default function EventsPage() {
   const handleDeleteEvent = async (id: string) => {
     if (!firestore) return;
     await deleteDoc(doc(firestore, 'events', id));
-    toast({ title: "Event Removed", description: "The listing has been deleted." });
-  };
-
-  const handleRSVP = (eventName: string) => {
-    if (!authUser) {
-      router.push('/login');
-      return;
-    }
-    toast({ title: "RSVP Confirmed", description: `Registration for ${eventName} is successful.` });
+    toast({ title: "Event Removed", description: "Listing has been deleted." });
   };
 
   return (
@@ -87,7 +79,7 @@ export default function EventsPage() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Event Orchestrator</DialogTitle>
+                <DialogTitle>Event Builder</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAddEvent} className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -95,11 +87,11 @@ export default function EventsPage() {
                   <Input name="name" placeholder="e.g. Annual Homecoming" required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Target Date</Label>
+                  <Label>Date</Label>
                   <Input name="date" placeholder="e.g. August 12, 2024" required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Event Banner (Landscape)</Label>
+                  <Label>Event Banner</Label>
                   <div className="flex gap-2">
                     <Input value={eventImageUrl || ""} placeholder="No image selected" readOnly className="bg-muted/50" />
                     <CldUploadWidget 
@@ -109,6 +101,8 @@ export default function EventsPage() {
                         cropping: true, 
                         showSkipCropButton: false,
                         croppingAspectRatio: 1.77,
+                        croppingDefaultSelection: 'transform',
+                        croppingShowBackButton: true,
                         multiple: false
                       }}
                       onSuccess={(result: any) => setEventImageUrl(result.info.secure_url)}
@@ -122,8 +116,8 @@ export default function EventsPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Detailed Description</Label>
-                  <Textarea name="description" placeholder="Provide agenda and location details..." required className="min-h-[100px]" />
+                  <Label>Description</Label>
+                  <Textarea name="description" placeholder="Agenda and location details..." required className="min-h-[100px]" />
                 </div>
                 <DialogFooter className="pt-4">
                   <Button type="submit" disabled={isPosting} className="w-full h-12 font-bold">
@@ -145,14 +139,14 @@ export default function EventsPage() {
                 </div>
             ) : events && events.length > 0 ? (
                 events.map((event) => (
-                    <Card key={event.id} className="overflow-hidden border-none shadow-lg group hover:shadow-xl transition-shadow bg-card">
+                    <Card key={event.id} className="overflow-hidden border-none shadow-lg group bg-card">
                         <div className="grid md:grid-cols-5">
                             <div className="md:col-span-2 relative h-48 md:h-full overflow-hidden">
                                 <Image 
                                     src={event.imageUrl || `https://picsum.photos/seed/${event.id}/800/400`} 
                                     alt={event.name} 
                                     fill
-                                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                                    className="object-cover"
                                 />
                             </div>
                             <div className="md:col-span-3 p-2">
@@ -168,7 +162,7 @@ export default function EventsPage() {
                                             <Button 
                                                 variant="ghost" 
                                                 size="icon" 
-                                                className="text-destructive h-8 w-8 hover:bg-red-50" 
+                                                className="text-destructive h-8 w-8" 
                                                 onClick={() => handleDeleteEvent(event.id)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -180,7 +174,7 @@ export default function EventsPage() {
                                     <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed font-medium">{event.description}</p>
                                 </CardContent>
                                 <CardFooter className="pt-0">
-                                    <Button variant="secondary" className="w-full md:w-auto font-black px-8 h-11 rounded-xl" onClick={() => handleRSVP(event.name)}>Confirm Attendance</Button>
+                                    <Button variant="secondary" className="w-full md:w-auto font-black px-8 h-11 rounded-xl">Confirm Attendance</Button>
                                 </CardFooter>
                             </div>
                         </div>
@@ -188,7 +182,7 @@ export default function EventsPage() {
                 ))
             ) : (
                 <div className="text-center py-20 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
-                    <p className="text-muted-foreground font-bold">No active events in the queue.</p>
+                    <p className="text-muted-foreground font-bold">No active events.</p>
                 </div>
             )}
         </div>

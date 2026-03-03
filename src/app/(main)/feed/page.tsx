@@ -51,7 +51,7 @@ export default function FeedPage() {
         toast({
           variant: 'destructive',
           title: "Content Blocked",
-          description: moderation.reason || "Your post violates our professional community standards.",
+          description: moderation.reason || "Post violates professional community standards.",
         });
         setIsPosting(false);
         return;
@@ -68,7 +68,7 @@ export default function FeedPage() {
       });
       setContent('');
       setImageUrl(null);
-      toast({ title: "Update Published", description: "Your memory has been shared with the network." });
+      toast({ title: "Published", description: "Your update has been shared." });
     } catch (e) {
       toast({ variant: 'destructive', title: "Error", description: "Failed to publish post." });
     } finally {
@@ -84,7 +84,7 @@ export default function FeedPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <PageHeader title="Community Feed" description="Real-time updates and memories from the Nexus global network." />
+      <PageHeader title="Community Feed" description="Real-time updates and memories from the Nexus network." />
 
       {user ? (
         <Card className="border-none shadow-xl bg-card overflow-hidden">
@@ -100,7 +100,7 @@ export default function FeedPage() {
                     <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">AI Moderated Feed</span>
                 </div>
                 <Textarea 
-                    placeholder="Share a professional milestone or a campus memory..." 
+                    placeholder="Share a professional milestone..." 
                     className="min-h-[120px] border-none focus-visible:ring-0 bg-muted/20 resize-none p-5 text-base rounded-[1.5rem] font-medium placeholder:text-muted-foreground/50"
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
@@ -111,7 +111,7 @@ export default function FeedPage() {
                     <Button 
                       variant="destructive" 
                       size="icon" 
-                      className="absolute top-3 right-3 h-10 w-10 rounded-full shadow-2xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100"
+                      className="absolute top-3 right-3 h-10 w-10 rounded-full shadow-2xl"
                       onClick={() => setImageUrl(null)}
                     >
                       <X className="h-5 w-5" />
@@ -127,6 +127,7 @@ export default function FeedPage() {
                   cloudName: "dnex9nw0f",
                   cropping: true,
                   showSkipCropButton: false,
+                  croppingShowBackButton: true,
                   multiple: false,
                   sources: ['local', 'url', 'camera'],
                   clientAllowedFormats: ['jpg', 'png', 'jpeg', 'webp']
@@ -136,7 +137,7 @@ export default function FeedPage() {
                 {({ open }) => (
                   <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/5 gap-2 px-4 rounded-full font-bold transition-all active:scale-95" onClick={() => open()}>
                     <Scissors className="h-5 w-5" />
-                    <span className="text-sm">Crop & Adjust Image</span>
+                    <span className="text-sm">Adjust Photo</span>
                   </Button>
                 )}
               </CldUploadWidget>
@@ -155,7 +156,7 @@ export default function FeedPage() {
             </div>
             <div className="space-y-2">
                 <h3 className="font-black text-2xl tracking-tighter uppercase">Join the Conversation</h3>
-                <p className="text-muted-foreground text-sm font-medium leading-relaxed max-sm mx-auto">Log in to share your journey, post memories, and stay connected with fellow alumni.</p>
+                <p className="text-muted-foreground text-sm font-medium leading-relaxed max-sm mx-auto">Log in to share your journey and stay connected with fellow alumni.</p>
             </div>
             <Link href="/login" className="block">
               <Button className="rounded-full px-10 h-14 font-black shadow-xl shadow-primary/20">Access Private Feed</Button>
