@@ -300,12 +300,12 @@ export default function MessagesPage() {
                     </div>
                     
                     {!isMutual && (
-                      <div className="flex flex-col gap-1 shrink-0 relative z-10">
+                      <div className="flex flex-col gap-1 shrink-0">
                         {isRequestedByMe ? (
                           <Button 
                             size="sm" 
                             variant="destructive" 
-                            className="px-3 rounded-full font-bold text-[9px] h-7 gap-1"
+                            className="px-3 rounded-full font-bold text-[9px] h-7 gap-1 z-10"
                             onClick={(e) => { e.stopPropagation(); handleCancelRequest(user.id); }}
                           >
                             <XCircle className="h-3 w-3" /> Cancel
@@ -314,7 +314,7 @@ export default function MessagesPage() {
                           <Button 
                             size="sm" 
                             variant="default" 
-                            className="px-3 rounded-full font-bold text-[9px] h-7"
+                            className="px-3 rounded-full font-bold text-[9px] h-7 z-10"
                             onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id, user.name); }}
                           >
                             {hasRequestedMe ? "Follow Back" : "Connect"}

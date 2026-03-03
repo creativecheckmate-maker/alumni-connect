@@ -43,7 +43,7 @@ export default function ProfilePage() {
       setNewAvatarUrl(result.info.secure_url);
       toast({
         title: "Image Uploaded & Cropped",
-        description: "Preview your new photo below and click 'Save' to update your profile across the network.",
+        description: "Preview your new photo below and click 'Save & Update' to synchronize it globally.",
       });
     }
   };

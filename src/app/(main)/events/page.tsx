@@ -103,8 +103,8 @@ export default function EventsPage() {
                   <div className="flex gap-2">
                     <Input value={eventImageUrl || ""} placeholder="Image URL (set after upload)" readOnly />
                     <CldUploadWidget 
-                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
-                      options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dnex9nw0f", cropping: true }}
+                      uploadPreset="ml_default"
+                      options={{ cloudName: "dnex9nw0f", cropping: true, multiple: false }}
                       onSuccess={(result: any) => setEventImageUrl(result.info.secure_url)}
                     >
                       {({ open }) => (
