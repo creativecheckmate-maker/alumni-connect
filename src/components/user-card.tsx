@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { User, Friendship } from '@/lib/definitions';
@@ -21,8 +20,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Edit, Trash2, GraduationCap, Building2, MapPin, MessageSquare, UserPlus, UserCheck, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useMemoFirebase, useCollection, addDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser, addDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 const getInitials = (name: string) => {
@@ -35,22 +34,16 @@ interface UserCardProps {
     user: User;
     isAdmin?: boolean;
     handleDeleteUser?: (userId: string) => void;
+    friendships: Friendship[];
 }
 
-export const UserCard = ({ user, isAdmin, handleDeleteUser }: UserCardProps) => {
+export const UserCard = ({ user, isAdmin, handleDeleteUser, friendships }: UserCardProps) => {
   const { toast } = useToast();
   const { user: authUser } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
-  const friendshipQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser?.uid) return null;
-    return query(collection(firestore, 'friendships'), where('uids', 'array-contains', authUser.uid));
-  }, [firestore, authUser?.uid]);
-
-  const { data: friendships } = useCollection<Friendship>(friendshipQuery);
-
-  const friendship = friendships?.find(f => f.uids.includes(user.id));
+  const friendship = friendships.find(f => f.uids.includes(user.id));
   const isMutual = friendship?.status === 'mutual';
   const isRequestedByMe = friendship && friendship.followedBy.includes(authUser?.uid || '') && !isMutual;
   const hasRequestedMe = friendship && !friendship.followedBy.includes(authUser?.uid || '') && !isMutual;

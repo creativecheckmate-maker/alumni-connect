@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card } from '@/components/ui/card';
@@ -278,55 +277,50 @@ export default function MessagesPage() {
                 const hasRequestedMe = friendship && !friendship.followedBy.includes(authUser?.uid || '') && !isMutual;
 
                 return (
-                  <div key={user.id} className="group relative">
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      className={`relative w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer z-0 ${
-                        activeChat === user.id ? 'bg-primary/10 text-primary shadow-inner' : 'hover:bg-muted/50'
-                      }`}
-                      onClick={() => setActiveChat(user.id)}
-                      onKeyDown={(e) => e.key === 'Enter' && setActiveChat(user.id)}
-                    >
-                      <div className="relative">
-                        <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background shadow-md">
-                          <AvatarImage src={user.avatarUrl} />
-                          <AvatarFallback className="font-bold bg-muted">{getInitials(user.name)}</AvatarFallback>
-                        </Avatar>
-                        {isMutual && <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></span>}
-                      </div>
-                      <div className="flex-1 text-left min-w-0">
-                        <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{user.name}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest truncate font-medium">
-                          {isMutual ? 'Connected' : (isRequestedByMe ? 'Requested' : (hasRequestedMe ? 'Accept Follow Back' : 'Alumni'))}
-                        </p>
-                      </div>
-                      
-                      {/* Action Layer - Isolated from item click */}
-                      {!isMutual && (
-                        <div className="flex flex-col gap-1 relative z-10" onClick={(e) => e.stopPropagation()}>
-                          {isRequestedByMe ? (
-                            <Button 
-                              size="sm" 
-                              variant="destructive" 
-                              className="px-3 rounded-full shrink-0 font-bold text-[9px] h-7 gap-1"
-                              onClick={() => handleCancelRequest(user.id)}
-                            >
-                              <XCircle className="h-3 w-3" /> Cancel
-                            </Button>
-                          ) : (
-                            <Button 
-                              size="sm" 
-                              variant="default" 
-                              className="px-3 rounded-full shrink-0 font-bold text-[9px] h-7"
-                              onClick={() => handleFollowUser(user.id, user.name)}
-                            >
-                              {hasRequestedMe ? "Follow Back" : "Connect"}
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                  <div 
+                    key={user.id} 
+                    className={`relative w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer group ${
+                      activeChat === user.id ? 'bg-primary/10 text-primary shadow-inner' : 'hover:bg-muted/50'
+                    }`}
+                    onClick={() => setActiveChat(user.id)}
+                  >
+                    <div className="relative">
+                      <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background shadow-md">
+                        <AvatarImage src={user.avatarUrl} />
+                        <AvatarFallback className="font-bold bg-muted">{getInitials(user.name)}</AvatarFallback>
+                      </Avatar>
+                      {isMutual && <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></span>}
                     </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{user.name}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest truncate font-medium">
+                        {isMutual ? 'Connected' : (isRequestedByMe ? 'Requested' : (hasRequestedMe ? 'Accept Follow Back' : 'Alumni'))}
+                      </p>
+                    </div>
+                    
+                    {!isMutual && (
+                      <div className="flex flex-col gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        {isRequestedByMe ? (
+                          <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            className="px-3 rounded-full font-bold text-[9px] h-7 gap-1"
+                            onClick={() => handleCancelRequest(user.id)}
+                          >
+                            <XCircle className="h-3 w-3" /> Cancel
+                          </Button>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="default" 
+                            className="px-3 rounded-full font-bold text-[9px] h-7"
+                            onClick={() => handleFollowUser(user.id, user.name)}
+                          >
+                            {hasRequestedMe ? "Follow Back" : "Connect"}
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })

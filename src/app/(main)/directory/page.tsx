@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'; 
-import type { User } from '@/lib/definitions';
+import type { User, Friendship } from '@/lib/definitions';
 import { UserCard } from '@/components/user-card';
 import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, deleteDoc, query, where } from 'firebase/firestore';
@@ -22,8 +21,6 @@ export default function DirectoryPage() {
         if (!firestore) return null;
         const baseQuery = collection(firestore, 'users');
         
-        // If administrator, show everything.
-        // Otherwise, strictly filter by visibility to comply with security rules for guest/regular users.
         if (isAdmin) {
             return baseQuery;
         }
@@ -33,6 +30,14 @@ export default function DirectoryPage() {
   );
   
   const { data: users, isLoading } = useCollection<User>(usersCollectionRef);
+
+  // Optimization: Fetch all friendships for the current user once
+  const friendshipQuery = useMemoFirebase(() => {
+    if (!firestore || !authUser?.uid) return null;
+    return query(collection(firestore, 'friendships'), where('uids', 'array-contains', authUser.uid));
+  }, [firestore, authUser?.uid]);
+
+  const { data: friendships } = useCollection<Friendship>(friendshipQuery);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
@@ -70,7 +75,13 @@ export default function DirectoryPage() {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {usersToRender.map((user) => (
-          <UserCard key={user.id} user={user} isAdmin={isAdmin} handleDeleteUser={handleDeleteUser} />
+          <UserCard 
+            key={user.id} 
+            user={user} 
+            isAdmin={isAdmin} 
+            handleDeleteUser={handleDeleteUser} 
+            friendships={friendships || []}
+          />
         ))}
       </div>
     );
