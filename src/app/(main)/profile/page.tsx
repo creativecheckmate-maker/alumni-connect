@@ -41,7 +41,7 @@ export default function ProfilePage() {
   const { data: currentUser, isLoading: isUserLoading } = useDoc<User>(userDocRef);
 
   const handleUploadSuccess = (result: any) => {
-    if (result.event === 'success' && result.info?.secure_url) {
+    if (result.info?.secure_url) {
       setNewAvatarUrl(result.info.secure_url);
       toast({
         title: "Image Uploaded",
@@ -121,7 +121,7 @@ export default function ProfilePage() {
                     
                     <CldUploadWidget
                       uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
-                      options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dnex9nw0f" }}
+                      options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
                       onSuccess={handleUploadSuccess}
                     >
                       {({ open }) => (

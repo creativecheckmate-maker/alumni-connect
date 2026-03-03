@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card } from '@/components/ui/card';
@@ -27,7 +28,8 @@ import {
   XCircle,
   Handshake,
   Lock,
-  UserPlus
+  UserPlus,
+  UserCheck
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { 
@@ -305,7 +307,7 @@ export default function MessagesPage() {
                             size="sm" 
                             variant="destructive" 
                             className="px-3 rounded-full font-bold text-[9px] h-7 gap-1"
-                            onClick={() => handleCancelRequest(user.id)}
+                            onClick={(e) => { e.stopPropagation(); handleCancelRequest(user.id); }}
                           >
                             <XCircle className="h-3 w-3" /> Cancel
                           </Button>
@@ -314,7 +316,7 @@ export default function MessagesPage() {
                             size="sm" 
                             variant="default" 
                             className="px-3 rounded-full font-bold text-[9px] h-7"
-                            onClick={() => handleFollowUser(user.id, user.name)}
+                            onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id, user.name); }}
                           >
                             {hasRequestedMe ? "Follow Back" : "Connect"}
                           </Button>
@@ -376,7 +378,7 @@ export default function MessagesPage() {
             {/* Header */}
             <div className={`p-4 border-b flex items-center justify-between shadow-lg z-10 ${isChatMutual ? 'bg-zinc-900 text-white' : 'bg-muted/30'}`}>
               <div className="flex items-center gap-4">
-                <button onClick={() => setActiveChat(null)} className="md:hidden p-2 hover:bg-muted rounded-full transition-colors">
+                <button onClick={() => setActiveChat(null)} className="md:hidden p-2 hover:bg-muted rounded-full transition-colors text-foreground">
                   <ArrowLeft className="h-6 w-6" />
                 </button>
                 <div className="relative">
@@ -499,7 +501,7 @@ export default function MessagesPage() {
                       }
                       return (
                         <Button className="w-full h-12 rounded-xl gap-2 font-bold" onClick={() => handleFollowUser(selectedUser.id, selectedUser.name)}>
-                          {hasRequestedMe ? <><UserPlus className="h-4 w-4" /> Accept & Follow Back</> : <><UserPlus className="h-4 w-4" /> Send Connection Request</>}
+                          {hasRequestedMe ? <><UserCheck className="h-4 w-4" /> Accept & Follow Back</> : <><UserPlus className="h-4 w-4" /> Send Connection Request</>}
                         </Button>
                       );
                     })()}
@@ -514,7 +516,7 @@ export default function MessagesPage() {
                 <form className="flex gap-3 max-w-4xl mx-auto" onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
                   <Input 
                     placeholder={`Type a message to ${selectedUser.name.split(' ')[0]}...`} 
-                    className="bg-zinc-100 border-none shadow-none rounded-[1.25rem] h-12 px-6 text-sm font-medium focus-visible:ring-2 focus-visible:ring-zinc-900/5 transition-all"
+                    className="bg-zinc-100 border-none shadow-none rounded-[1.25rem] h-12 px-6 text-sm font-medium focus-visible:ring-2 focus-visible:ring-zinc-900/5 transition-all text-foreground"
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                   />

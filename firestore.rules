@@ -14,7 +14,6 @@ service cloud.firestore {
       );
     }
 
-    // Allow authenticated users to read and list user profiles.
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
@@ -23,14 +22,12 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Optimized list permission: allows the backend to trust client-side filters
+      // Optimized for filtered queries: allow list for all signed in, get/write for participants
       allow list: if isSignedIn();
-      allow get: if isSignedIn();
-      allow write: if isSignedIn();
+      allow get, write: if isSignedIn();
     }
 
     match /messages/{messageId} {
-      // Optimized list permission: allows listing if signed in, but restricting document retrieval
       allow list: if isSignedIn();
       allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn();
@@ -38,7 +35,6 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      // Optimized list permission for notifications activity feed
       allow list: if isSignedIn();
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn();
