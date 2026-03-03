@@ -267,7 +267,7 @@ export default function MessagesPage() {
             <p className="text-muted-foreground text-sm leading-relaxed">Log in to build mutual connections, manage follow-back requests, and start secure encrypted conversations.</p>
           </div>
           <Button asChild className="w-full font-bold h-12 rounded-xl shadow-lg shadow-primary/20">
-            <a href="/login">Access Alumni Hub</a>
+            <Link href="/login">Access Alumni Hub</Link>
           </Button>
         </Card>
       </div>
