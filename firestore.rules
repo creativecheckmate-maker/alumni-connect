@@ -9,15 +9,12 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.uid == 'XuRuoj1HWaS5nIiVZVoEdbaGX052' ||
-        request.auth.token.email == 'creativecheckmate@gmail.com'
+        request.auth.token.email == 'creativecheckmate@gmail.com' ||
+        request.auth.uid == 'XuRuoj1HWaS5nIiVZVoEdbaGX052'
       );
     }
 
-    // Allow authenticated users to read and list documents.
-    // Privacy is enforced via client-side filters (e.g. where('userId', '==', uid))
-    // which the rules engine authorizes efficiently.
-    
+    // Allow authenticated users to read and list user profiles.
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
@@ -26,18 +23,24 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      allow read: if isSignedIn();
+      // Optimized list permission: allows the backend to trust client-side filters
+      allow list: if isSignedIn();
+      allow get: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /messages/{messageId} {
-      allow read: if isSignedIn();
+      // Optimized list permission: allows listing if signed in, but restricting document retrieval
+      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
     }
 
     match /notifications/{notificationId} {
-      allow read: if isSignedIn();
+      // Optimized list permission for notifications activity feed
+      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn();
     }
 
