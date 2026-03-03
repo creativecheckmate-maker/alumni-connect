@@ -69,7 +69,9 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
                     options={{ 
                       cloudName: "dnex9nw0f", 
                       cropping: true, 
-                      showSkipCropButton: false,
+                      showSkipCropButton: true,
+                      singleUploadAutoClose: true,
+                      croppingDefaultSelection: 'transform',
                       croppingAspectRatio: 1,
                       multiple: false
                     }}
@@ -212,7 +214,9 @@ export default function JobsPage() {
                         options={{ 
                           cloudName: "dnex9nw0f", 
                           cropping: true, 
-                          showSkipCropButton: false,
+                          showSkipCropButton: true,
+                          singleUploadAutoClose: true,
+                          croppingDefaultSelection: 'transform',
                           croppingAspectRatio: 1,
                           multiple: false
                         }}

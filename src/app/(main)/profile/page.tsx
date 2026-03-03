@@ -143,7 +143,8 @@ export default function ProfilePage() {
                       options={{ 
                         cloudName: "dnex9nw0f",
                         cropping: true,
-                        showSkipCropButton: false,
+                        showSkipCropButton: true,
+                        singleUploadAutoClose: true,
                         croppingAspectRatio: 1,
                         croppingDefaultSelection: 'transform',
                         croppingShowDimensions: true,

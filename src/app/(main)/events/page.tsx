@@ -99,7 +99,8 @@ export default function EventsPage() {
                       options={{ 
                         cloudName: "dnex9nw0f", 
                         cropping: true, 
-                        showSkipCropButton: false,
+                        showSkipCropButton: true,
+                        singleUploadAutoClose: true,
                         croppingAspectRatio: 1.77,
                         croppingDefaultSelection: 'transform',
                         croppingShowBackButton: true,

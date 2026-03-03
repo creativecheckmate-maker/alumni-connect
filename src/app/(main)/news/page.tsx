@@ -75,8 +75,10 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
                     uploadPreset="ml_default"
                     options={{ 
                       cloudName: "dnex9nw0f",
-                      cropping: true,
-                      showSkipCropButton: false,
+                      cropping: true, 
+                      showSkipCropButton: true,
+                      singleUploadAutoClose: true,
+                      croppingDefaultSelection: 'transform',
                       croppingAspectRatio: 1.77,
                       multiple: false
                     }}
@@ -204,8 +206,10 @@ export default function NewsPage() {
                           uploadPreset="ml_default"
                           options={{ 
                             cloudName: "dnex9nw0f",
-                            cropping: true,
-                            showSkipCropButton: false,
+                            cropping: true, 
+                            showSkipCropButton: true,
+                            singleUploadAutoClose: true,
+                            croppingDefaultSelection: 'transform',
                             croppingAspectRatio: 1.77,
                             multiple: false
                           }}

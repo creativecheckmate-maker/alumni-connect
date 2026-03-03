@@ -159,8 +159,16 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
                     />
                     {key.toLowerCase().includes('url') ? (
                       <CldUploadWidget 
-                        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
-                        options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
+                        uploadPreset="ml_default"
+                        options={{ 
+                          cloudName: "dnex9nw0f",
+                          cropping: true,
+                          showSkipCropButton: true,
+                          singleUploadAutoClose: true,
+                          croppingDefaultSelection: 'transform',
+                          croppingShowBackButton: true,
+                          multiple: false
+                        }}
                         onSuccess={(result: any) => {
                           setData({ ...data, [key]: result.info.secure_url });
                           toast({ title: "Image Uploaded", description: "Click 'Save Changes' to update the site." });

@@ -126,7 +126,9 @@ export default function FeedPage() {
                 options={{ 
                   cloudName: "dnex9nw0f",
                   cropping: true,
-                  showSkipCropButton: false,
+                  showSkipCropButton: true,
+                  singleUploadAutoClose: true,
+                  croppingDefaultSelection: 'transform',
                   croppingShowBackButton: true,
                   multiple: false,
                   sources: ['local', 'url', 'camera'],
