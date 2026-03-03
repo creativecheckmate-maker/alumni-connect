@@ -53,7 +53,10 @@ export default function ProfilePage() {
     if (!userDocRef || !newAvatarUrl) return;
     setIsSavingAvatar(true);
     try {
-      updateDocumentNonBlocking(userDocRef, { avatarUrl: newAvatarUrl });
+      updateDocumentNonBlocking(userDocRef, { 
+        avatarUrl: newAvatarUrl,
+        updatedAt: new Date()
+      });
       toast({
         title: "Profile Updated",
         description: "Your new picture is now live for all users in real-time.",
@@ -119,7 +122,7 @@ export default function ProfilePage() {
                     </Avatar>
                     
                     <CldUploadWidget
-                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
+                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
                       options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dyvntidqy" }}
                       onSuccess={handleUploadSuccess}
                     >

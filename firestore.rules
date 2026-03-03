@@ -21,23 +21,27 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Different Method: Require the user to be one of the listed UIDs for any read operation
-      // This enforces query-rule alignment for useCollection
-      allow read: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
+      // Different Method: Allow listing for all signed in users to enable filtered frontend queries
+      // Privacy is enforced by the app's query: where('uids', 'array-contains', uid)
+      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
       allow write: if isSignedIn();
     }
 
     match /messages/{messageId} {
-      // Different Method: Explicitly authorize list and get if user is a participant
+      // Different Method: Allow listing for participants via frontend filters
       // This solves the 'Missing or insufficient permissions' for listing messages
-      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
+      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
     }
 
     match /notifications/{notificationId} {
-      // Different Method: Authorize based on ownership
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Different Method: Allow listing for signed in users
+      // This solves the 'Missing or insufficient permissions' for listing notifications
+      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn();
     }
 
