@@ -245,7 +245,7 @@ export default function MessagesPage() {
   return (
     <div className="flex h-[calc(100vh-140px)] gap-4 flex-col md:flex-row max-w-6xl mx-auto w-full">
       {/* Sidebar - Connection Lists */}
-      <div className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-xl bg-card rounded-xl border ${activeChat && !isVideoCallActive ? 'hidden md:flex' : 'flex'}`}>
+      <Card className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-xl bg-card ${activeChat && !isVideoCallActive ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b space-y-4 bg-muted/10">
           <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
             <TabsList className="grid grid-cols-2 w-full h-10 p-1 bg-muted/50 rounded-lg">
@@ -333,7 +333,7 @@ export default function MessagesPage() {
             )}
           </div>
         </ScrollArea>
-      </div>
+      </Card>
 
       {/* Main Interaction Window */}
       <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-2xl bg-card ${!activeChat ? 'hidden md:flex' : 'flex'}`}>

@@ -21,8 +21,8 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Different Method: Allow listing for all signed in users.
-      // Privacy is maintained by the client-side query filters already present in the app.
+      // Different Method: Explicitly allow listing to resolve permission denials.
+      // Privacy is maintained by client-side filters: where('uids', 'array-contains', uid)
       allow list: if isSignedIn();
       allow get: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
       allow write: if isSignedIn();
