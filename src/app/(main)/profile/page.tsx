@@ -119,7 +119,7 @@ export default function ProfilePage() {
                     </Avatar>
                     
                     <CldUploadWidget
-                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
+                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
                       options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dyvntidqy" }}
                       onSuccess={handleUploadSuccess}
                     >

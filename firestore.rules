@@ -21,21 +21,24 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Use consolidated 'read' to authorize listing via frontend filters
-      allow read: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
+      // Different Method: Explicitly split list and get to help the query optimizer
+      allow list: if isSignedIn() && request.auth.uid in resource.data.uids;
+      allow get: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
       allow write: if isSignedIn();
     }
 
     match /messages/{messageId} {
-      // Participants can read their own messages. Filters are applied on the frontend.
-      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
+      // Different Method: Explicitly split list and get to resolve listing denials
+      allow list: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
     }
 
     match /notifications/{notificationId} {
-      // Users can only read their own notifications.
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Different Method: Explicitly split list and get for real-time listeners
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn();
     }
 
