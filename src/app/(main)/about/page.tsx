@@ -71,7 +71,8 @@ function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { s
                   />
                   {key.toLowerCase().includes('url') && (
                     <CldUploadWidget 
-                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
+                      options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
                       onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
                     >
                       {({ open }) => (

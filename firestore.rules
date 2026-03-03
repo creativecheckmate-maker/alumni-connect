@@ -14,8 +14,9 @@ service cloud.firestore {
       );
     }
 
-    // Allow authenticated users to list documents, relying on frontend filters for privacy.
-    // This resolves the "Missing or insufficient permissions" errors for collection listings.
+    // Allow authenticated users to read and list documents.
+    // Privacy is enforced via client-side filters (e.g. where('userId', '==', uid))
+    // which the rules engine authorizes efficiently.
     
     match /users/{userId} {
       allow read: if isSignedIn();

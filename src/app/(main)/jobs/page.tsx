@@ -66,7 +66,8 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
                 />
                 {key.toLowerCase().includes('url') && (
                   <CldUploadWidget 
-                    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
+                    options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
                     onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
                   >
                     {({ open }) => (
@@ -202,7 +203,8 @@ export default function JobsPage() {
                     <div className="flex gap-2">
                       <Input value={logoUrl || ""} placeholder="Logo will be set after upload" readOnly />
                       <CldUploadWidget 
-                        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
+                        options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
                         onSuccess={(result: any) => setLogoUrl(result.info.secure_url)}
                       >
                         {({ open }) => (
@@ -214,7 +216,7 @@ export default function JobsPage() {
                     </div>
                   </div>
                   <DialogFooter className="pt-4">
-                    <Button type="submit" className="w-full">Submit</Button>
+                    <Button type="submit" className="w-full">Submit Job</Button>
                   </DialogFooter>
                 </form>
               </DialogContent>

@@ -104,7 +104,8 @@ export default function EventsPage() {
                   <div className="flex gap-2">
                     <Input value={eventImageUrl || ""} placeholder="Image URL (set after upload)" readOnly />
                     <CldUploadWidget 
-                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
+                      options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
                       onSuccess={(result: any) => setEventImageUrl(result.info.secure_url)}
                     >
                       {({ open }) => (
@@ -121,8 +122,7 @@ export default function EventsPage() {
                 </div>
                 <DialogFooter>
                   <Button type="submit" disabled={isPosting}>
-                    {isPosting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Create Event
+                    {isPosting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create Event"}
                   </Button>
                 </DialogFooter>
               </form>

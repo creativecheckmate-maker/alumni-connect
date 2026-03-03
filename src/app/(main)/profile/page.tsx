@@ -45,7 +45,7 @@ export default function ProfilePage() {
       setNewAvatarUrl(result.info.secure_url);
       toast({
         title: "Image Uploaded",
-        description: "Click 'Save Profile Photo' to update your account.",
+        description: "Click 'Save Profile Photo' to update your account permanently.",
       });
     }
   };
@@ -57,7 +57,7 @@ export default function ProfilePage() {
       updateDocumentNonBlocking(userDocRef, { avatarUrl: newAvatarUrl });
       toast({
         title: "Profile Updated",
-        description: "Your new picture is now live for all users.",
+        description: "Your new picture is now live for all users in real-time.",
       });
       setNewAvatarUrl(null);
     } catch (e) {
@@ -69,7 +69,7 @@ export default function ProfilePage() {
 
   if (isUserLoading || !currentUser) {
     return (
-      <>
+      <div className="max-w-4xl mx-auto space-y-8 pb-20">
         <PageHeader title="Your Profile" />
          <Card className="overflow-hidden">
             <CardHeader className="relative flex flex-col items-center justify-center space-y-4 bg-card p-6 text-center">
@@ -85,7 +85,7 @@ export default function ProfilePage() {
                  <Skeleton className="h-48 w-full" />
             </CardContent>
         </Card>
-      </>
+      </div>
     );
   }
 
@@ -120,7 +120,7 @@ export default function ProfilePage() {
                     </Avatar>
                     
                     <CldUploadWidget
-                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
                       options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
                       onSuccess={handleUploadSuccess}
                     >
@@ -128,7 +128,7 @@ export default function ProfilePage() {
                         <Button 
                           size="icon" 
                           variant="secondary" 
-                          className="absolute bottom-2 right-2 h-10 w-10 rounded-full shadow-lg border-2 border-background"
+                          className="absolute bottom-2 right-2 h-10 w-10 rounded-full shadow-lg border-2 border-background z-10"
                           onClick={() => open()}
                         >
                           <ImageIcon className="h-5 w-5" />
@@ -141,7 +141,7 @@ export default function ProfilePage() {
                     <Button 
                       onClick={handleSaveAvatar} 
                       disabled={isSavingAvatar}
-                      className="bg-green-600 hover:bg-green-700 animate-in zoom-in-95 duration-300"
+                      className="bg-green-600 hover:bg-green-700 animate-in zoom-in-95 duration-300 shadow-lg font-bold"
                     >
                       {isSavingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
                       Save Profile Photo
