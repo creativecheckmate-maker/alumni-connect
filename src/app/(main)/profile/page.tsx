@@ -8,12 +8,13 @@ import type { User, Student, Professor } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, RefreshCcw, X } from 'lucide-react';
+import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, RefreshCcw, X, ShieldAlert } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EditProfileForm } from '@/components/profile/edit-profile-form';
 import { CldUploadWidget } from 'next-cloudinary';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { moderateContent } from '@/ai/flows/moderation';
 
 const getInitials = (name: string) => {
     if (!name) return '';
@@ -42,8 +43,8 @@ export default function ProfilePage() {
     if (result.info?.secure_url) {
       setNewAvatarUrl(result.info.secure_url);
       toast({
-        title: "Photo Cropped & Uploaded",
-        description: "Preview your changes below. Click 'Save Profile Photo' to update your account.",
+        title: "Photo Uploaded",
+        description: "Click 'Save Profile Photo' to run security scan and update.",
       });
     }
   };
@@ -52,6 +53,20 @@ export default function ProfilePage() {
     if (!userDocRef || !newAvatarUrl) return;
     setIsSavingAvatar(true);
     try {
+      // AI Image Moderation Check
+      const moderation = await moderateContent({ imageUrl: newAvatarUrl });
+      
+      if (!moderation.isSafe) {
+        toast({
+          variant: 'destructive',
+          title: "Photo Blocked",
+          description: moderation.reason || "NSFW imagery is strictly prohibited on this professional platform.",
+        });
+        setNewAvatarUrl(null);
+        setIsSavingAvatar(false);
+        return;
+      }
+
       updateDocumentNonBlocking(userDocRef, { 
         avatarUrl: newAvatarUrl,
         updatedAt: serverTimestamp()
@@ -102,7 +117,7 @@ export default function ProfilePage() {
                     <DialogHeader>
                         <DialogTitle>Edit Professional Profile</DialogTitle>
                         <DialogDescription>
-                            Update your academic and professional details.
+                            Update your academic and professional details. All content is AI-moderated.
                         </DialogDescription>
                     </DialogHeader>
                     <EditProfileForm currentUser={currentUser} />
@@ -151,8 +166,8 @@ export default function ProfilePage() {
                   {newAvatarUrl && (
                     <div className="flex flex-col gap-3 items-center animate-in slide-in-from-top-4 duration-500 bg-primary/5 p-4 rounded-2xl border border-primary/10">
                         <div className="flex items-center gap-2">
-                            <Badge className="bg-primary text-white animate-pulse">Preview Ready</Badge>
-                            <p className="text-[10px] font-black uppercase text-primary tracking-widest">Adjustments applied</p>
+                            <Badge className="bg-primary text-white animate-pulse">Security Scan Pending</Badge>
+                            <p className="text-[10px] font-black uppercase text-primary tracking-widest">AI Moderation active</p>
                         </div>
                         <div className="flex gap-2">
                             <Button 
@@ -172,7 +187,10 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <CardTitle className="text-4xl font-bold font-headline tracking-tight">{currentUser.name}</CardTitle>
+                  <div className="flex items-center justify-center gap-2">
+                    <ShieldAlert className="h-4 w-4 text-primary opacity-40" />
+                    <CardTitle className="text-4xl font-bold font-headline tracking-tight">{currentUser.name}</CardTitle>
+                  </div>
                   <CardDescription className="text-lg font-medium">{currentUser.college} at {currentUser.university}</CardDescription>
                   <Badge variant={currentUser.role === 'student' ? 'secondary' : 'outline'} className="capitalize mt-2 px-4 py-1 text-sm font-bold uppercase tracking-wider">{currentUser.role}</Badge>
                 </div>

@@ -5,9 +5,9 @@ import { useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/fire
 import { doc, serverTimestamp } from 'firebase/firestore';
 import type { User, Student, Professor } from '@/lib/definitions';
 import { useForm } from 'react-hook-form';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -16,11 +16,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
+} from "@/components/ui/form";
+import { moderateContent } from '@/ai/flows/moderation';
 
 export function EditProfileForm({ currentUser }: { currentUser: User }) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [isModerating, setIsModerating] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !currentUser?.id) return null;
@@ -47,35 +49,61 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
   const onSubmit = async (data: Partial<User>) => {
     if (!userDocRef) return;
     
-    const updatedData: any = {
-      ...data,
-      updatedAt: serverTimestamp(),
-    };
-    
-    if (typeof data.preferences === 'string') {
-      updatedData.preferences = data.preferences.split(',').map((p: string) => p.trim()).filter(Boolean);
+    setIsModerating(true);
+    try {
+      // Aggregate all text for AI moderation
+      const textToModerate = `${data.name} ${data.university} ${data.college} ${data.preferences} ${(data as any).researchInterests || ''}`;
+      
+      const moderation = await moderateContent({ text: textToModerate });
+      
+      if (!moderation.isSafe) {
+        toast({
+          variant: 'destructive',
+          title: "Content Policy Violation",
+          description: moderation.reason || "Your profile contains vulgar or inappropriate language.",
+        });
+        setIsModerating(false);
+        return;
+      }
+
+      const updatedData: any = {
+        ...data,
+        updatedAt: serverTimestamp(),
+      };
+      
+      if (typeof data.preferences === 'string') {
+        updatedData.preferences = data.preferences.split(',').map((p: string) => p.trim()).filter(Boolean);
+      }
+
+      if (currentUser.role === 'professor' && typeof data.researchInterests === 'string') {
+          updatedData.researchInterests = data.researchInterests.split(',').map((p: string) => p.trim()).filter(Boolean);
+      }
+      
+      // Prevent sensitive fields from being updated
+      delete updatedData.id;
+      delete updatedData.role;
+      delete updatedData.email;
+
+      updateDocumentNonBlocking(userDocRef, updatedData);
+
+      toast({
+        title: "Profile Updated",
+        description: "Your professional details have been saved after security scan.",
+      });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Moderation scan failed." });
+    } finally {
+      setIsModerating(false);
     }
-
-    if (currentUser.role === 'professor' && typeof data.researchInterests === 'string') {
-        updatedData.researchInterests = data.researchInterests.split(',').map((p: string) => p.trim()).filter(Boolean);
-    }
-    
-    // Prevent sensitive fields from being updated
-    delete updatedData.id;
-    delete updatedData.role;
-    delete updatedData.email;
-
-    updateDocumentNonBlocking(userDocRef, updatedData);
-
-    toast({
-      title: "Profile Updated",
-      description: "Your changes have been saved.",
-    });
   };
 
   return (
     <Form {...form}>
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+        <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-xl mb-2">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Professional Standards: All fields AI-moderated</p>
+        </div>
         <FormField
             control={form.control}
             name="name"
@@ -199,9 +227,9 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
         />
 
         <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={form.formState.isSubmitting || !form.formState.isDirty}>
-                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
+            <Button type="submit" disabled={isModerating || !form.formState.isDirty}>
+                {isModerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {isModerating ? "Moderating..." : "Save Changes"}
             </Button>
         </div>
     </form>

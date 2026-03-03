@@ -28,7 +28,8 @@ import {
   Handshake,
   Lock,
   UserPlus,
-  UserCheck
+  UserCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { 
@@ -44,6 +45,7 @@ import {
 import { collection, query, where, serverTimestamp, limit, doc, orderBy } from 'firebase/firestore';
 import type { User, Message, Friendship } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
+import { moderateContent } from '@/ai/flows/moderation';
 
 export default function MessagesPage() {
   const { user: authUser, isUserLoading } = useUser();
@@ -53,6 +55,7 @@ export default function MessagesPage() {
   const [messageText, setMessageText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'active' | 'network'>('active');
+  const [isSending, setIsSending] = useState(false);
   
   // Voice/Video State
   const [isMicOn, setIsMicOn] = useState(false);
@@ -139,25 +142,45 @@ export default function MessagesPage() {
   }, [messages, activeChat, authUser?.uid, firestore, isChatMutual]);
 
   const handleSendMessage = async () => {
-    if (!firestore || !authUser || !activeChat || !messageText.trim() || !chatId) return;
+    if (!firestore || !authUser || !activeChat || !messageText.trim() || !chatId || isSending) return;
     
     if (!isChatMutual) {
       toast({ variant: 'destructive', title: "Connection Required", description: "Mutual connection is required to send messages." });
       return;
     }
 
-    const msgData = {
-      senderId: authUser.uid,
-      receiverId: activeChat,
-      participants: [authUser.uid, activeChat],
-      chatId: chatId,
-      text: messageText,
-      status: 'sent',
-      createdAt: serverTimestamp(),
-    };
+    setIsSending(true);
+    try {
+      // AI Content Moderation Check
+      const moderation = await moderateContent({ text: messageText });
+      
+      if (!moderation.isSafe) {
+        toast({
+          variant: 'destructive',
+          title: "Message Blocked",
+          description: moderation.reason || "Vulgar or abusive language is strictly prohibited.",
+        });
+        setIsSending(false);
+        return;
+      }
 
-    setMessageText('');
-    addDocumentNonBlocking(collection(firestore, 'messages'), msgData);
+      const msgData = {
+        senderId: authUser.uid,
+        receiverId: activeChat,
+        participants: [authUser.uid, activeChat],
+        chatId: chatId,
+        text: messageText,
+        status: 'sent',
+        createdAt: serverTimestamp(),
+      };
+
+      setMessageText('');
+      addDocumentNonBlocking(collection(firestore, 'messages'), msgData);
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to send message." });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleCancelRequest = async (otherId: string) => {
@@ -513,14 +536,20 @@ export default function MessagesPage() {
             {isChatMutual && (
               <div className="p-5 border-t bg-white/80 backdrop-blur-xl">
                 <form className="flex gap-3 max-w-4xl mx-auto" onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
-                  <Input 
-                    placeholder={`Type a message to ${selectedUser.name.split(' ')[0]}...`} 
-                    className="bg-zinc-100 border-none shadow-none rounded-[1.25rem] h-12 px-6 text-sm font-medium focus-visible:ring-2 focus-visible:ring-zinc-900/5 transition-all text-foreground"
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                  />
-                  <Button type="submit" size="icon" className="rounded-2xl h-12 w-12 bg-zinc-900 shadow-xl shadow-zinc-900/20 hover:scale-105 active:scale-95 transition-all" disabled={!messageText.trim()}>
-                    <Send className="h-5 w-5" />
+                  <div className="relative flex-1">
+                    <Input 
+                        placeholder={`Type a message to ${selectedUser.name.split(' ')[0]}...`} 
+                        className="bg-zinc-100 border-none shadow-none rounded-[1.25rem] h-12 px-6 pr-12 text-sm font-medium focus-visible:ring-2 focus-visible:ring-zinc-900/5 transition-all text-foreground"
+                        value={messageText}
+                        onChange={(e) => setMessageText(e.target.value)}
+                        disabled={isSending}
+                    />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <ShieldAlert className="h-3.5 w-3.5 text-primary opacity-30" />
+                    </div>
+                  </div>
+                  <Button type="submit" size="icon" className="rounded-2xl h-12 w-12 bg-zinc-900 shadow-xl shadow-zinc-900/20 hover:scale-105 active:scale-95 transition-all" disabled={!messageText.trim() || isSending}>
+                    {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                   </Button>
                 </form>
               </div>

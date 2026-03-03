@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2, X, Loader2, Rss, Scissors } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2, X, Loader2, Rss, Scissors, ShieldAlert } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import type { FeedPost, User } from '@/lib/definitions';
@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { CldUploadWidget } from 'next-cloudinary';
+import { moderateContent } from '@/ai/flows/moderation';
 
 export default function FeedPage() {
   const { user, isEditMode } = useFirebase();
@@ -25,7 +26,6 @@ export default function FeedPage() {
   const [isPosting, setIsPosting] = useState(false);
   const isAdmin = user?.email === ADMIN_EMAIL;
 
-  // Fetch the current user's full profile
   const userProfileDocRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     return doc(firestore, 'users', user.uid);
@@ -44,6 +44,19 @@ export default function FeedPage() {
     
     setIsPosting(true);
     try {
+      // AI Content Moderation Check
+      const moderation = await moderateContent({ text: content, imageUrl: imageUrl || undefined });
+      
+      if (!moderation.isSafe) {
+        toast({
+          variant: 'destructive',
+          title: "Content Blocked",
+          description: moderation.reason || "Your post violates our professional community standards.",
+        });
+        setIsPosting(false);
+        return;
+      }
+
       await addDoc(collection(firestore, 'feed'), {
         authorId: user.uid,
         authorName: userProfile?.name || user.displayName || 'Nexus Alumnus',
@@ -82,6 +95,10 @@ export default function FeedPage() {
                 <AvatarFallback className="font-bold">{userProfile?.name?.[0] || user?.displayName?.[0] || 'U'}</AvatarFallback>
               </Avatar>
               <div className="flex-1 space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                    <ShieldAlert className="h-3 w-3 text-primary opacity-50" />
+                    <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">AI Moderated Feed</span>
+                </div>
                 <Textarea 
                     placeholder="Share a professional milestone or a campus memory..." 
                     className="min-h-[120px] border-none focus-visible:ring-0 bg-muted/20 resize-none p-5 text-base rounded-[1.5rem] font-medium placeholder:text-muted-foreground/50"
