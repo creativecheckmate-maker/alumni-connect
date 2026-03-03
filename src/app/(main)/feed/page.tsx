@@ -110,7 +110,6 @@ export default function FeedPage() {
                   cloudName: "dnex9nw0f",
                   cropping: true,
                   showSkipCropButton: false,
-                  croppingAspectRatio: 16/9,
                   multiple: false
                 }}
                 onSuccess={(result: any) => setImageUrl(result.info.secure_url)}

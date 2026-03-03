@@ -21,15 +21,14 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Split-Access Method: Allow listing for all signed in users to enable filtered frontend queries
-      // This solves "Missing or insufficient permissions" for query(collection, where('uids', 'array-contains', uid))
+      // Allow listing for filtered dashboard queries (e.g. uids array-contains uid)
       allow list: if isSignedIn();
       allow get: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
       allow write: if isSignedIn();
     }
 
     match /messages/{messageId} {
-      // Split-Access Method: Unblocks real-time collection listeners for chat selection
+      // Allow listing for chat selection filtered by participants
       allow list: if isSignedIn();
       allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn();
@@ -37,7 +36,7 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      // Split-Access Method: Allows the notification center to query for specific user alerts
+      // Allow listing for the user's private notification feed
       allow list: if isSignedIn();
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn();
