@@ -49,6 +49,7 @@ import { collection, query, where, serverTimestamp, limit, doc, orderBy } from '
 import type { User, Message, Friendship } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { moderateContent } from '@/ai/flows/moderation';
+import { ADMIN_EMAIL, SECONDARY_ADMIN_EMAIL } from '@/lib/config';
 import Link from 'next/link';
 
 export default function MessagesPage() {
@@ -60,6 +61,8 @@ export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'active' | 'network'>('active');
   const [isSending, setIsSending] = useState(false);
+  
+  const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === SECONDARY_ADMIN_EMAIL;
   
   // Voice/Video State
   const [isMicOn, setIsMicOn] = useState(false);
@@ -110,12 +113,12 @@ export default function MessagesPage() {
   const followingList = allUsers?.filter(u => {
     if (u.id === authUser?.uid) return false;
     const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    if (activeTab === 'active') return isMutualFriend(u.id) && matchesSearch;
+    if (activeTab === 'active') return (isMutualFriend(u.id) || isAdmin) && matchesSearch;
     return matchesSearch;
   }) || [];
 
   const selectedUser = allUsers?.find(u => u.id === activeChat) || activeUserFromDoc;
-  const isChatMutual = activeChat ? isMutualFriend(activeChat) : false;
+  const isChatMutual = activeChat ? (isMutualFriend(activeChat) || isAdmin) : false;
 
   const chatId = activeChat && authUser?.uid 
     ? [authUser.uid, activeChat].sort().join('_') 
@@ -329,16 +332,16 @@ export default function MessagesPage() {
                         <AvatarImage src={user.avatarUrl} />
                         <AvatarFallback className="font-bold bg-muted">{getInitials(user.name)}</AvatarFallback>
                       </Avatar>
-                      {isMutual && <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></span>}
+                      {(isMutual || isAdmin) && <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></span>}
                     </div>
                     <div className="flex-1 text-left min-w-0">
                       <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{user.name}</p>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-widest truncate font-medium">
-                        {isMutual ? 'Connected' : (isRequestedByMe ? 'Requested' : (hasRequestedMe ? 'Accept Follow Back' : 'Alumni'))}
+                        {isMutual ? 'Connected' : (isAdmin ? 'Admin Link' : (isRequestedByMe ? 'Requested' : (hasRequestedMe ? 'Accept Follow Back' : 'Alumni')))}
                       </p>
                     </div>
                     
-                    {!isMutual && (
+                    {!isMutual && !isAdmin && (
                       <div className="flex flex-col gap-1 shrink-0">
                         {isRequestedByMe ? (
                           <Button 
@@ -431,7 +434,7 @@ export default function MessagesPage() {
                     <Link href={`/users/${selectedUser.id}`} className={`text-base font-black leading-none tracking-tight hover:underline ${!isChatMutual && 'text-foreground'}`}>
                       {selectedUser.name}
                     </Link>
-                    {isChatMutual && <Badge variant="outline" className="h-5 px-2 text-[9px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800/50">MUTUAL CONNECTION</Badge>}
+                    {isChatMutual && <Badge variant="outline" className="h-5 px-2 text-[9px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800/50">{isAdmin ? 'ADMIN CONNECTED' : 'MUTUAL CONNECTION'}</Badge>}
                   </div>
                   {isChatMutual ? (
                     <p className="text-[10px] text-zinc-500 font-black flex items-center gap-1.5 mt-1.5 uppercase tracking-widest">
