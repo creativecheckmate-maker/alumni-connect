@@ -73,7 +73,13 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
                 {key.toLowerCase().includes('url') && (
                   <CldUploadWidget 
                     uploadPreset="ml_default"
-                    options={{ cloudName: "dnex9nw0f" }}
+                    options={{ 
+                      cloudName: "dnex9nw0f",
+                      cropping: true,
+                      showSkipCropButton: false,
+                      croppingAspectRatio: 1.77,
+                      multiple: false
+                    }}
                     onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
                   >
                     {({ open }) => (
@@ -193,10 +199,16 @@ export default function NewsPage() {
                     <div className="space-y-2">
                       <Label>Thumbnail Image</Label>
                       <div className="flex gap-2">
-                        <Input value={newsImageUrl || ""} placeholder="Image URL (will be set after upload)" readOnly />
+                        <Input value={newsImageUrl || ""} placeholder="No image selected" readOnly className="bg-muted/50" />
                         <CldUploadWidget 
                           uploadPreset="ml_default"
-                          options={{ cloudName: "dnex9nw0f", cropping: true, multiple: false }}
+                          options={{ 
+                            cloudName: "dnex9nw0f",
+                            cropping: true,
+                            showSkipCropButton: false,
+                            croppingAspectRatio: 1.77,
+                            multiple: false
+                          }}
                           onSuccess={(result: any) => setNewsImageUrl(result.info.secure_url)}
                         >
                           {({ open }) => (
