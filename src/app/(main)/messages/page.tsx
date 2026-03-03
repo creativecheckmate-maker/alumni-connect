@@ -63,24 +63,24 @@ export default function MessagesPage() {
 
   // Fetch all friendships for the current user
   const friendshipQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser?.uid || isUserLoading) return null;
+    if (!firestore || !authUser?.uid) return null;
     return query(
       collection(firestore, 'friendships'),
       where('uids', 'array-contains', authUser.uid)
     );
-  }, [firestore, authUser?.uid, isUserLoading]);
+  }, [firestore, authUser?.uid]);
 
   const { data: friendships } = useCollection<Friendship>(friendshipQuery);
 
   // Fetch all users for the Network tab
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser?.uid || isUserLoading) return null;
+    if (!firestore || !authUser?.uid) return null;
     return query(
       collection(firestore, 'users'), 
       where('isVisibleInDirectory', '==', true),
       limit(50)
     );
-  }, [firestore, authUser?.uid, isUserLoading]);
+  }, [firestore, authUser?.uid]);
 
   const { data: allUsers, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
 
@@ -109,7 +109,7 @@ export default function MessagesPage() {
 
   // Fetch messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
-    if (!firestore || !chatId || !authUser?.uid || isUserLoading || !isChatMutual) return null;
+    if (!firestore || !chatId || !authUser?.uid || !isChatMutual) return null;
     
     return query(
       collection(firestore, 'messages'),
@@ -118,7 +118,7 @@ export default function MessagesPage() {
       orderBy('createdAt', 'asc'),
       limit(100)
     );
-  }, [firestore, chatId, authUser?.uid, isUserLoading, isChatMutual]);
+  }, [firestore, chatId, authUser?.uid, isChatMutual]);
 
   const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
 
