@@ -105,7 +105,7 @@ export default function JobsPage() {
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const isAdmin = authUser?.email === ADMIN_EMAIL;
+  const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === 'geminiak8@gmail.com';
 
   const introDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'jobs_intro'), [firestore]);
   const { data: introContent } = useDoc<SiteContent>(introDocRef);

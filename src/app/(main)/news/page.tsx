@@ -110,7 +110,7 @@ export default function NewsPage() {
   const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
-  const isAdmin = authUser?.email === ADMIN_EMAIL;
+  const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === 'geminiak8@gmail.com';
 
   const [isPosting, setIsPosting] = useState(false);
   const [open, setOpen] = useState(false);

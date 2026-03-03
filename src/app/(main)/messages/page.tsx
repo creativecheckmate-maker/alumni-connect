@@ -43,7 +43,8 @@ import {
   updateDocumentNonBlocking,
   setDocumentNonBlocking,
   addDocumentNonBlocking,
-  deleteDocumentNonBlocking
+  deleteDocumentNonBlocking,
+  useFirebase
 } from '@/firebase';
 import { collection, query, where, serverTimestamp, limit, doc, orderBy } from 'firebase/firestore';
 import type { User, Message, Friendship } from '@/lib/definitions';
@@ -54,6 +55,7 @@ import Link from 'next/link';
 
 export default function MessagesPage() {
   const { user: authUser, isUserLoading } = useUser();
+  const { isEditMode } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [activeChat, setActiveChat] = useState<string | null>(null);
@@ -128,6 +130,16 @@ export default function MessagesPage() {
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId || !authUser?.uid || !isChatMutual) return null;
     
+    // Admins can view any chat without being a participant
+    if (isAdmin) {
+      return query(
+        collection(firestore, 'messages'),
+        where('chatId', '==', chatId),
+        orderBy('createdAt', 'asc'),
+        limit(100)
+      );
+    }
+
     return query(
       collection(firestore, 'messages'),
       where('chatId', '==', chatId),
@@ -135,7 +147,7 @@ export default function MessagesPage() {
       orderBy('createdAt', 'asc'),
       limit(100)
     );
-  }, [firestore, chatId, authUser?.uid, isChatMutual]);
+  }, [firestore, chatId, authUser?.uid, isChatMutual, isAdmin]);
 
   const { data: messages, isLoading: isMessagesLoading, error: messagesError } = useCollection<Message>(messagesQuery);
 
@@ -431,7 +443,7 @@ export default function MessagesPage() {
                 </Link>
                 <div>
                   <div className="flex items-center gap-2">
-                    <Link href={`/users/${selectedUser.id}`} className={`text-base font-black leading-none tracking-tight hover:underline ${!isChatMutual && 'text-foreground'}`}>
+                    <Link href={`/users/${selectedUser.id}`} className={`text-base font-black leading-none tracking-tight hover:underline ${!isChatMutual ? 'text-foreground' : 'text-white'}`}>
                       {selectedUser.name}
                     </Link>
                     {isChatMutual && <Badge variant="outline" className="h-5 px-2 text-[9px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800/50">{isAdmin ? 'ADMIN CONNECTED' : 'MUTUAL CONNECTION'}</Badge>}
