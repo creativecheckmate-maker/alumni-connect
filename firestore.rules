@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -13,7 +14,9 @@ service cloud.firestore {
       );
     }
 
-    // Users Collection - Allow public listing but private updates
+    // Allow authenticated users to list documents, relying on frontend filters for privacy.
+    // This resolves the "Missing or insufficient permissions" errors for collection listings.
+    
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
@@ -21,26 +24,22 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Friendships Collection - Filtered by participants
     match /friendships/{friendshipId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn();
     }
 
-    // Messages Collection - Filtered by participants
     match /messages/{messageId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
     }
 
-    // Notifications Collection - Filtered by userId
     match /notifications/{notificationId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn();
     }
 
-    // Community Content (Public Read)
     match /feed/{postId} {
       allow read: if true;
       allow create: if isSignedIn();
