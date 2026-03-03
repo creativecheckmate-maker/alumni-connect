@@ -5,8 +5,8 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2, X, Loader2, Rss, Upload } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, useUser, useFirebase, useDoc } from '@/firebase';
+import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2, X, Loader2, Rss } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import type { FeedPost, User } from '@/lib/definitions';
 import { ADMIN_EMAIL } from '@/lib/config';
@@ -107,7 +107,7 @@ export default function FeedPage() {
               <CldUploadWidget 
                 uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
                 options={{ 
-                  cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dyvntidqy",
+                  cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dnex9nw0f",
                   cropping: true,
                   croppingAspectRatio: 16/9
                 }}
@@ -135,7 +135,7 @@ export default function FeedPage() {
             </div>
             <div className="space-y-2">
                 <h3 className="font-black text-2xl tracking-tighter uppercase">Join the Conversation</h3>
-                <p className="text-muted-foreground text-sm font-medium leading-relaxed max-w-sm mx-auto">Log in to share your journey, post memories, and stay connected with fellow alumni.</p>
+                <p className="text-muted-foreground text-sm font-medium leading-relaxed max-sm mx-auto">Log in to share your journey, post memories, and stay connected with fellow alumni.</p>
             </div>
             <Link href="/login" className="block">
               <Button className="rounded-full px-10 h-14 font-black shadow-xl shadow-primary/20">Access Private Feed</Button>

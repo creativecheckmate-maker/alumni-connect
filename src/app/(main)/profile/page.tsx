@@ -3,12 +3,12 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, serverTimestamp } from 'firebase/firestore';
 import type { User, Student, Professor } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, RefreshCcw, X, Image as ImageIcon } from 'lucide-react';
+import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, RefreshCcw, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EditProfileForm } from '@/components/profile/edit-profile-form';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -54,7 +54,7 @@ export default function ProfilePage() {
     try {
       updateDocumentNonBlocking(userDocRef, { 
         avatarUrl: newAvatarUrl,
-        updatedAt: new Date()
+        updatedAt: serverTimestamp()
       });
       
       toast({
@@ -124,7 +124,7 @@ export default function ProfilePage() {
                     <CldUploadWidget
                       uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
                       options={{ 
-                        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dyvntidqy",
+                        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dnex9nw0f",
                         cropping: true,
                         showSkipCropButton: false,
                         croppingAspectRatio: 1,

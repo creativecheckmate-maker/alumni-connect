@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -105,7 +104,7 @@ export default function EventsPage() {
                     <Input value={eventImageUrl || ""} placeholder="Image URL (set after upload)" readOnly />
                     <CldUploadWidget 
                       uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
-                      options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
+                      options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dnex9nw0f", cropping: true }}
                       onSuccess={(result: any) => setEventImageUrl(result.info.secure_url)}
                     >
                       {({ open }) => (
