@@ -5,7 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2, X, Loader2, Rss } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2, X, Loader2, Rss, Scissors } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import type { FeedPost, User } from '@/lib/definitions';
@@ -110,14 +110,15 @@ export default function FeedPage() {
                   cloudName: "dnex9nw0f",
                   cropping: true,
                   showSkipCropButton: false,
-                  multiple: false
+                  multiple: false,
+                  sources: ['local', 'url', 'camera']
                 }}
                 onSuccess={(result: any) => setImageUrl(result.info.secure_url)}
               >
                 {({ open }) => (
                   <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/5 gap-2 px-4 rounded-full font-bold" onClick={() => open()}>
-                    <ImageIcon className="h-5 w-5" />
-                    <span className="text-sm">Add Photo</span>
+                    <Scissors className="h-5 w-5" />
+                    <span className="text-sm">Crop & Share Photo</span>
                   </Button>
                 )}
               </CldUploadWidget>

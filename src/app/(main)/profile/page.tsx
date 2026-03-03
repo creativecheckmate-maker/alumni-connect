@@ -8,7 +8,7 @@ import type { User, Student, Professor } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, RefreshCcw, X } from 'lucide-react';
+import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, RefreshCcw, X, Scissors } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EditProfileForm } from '@/components/profile/edit-profile-form';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -42,8 +42,8 @@ export default function ProfilePage() {
     if (result.info?.secure_url) {
       setNewAvatarUrl(result.info.secure_url);
       toast({
-        title: "Image Uploaded & Cropped",
-        description: "Preview your new photo below and click 'Save & Update' to synchronize it globally.",
+        title: "Photo Cropped & Uploaded",
+        description: "Preview your changes below. Click 'Save Profile Photo' to update your account.",
       });
     }
   };
@@ -58,12 +58,12 @@ export default function ProfilePage() {
       });
       
       toast({
-        title: "Profile Updated",
-        description: "Your new avatar is now visible across the entire alumni network.",
+        title: "Success",
+        description: "Your profile photo has been updated and synchronized in real-time.",
       });
       setNewAvatarUrl(null);
     } catch (e) {
-      toast({ variant: 'destructive', title: "Error", description: "Failed to save profile photo." });
+      toast({ variant: 'destructive', title: "Error", description: "Failed to sync photo changes." });
     } finally {
       setIsSavingAvatar(false);
     }
@@ -131,7 +131,24 @@ export default function ProfilePage() {
                         multiple: false,
                         maxImageWidth: 1080,
                         maxImageHeight: 1080,
-                        sources: ['local', 'url', 'camera']
+                        sources: ['local', 'url', 'camera'],
+                        styles: {
+                          palette: {
+                            window: "#FFFFFF",
+                            windowBorder: "#90A0B3",
+                            tabIcon: "#0078FF",
+                            menuIcons: "#5A616A",
+                            textDark: "#000000",
+                            textLight: "#FFFFFF",
+                            link: "#0078FF",
+                            action: "#FF620C",
+                            inactiveTabIcon: "#0E2F5A",
+                            error: "#F44235",
+                            inProgress: "#0078FF",
+                            complete: "#20B832",
+                            sourceBg: "#E4EBF1"
+                          }
+                        }
                       }}
                       onSuccess={handleUploadSuccess}
                     >
@@ -152,7 +169,7 @@ export default function ProfilePage() {
                     <div className="flex flex-col gap-3 items-center animate-in slide-in-from-top-4 duration-500 bg-primary/5 p-4 rounded-2xl border border-primary/10">
                         <div className="flex items-center gap-2">
                             <Badge className="bg-primary text-white animate-pulse">Preview Ready</Badge>
-                            <p className="text-[10px] font-black uppercase text-primary tracking-widest">Crop applied successfully</p>
+                            <p className="text-[10px] font-black uppercase text-primary tracking-widest">Adjustments applied</p>
                         </div>
                         <div className="flex gap-2">
                             <Button 
@@ -161,7 +178,7 @@ export default function ProfilePage() {
                                 className="bg-green-600 hover:bg-green-700 shadow-xl font-black rounded-xl px-8 h-12"
                             >
                                 {isSavingAvatar ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
-                                Save & Update Photo
+                                Save Profile Photo
                             </Button>
                             <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl text-destructive border-destructive/20" onClick={() => setNewAvatarUrl(null)}>
                                 <X className="h-5 w-5" />

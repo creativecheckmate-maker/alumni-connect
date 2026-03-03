@@ -397,7 +397,7 @@ export default function MessagesPage() {
                       <Radio className={`h-3 w-3 ${isMicOn ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> {isMicOn ? 'VOICE CHANNEL ACTIVE' : 'VOICE CHANNEL READY'}
                     </p>
                   ) : (
-                    <p className="text-[10px] text-muted-foreground font-bold mt-1 uppercase tracking-widest">Connection Required</p>
+                    <p className="text-[10px] text-muted-foreground font-bold mt-1 uppercase tracking-widest">Why chat is not open fix the problem</p>
                   )}
                 </div>
               </div>
