@@ -62,7 +62,7 @@ export default function MessagesPage() {
   const [activeTab, setActiveTab] = useState<'active' | 'network'>('active');
   const [isSending, setIsSending] = useState(false);
   
-  const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === SECONDARY_ADMIN_EMAIL;
+  const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === SECONDARY_ADMIN_EMAIL || authUser?.email === 'geminiak8@gmail.com';
   
   // Voice/Video State
   const [isMicOn, setIsMicOn] = useState(false);
@@ -80,7 +80,7 @@ export default function MessagesPage() {
     );
   }, [firestore, authUser?.uid]);
 
-  const { data: friendships, error: friendshipError } = useCollection<Friendship>(friendshipQuery);
+  const { data: friendships, error: friendshipError, isLoading: isFriendshipsLoading } = useCollection<Friendship>(friendshipQuery);
 
   // Fetch all users for the list
   const usersQuery = useMemoFirebase(() => {
@@ -305,7 +305,7 @@ export default function MessagesPage() {
         </div>
         <ScrollArea className="flex-1">
           <div className="p-3 space-y-1">
-            {isUsersLoading ? (
+            {isUsersLoading || isFriendshipsLoading ? (
               <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20" /></div>
             ) : (usersError || friendshipError) ? (
               <div className="p-4 text-center space-y-2">
