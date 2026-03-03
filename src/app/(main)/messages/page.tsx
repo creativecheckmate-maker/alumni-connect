@@ -30,7 +30,8 @@ import {
   UserPlus,
   UserCheck,
   ShieldAlert,
-  ExternalLink
+  ExternalLink,
+  AlertCircle
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { 
@@ -76,7 +77,7 @@ export default function MessagesPage() {
     );
   }, [firestore, authUser?.uid]);
 
-  const { data: friendships } = useCollection<Friendship>(friendshipQuery);
+  const { data: friendships, error: friendshipError } = useCollection<Friendship>(friendshipQuery);
 
   // Fetch all users for the list
   const usersQuery = useMemoFirebase(() => {
@@ -88,7 +89,7 @@ export default function MessagesPage() {
     );
   }, [firestore, authUser?.uid]);
 
-  const { data: allUsers, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
+  const { data: allUsers, isLoading: isUsersLoading, error: usersError } = useCollection<User>(usersQuery);
 
   // Fallback: Fetch specific active chat user if not in the limited list
   const activeUserDocRef = useMemoFirebase(() => {
@@ -133,7 +134,7 @@ export default function MessagesPage() {
     );
   }, [firestore, chatId, authUser?.uid, isChatMutual]);
 
-  const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
+  const { data: messages, isLoading: isMessagesLoading, error: messagesError } = useCollection<Message>(messagesQuery);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -303,6 +304,11 @@ export default function MessagesPage() {
           <div className="p-3 space-y-1">
             {isUsersLoading ? (
               <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20" /></div>
+            ) : (usersError || friendshipError) ? (
+              <div className="p-4 text-center space-y-2">
+                <AlertCircle className="h-8 w-8 text-destructive mx-auto opacity-50" />
+                <p className="text-xs font-medium text-muted-foreground">Permission error. Please refresh.</p>
+              </div>
             ) : followingList.length > 0 ? (
               followingList.map((user) => {
                 const friendship = getFriendshipWith(user.id);
@@ -469,6 +475,12 @@ export default function MessagesPage() {
                   
                   {isMessagesLoading ? (
                     <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
+                  ) : messagesError ? (
+                    <div className="p-8 text-center bg-destructive/5 rounded-2xl border border-destructive/10">
+                      <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4 opacity-50" />
+                      <p className="text-sm font-bold text-destructive">Unable to load messages.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Please check your permissions and refresh.</p>
+                    </div>
                   ) : messages?.length ? (
                     messages.map((msg) => (
                       <div key={msg.id} className={`flex ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>

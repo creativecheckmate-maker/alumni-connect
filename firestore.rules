@@ -9,7 +9,9 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'creativecheckmate@gmail.com' ||
-        request.auth.uid == 'XuRuoj1HWaS5nIiVZVoEdbaGX052'
+        request.auth.token.email == 'geminiak8@gmail.com' ||
+        request.auth.uid == 'XuRuoj1HWaS5nIiVZVoEdbaGX052' ||
+        request.auth.uid == 'zEyeEyDugUWHv4RYKvgntWLunXH2'
       );
     }
 
@@ -21,26 +23,25 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Allow list for any signed-in user to support filtered queries
-      allow get: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
-      allow list: if isSignedIn();
+      // Allow read (get and list) if the user is one of the participants
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
+      allow list: if isSignedIn(); // Filtered by query
       allow create: if isSignedIn();
-      // Allow participants to manage their relationships
-      allow update, delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.uids));
+      // Allow participants to manage their relationships or delete requests
+      allow update, delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.uids || friendshipId.split('_').hasAny([request.auth.uid])));
     }
 
     match /messages/{messageId} {
-      // Trust mandatory participant filters for list operations
-      allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
-      allow list: if isSignedIn();
+      // Allow read if user is a participant
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
+      allow list: if isSignedIn(); // Filtered by query
       allow create: if isSignedIn() && (request.auth.uid in request.resource.data.participants);
       allow update, delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.participants));
     }
 
     match /notifications/{notificationId} {
-      // Trust mandatory user ID filters for list operations
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow list: if isSignedIn();
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn(); // Filtered by query
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }

@@ -24,7 +24,7 @@ export default function EventsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
-  const isAdmin = authUser?.email === ADMIN_EMAIL;
+  const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === 'geminiak8@gmail.com';
   const [isPosting, setIsPosting] = useState(false);
   const [open, setOpen] = useState(false);
   const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
