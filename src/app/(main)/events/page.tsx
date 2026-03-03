@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Loader2, Calendar as CalendarIcon, Upload } from 'lucide-react';
+import { Plus, Trash2, Loader2, Calendar as CalendarIcon, Upload, Scissors } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { CldUploadWidget } from 'next-cloudinary';
 
@@ -51,11 +51,11 @@ export default function EventsPage() {
         imageUrl: eventImageUrl || `https://picsum.photos/seed/${Math.random()}/800/400`,
         createdAt: serverTimestamp(),
       });
-      toast({ title: "Event Created", description: "The event has been added to the calendar." });
+      toast({ title: "Event Published", description: "The event has been synchronized globally." });
       setEventImageUrl(null);
       setOpen(false);
     } catch (e) {
-      toast({ variant: 'destructive', title: "Error", description: "Failed to create event." });
+      toast({ variant: 'destructive', title: "Error", description: "Failed to publish event." });
     } finally {
       setIsPosting(false);
     }
@@ -64,7 +64,7 @@ export default function EventsPage() {
   const handleDeleteEvent = async (id: string) => {
     if (!firestore) return;
     await deleteDoc(doc(firestore, 'events', id));
-    toast({ title: "Event Deleted", description: "The event has been removed." });
+    toast({ title: "Event Removed", description: "The listing has been deleted." });
   };
 
   const handleRSVP = (eventName: string) => {
@@ -72,22 +72,22 @@ export default function EventsPage() {
       router.push('/login');
       return;
     }
-    toast({ title: "RSVP Confirmed", description: `You have successfully registered for ${eventName}.` });
+    toast({ title: "RSVP Confirmed", description: `Registration for ${eventName} is successful.` });
   };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <PageHeader title="Events">
+      <PageHeader title="Global Events" description="Discover reunions, workshops, and summits across our network.">
         {isAdmin && isEditMode && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" /> Add Event
+              <Button className="gap-2 rounded-xl h-11 font-bold shadow-lg shadow-primary/20">
+                <Plus className="h-4 w-4" /> Create New Event
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Create New Event</DialogTitle>
+                <DialogTitle>Event Orchestrator</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAddEvent} className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -95,38 +95,39 @@ export default function EventsPage() {
                   <Input name="name" placeholder="e.g. Annual Homecoming" required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Date</Label>
+                  <Label>Target Date</Label>
                   <Input name="date" placeholder="e.g. August 12, 2024" required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Event Image</Label>
+                  <Label>Event Banner (Landscape)</Label>
                   <div className="flex gap-2">
-                    <Input value={eventImageUrl || ""} placeholder="Image URL" readOnly />
+                    <Input value={eventImageUrl || ""} placeholder="No image selected" readOnly className="bg-muted/50" />
                     <CldUploadWidget 
                       uploadPreset="ml_default"
                       options={{ 
                         cloudName: "dnex9nw0f", 
                         cropping: true, 
-                        multiple: false,
-                        showSkipCropButton: false
+                        showSkipCropButton: false,
+                        croppingAspectRatio: 1.77,
+                        multiple: false
                       }}
                       onSuccess={(result: any) => setEventImageUrl(result.info.secure_url)}
                     >
                       {({ open }) => (
-                        <Button type="button" variant="outline" onClick={() => open()}>
-                          <Upload className="h-4 w-4 mr-2" /> Upload & Crop
+                        <Button type="button" variant="outline" className="gap-2 font-bold" onClick={() => open()}>
+                          <Scissors className="h-4 w-4" /> Crop & Upload
                         </Button>
                       )}
                     </CldUploadWidget>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea name="description" placeholder="Details about the event..." required />
+                  <Label>Detailed Description</Label>
+                  <Textarea name="description" placeholder="Provide agenda and location details..." required className="min-h-[100px]" />
                 </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={isPosting}>
-                    {isPosting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Create Event"}
+                <DialogFooter className="pt-4">
+                  <Button type="submit" disabled={isPosting} className="w-full h-12 font-bold">
+                    {isPosting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Publish Event"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -137,29 +138,29 @@ export default function EventsPage() {
 
       <div className="grid gap-8 md:grid-cols-3">
         <div className="md:col-span-2 space-y-6">
-            <h2 className="text-2xl font-semibold font-headline">Upcoming Events</h2>
+            <h2 className="text-2xl font-bold font-headline tracking-tight">Timeline</h2>
             {isLoading ? (
                 <div className="space-y-4">
-                   {[1, 2].map(i => <div key={i} className="h-48 w-full bg-muted animate-pulse rounded-xl" />)}
+                   {[1, 2].map(i => <div key={i} className="h-48 w-full bg-muted animate-pulse rounded-2xl" />)}
                 </div>
             ) : events && events.length > 0 ? (
                 events.map((event) => (
-                    <Card key={event.id} className="overflow-hidden border-none shadow-sm group">
+                    <Card key={event.id} className="overflow-hidden border-none shadow-lg group hover:shadow-xl transition-shadow bg-card">
                         <div className="grid md:grid-cols-5">
-                            <div className="md:col-span-2 relative h-48 md:h-full">
+                            <div className="md:col-span-2 relative h-48 md:h-full overflow-hidden">
                                 <Image 
                                     src={event.imageUrl || `https://picsum.photos/seed/${event.id}/800/400`} 
                                     alt={event.name} 
                                     fill
-                                    className="object-cover"
+                                    className="object-cover transition-transform duration-700 group-hover:scale-105"
                                 />
                             </div>
-                            <div className="md:col-span-3">
+                            <div className="md:col-span-3 p-2">
                                 <CardHeader className="relative">
                                     <div className="flex justify-between items-start">
-                                        <div>
-                                            <CardTitle>{event.name}</CardTitle>
-                                            <CardDescription className="flex items-center gap-1 mt-1 text-primary font-medium">
+                                        <div className="space-y-1">
+                                            <CardTitle className="text-xl font-black">{event.name}</CardTitle>
+                                            <CardDescription className="flex items-center gap-1.5 text-primary font-black uppercase tracking-widest text-[10px]">
                                                 <CalendarIcon className="h-3 w-3" /> {event.date}
                                             </CardDescription>
                                         </div>
@@ -167,7 +168,7 @@ export default function EventsPage() {
                                             <Button 
                                                 variant="ghost" 
                                                 size="icon" 
-                                                className="text-destructive h-8 w-8" 
+                                                className="text-destructive h-8 w-8 hover:bg-red-50" 
                                                 onClick={() => handleDeleteEvent(event.id)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -176,25 +177,25 @@ export default function EventsPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">{event.description}</p>
+                                    <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed font-medium">{event.description}</p>
                                 </CardContent>
-                                <CardFooter>
-                                    <Button variant="secondary" className="w-full md:w-auto font-bold" onClick={() => handleRSVP(event.name)}>RSVP Now</Button>
+                                <CardFooter className="pt-0">
+                                    <Button variant="secondary" className="w-full md:w-auto font-black px-8 h-11 rounded-xl" onClick={() => handleRSVP(event.name)}>Confirm Attendance</Button>
                                 </CardFooter>
                             </div>
                         </div>
                     </Card>
                 ))
             ) : (
-                <div className="text-center py-20 bg-muted/20 rounded-2xl border-2 border-dashed">
-                    <p className="text-muted-foreground">No upcoming events found.</p>
+                <div className="text-center py-20 bg-muted/20 rounded-[2.5rem] border-2 border-dashed">
+                    <p className="text-muted-foreground font-bold">No active events in the queue.</p>
                 </div>
             )}
         </div>
         <div className="space-y-6">
-          <h2 className="text-2xl font-semibold font-headline">Calendar</h2>
-          <Card className="border-none shadow-sm">
-            <CardContent className="p-2">
+          <h2 className="text-2xl font-bold font-headline tracking-tight">Calendar</h2>
+          <Card className="border-none shadow-xl bg-card rounded-[2rem] overflow-hidden">
+            <CardContent className="p-4">
               <Calendar
                 mode="single"
                 selected={new Date()}

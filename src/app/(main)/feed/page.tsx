@@ -106,7 +106,7 @@ export default function FeedPage() {
                     onChange={(e) => setContent(e.target.value)}
                 />
                 {imageUrl && (
-                  <div className="relative rounded-2xl overflow-hidden group h-64 border-4 border-muted/30">
+                  <div className="relative rounded-2xl overflow-hidden group h-64 border-4 border-muted/30 shadow-inner">
                     <Image src={imageUrl} alt="Upload preview" fill className="object-cover" />
                     <Button 
                       variant="destructive" 
@@ -128,20 +128,21 @@ export default function FeedPage() {
                   cropping: true,
                   showSkipCropButton: false,
                   multiple: false,
-                  sources: ['local', 'url', 'camera']
+                  sources: ['local', 'url', 'camera'],
+                  clientAllowedFormats: ['jpg', 'png', 'jpeg', 'webp']
                 }}
                 onSuccess={(result: any) => setImageUrl(result.info.secure_url)}
               >
                 {({ open }) => (
-                  <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/5 gap-2 px-4 rounded-full font-bold" onClick={() => open()}>
+                  <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/5 gap-2 px-4 rounded-full font-bold transition-all active:scale-95" onClick={() => open()}>
                     <Scissors className="h-5 w-5" />
-                    <span className="text-sm">Crop & Share Photo</span>
+                    <span className="text-sm">Crop & Adjust Image</span>
                   </Button>
                 )}
               </CldUploadWidget>
-              <Button size="lg" className="rounded-full px-8 font-black shadow-lg shadow-primary/20" onClick={handlePost} disabled={isPosting || (!content.trim() && !imageUrl)}>
+              <Button size="lg" className="rounded-full px-8 font-black shadow-lg shadow-primary/20 transition-all active:scale-95" onClick={handlePost} disabled={isPosting || (!content.trim() && !imageUrl)}>
                 {isPosting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Send className="h-5 w-5 mr-2" />}
-                Share Update
+                Post to Feed
               </Button>
             </div>
           </CardContent>
