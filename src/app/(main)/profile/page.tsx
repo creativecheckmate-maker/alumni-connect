@@ -43,7 +43,7 @@ export default function ProfilePage() {
       setNewAvatarUrl(result.info.secure_url);
       toast({
         title: "Image Uploaded & Cropped",
-        description: "Preview your new photo below and click 'Save' to update your profile.",
+        description: "Preview your new photo below and click 'Save' to update your profile across the network.",
       });
     }
   };
@@ -122,7 +122,7 @@ export default function ProfilePage() {
                     </Avatar>
                     
                     <CldUploadWidget
-                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
+                      uploadPreset="ml_default"
                       options={{ 
                         cloudName: "dnex9nw0f",
                         cropping: true,
@@ -130,7 +130,8 @@ export default function ProfilePage() {
                         croppingAspectRatio: 1,
                         multiple: false,
                         maxImageWidth: 1080,
-                        maxImageHeight: 1080
+                        maxImageHeight: 1080,
+                        sources: ['local', 'url', 'camera']
                       }}
                       onSuccess={handleUploadSuccess}
                     >
