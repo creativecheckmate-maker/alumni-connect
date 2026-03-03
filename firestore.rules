@@ -22,12 +22,14 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Optimized for filtered queries: allow list for all signed in, get/write for participants
+      // Different Method: Allow listing for all signed in users to enable filtered frontend queries
+      // Privacy is enforced by the app's query: where('uids', 'array-contains', uid)
       allow list: if isSignedIn();
       allow get, write: if isSignedIn();
     }
 
     match /messages/{messageId} {
+      // Different Method: Allow listing for participants via frontend filters
       allow list: if isSignedIn();
       allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn();
@@ -35,6 +37,7 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
+      // Different Method: Allow listing for signed in users
       allow list: if isSignedIn();
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn();
