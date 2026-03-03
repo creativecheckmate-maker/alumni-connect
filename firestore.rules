@@ -21,25 +21,23 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Different Method: Explicitly allow listing to resolve permission denials.
-      // Privacy is maintained by client-side filters: where('uids', 'array-contains', uid)
-      allow list: if isSignedIn();
-      allow get: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
+      // Different Method: Aligned read rule allows list queries with appropriate filters
+      // This enables where('uids', 'array-contains', uid) to pass security checks
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
       allow write: if isSignedIn();
     }
 
     match /messages/{messageId} {
-      // Different Method: Explicitly allow listing to resolve permission denials during chat opening.
-      // The frontend query where('participants', 'array-contains', uid) ensures users only see their own data.
-      allow list: if isSignedIn();
-      allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
+      // Different Method: Aligned read rule allows list queries with participants filter
+      // Resolves 'Missing or insufficient permissions' for message listing
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
     }
 
     match /notifications/{notificationId} {
-      allow list: if isSignedIn();
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Different Method: Aligned read rule allows listing of user-owned notifications
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn();
     }
 

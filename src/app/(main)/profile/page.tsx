@@ -44,7 +44,7 @@ export default function ProfilePage() {
       setNewAvatarUrl(result.info.secure_url);
       toast({
         title: "Image Uploaded",
-        description: "Click 'Save & Update Profile Photo' to apply changes.",
+        description: "Your new photo is ready. Click 'Save & Update Profile Photo' to apply changes site-wide.",
       });
     }
   };
@@ -53,13 +53,15 @@ export default function ProfilePage() {
     if (!userDocRef || !newAvatarUrl) return;
     setIsSavingAvatar(true);
     try {
+      // Use non-blocking update for instant local feedback and background sync
       updateDocumentNonBlocking(userDocRef, { 
         avatarUrl: newAvatarUrl,
         updatedAt: new Date()
       });
+      
       toast({
         title: "Profile Updated",
-        description: "Your new avatar is now visible to all users in real-time.",
+        description: "Your new avatar is now visible to the entire alumni network in real-time.",
       });
       setNewAvatarUrl(null);
     } catch (e) {
