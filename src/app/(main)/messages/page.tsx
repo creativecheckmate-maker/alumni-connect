@@ -95,8 +95,8 @@ export default function MessagesPage() {
 
   const followingList = allUsers?.filter(u => {
     if (u.id === authUser?.uid) return false;
-    if (activeTab === 'active') return isMutualFriend(u.id);
     const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    if (activeTab === 'active') return isMutualFriend(u.id) && matchesSearch;
     return matchesSearch;
   }) || [];
 
@@ -189,11 +189,10 @@ export default function MessagesPage() {
         updatedAt: serverTimestamp()
       });
 
-      // Notify the other user about acceptance
       addDocumentNonBlocking(collection(firestore, 'notifications'), {
         userId: otherId,
         type: 'connection',
-        message: `${authUser.displayName || 'An alumnus'} followed you back! Your secure communication channel is now unlocked.`,
+        message: `${authUser.displayName || 'An alumnus'} followed you back! Your secure interaction channel is now unlocked.`,
         read: false,
         createdAt: serverTimestamp()
       });
@@ -211,7 +210,6 @@ export default function MessagesPage() {
       };
       setDocumentNonBlocking(doc(firestore, 'friendships', friendshipId), data, { merge: true });
       
-      // Notify the other user about new request
       addDocumentNonBlocking(collection(firestore, 'notifications'), {
         userId: otherId,
         type: 'connection',
@@ -305,7 +303,7 @@ export default function MessagesPage() {
                       </div>
                       
                       {/* Action Layer - Isolated from item click */}
-                      {activeTab === 'network' && !isMutual && (
+                      {!isMutual && (
                         <div className="flex flex-col gap-1 relative z-10" onClick={(e) => e.stopPropagation()}>
                           {isRequestedByMe ? (
                             <Button 
@@ -404,7 +402,7 @@ export default function MessagesPage() {
                       <Radio className={`h-3 w-3 ${isMicOn ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> {isMicOn ? 'VOICE CHANNEL ACTIVE' : 'VOICE CHANNEL READY'}
                     </p>
                   ) : (
-                    <p className="text-[10px] text-muted-foreground font-bold mt-1 uppercase tracking-widest">Connection Request Pending</p>
+                    <p className="text-[10px] text-muted-foreground font-bold mt-1 uppercase tracking-widest">Connection Required</p>
                   )}
                 </div>
               </div>
