@@ -66,7 +66,7 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
                 {key.toLowerCase().includes('url') && (
                   <CldUploadWidget 
                     uploadPreset="ml_default"
-                    options={{ cloudName: "dnex9nw0f" }}
+                    options={{ cloudName: "dnex9nw0f", cropping: true, showSkipCropButton: false }}
                     onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
                   >
                     {({ open }) => (
@@ -200,15 +200,20 @@ export default function JobsPage() {
                   <div className="grid gap-2">
                     <Label>Company Logo</Label>
                     <div className="flex gap-2">
-                      <Input value={logoUrl || ""} placeholder="Logo will be set after upload" readOnly />
+                      <Input value={logoUrl || ""} placeholder="Logo Image URL" readOnly />
                       <CldUploadWidget 
                         uploadPreset="ml_default"
-                        options={{ cloudName: "dnex9nw0f", cropping: true, multiple: false }}
+                        options={{ 
+                          cloudName: "dnex9nw0f", 
+                          cropping: true, 
+                          multiple: false,
+                          showSkipCropButton: false
+                        }}
                         onSuccess={(result: any) => setLogoUrl(result.info.secure_url)}
                       >
                         {({ open }) => (
                           <Button type="button" variant="outline" onClick={() => open()}>
-                            <Upload className="h-4 w-4 mr-2" /> Upload
+                            <Upload className="h-4 w-4 mr-2" /> Upload Logo
                           </Button>
                         )}
                       </CldUploadWidget>

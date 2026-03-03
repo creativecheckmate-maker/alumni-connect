@@ -101,15 +101,20 @@ export default function EventsPage() {
                 <div className="space-y-2">
                   <Label>Event Image</Label>
                   <div className="flex gap-2">
-                    <Input value={eventImageUrl || ""} placeholder="Image URL (set after upload)" readOnly />
+                    <Input value={eventImageUrl || ""} placeholder="Image URL" readOnly />
                     <CldUploadWidget 
                       uploadPreset="ml_default"
-                      options={{ cloudName: "dnex9nw0f", cropping: true, multiple: false }}
+                      options={{ 
+                        cloudName: "dnex9nw0f", 
+                        cropping: true, 
+                        multiple: false,
+                        showSkipCropButton: false
+                      }}
                       onSuccess={(result: any) => setEventImageUrl(result.info.secure_url)}
                     >
                       {({ open }) => (
                         <Button type="button" variant="outline" onClick={() => open()}>
-                          <Upload className="h-4 w-4 mr-2" /> Upload
+                          <Upload className="h-4 w-4 mr-2" /> Upload & Crop
                         </Button>
                       )}
                     </CldUploadWidget>
