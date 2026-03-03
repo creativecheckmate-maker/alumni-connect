@@ -21,23 +21,20 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Allow participants to manage their connections
-      allow read: if isSignedIn();
+      // Allow participants to read and list their own connections
+      // Note: Queries must include a filter on 'uids' array-contains request.auth.uid
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
       allow create: if isSignedIn();
-      // Allow update and delete if user is a participant (check both ID and Data for robustness)
-      allow update, delete: if isSignedIn() && (
-        request.auth.uid in resource.data.uids || 
-        friendshipId.contains(request.auth.uid) || 
-        isAdmin()
-      );
+      // Allow authorized participants to delete or update (e.g. follow back)
+      allow update, delete: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
     }
 
     match /messages/{messageId} {
-      // Allow participants to read and manage their secure chats
-      // Granting list permissions for filtered queries
-      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || messageId.contains(request.auth.uid) || isAdmin());
+      // Allow participants to read and list their secure chats
+      // Note: Queries must include a filter on 'participants' array-contains request.auth.uid
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn() && (request.auth.uid in request.resource.data.participants);
-      allow update, delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.participants || messageId.contains(request.auth.uid)));
+      allow update, delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.participants));
     }
 
     match /notifications/{notificationId} {

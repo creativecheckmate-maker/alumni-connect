@@ -29,7 +29,8 @@ import {
   Lock,
   UserPlus,
   UserCheck,
-  ShieldAlert
+  ShieldAlert,
+  ExternalLink
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { 
@@ -37,6 +38,7 @@ import {
   useFirestore, 
   useMemoFirebase, 
   useCollection, 
+  useDoc,
   updateDocumentNonBlocking,
   setDocumentNonBlocking,
   addDocumentNonBlocking,
@@ -46,6 +48,7 @@ import { collection, query, where, serverTimestamp, limit, doc, orderBy } from '
 import type { User, Message, Friendship } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { moderateContent } from '@/ai/flows/moderation';
+import Link from 'next/link';
 
 export default function MessagesPage() {
   const { user: authUser, isUserLoading } = useUser();
@@ -75,7 +78,7 @@ export default function MessagesPage() {
 
   const { data: friendships } = useCollection<Friendship>(friendshipQuery);
 
-  // Fetch all users for the Network tab
+  // Fetch all users for the list
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !authUser?.uid) return null;
     return query(
@@ -86,6 +89,13 @@ export default function MessagesPage() {
   }, [firestore, authUser?.uid]);
 
   const { data: allUsers, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
+
+  // Fallback: Fetch specific active chat user if not in the limited list
+  const activeUserDocRef = useMemoFirebase(() => {
+    if (!firestore || !activeChat) return null;
+    return doc(firestore, 'users', activeChat);
+  }, [firestore, activeChat]);
+  const { data: activeUserFromDoc } = useDoc<User>(activeUserDocRef);
 
   const getFriendshipWith = (otherId: string) => {
     return friendships?.find(f => f.uids.includes(otherId));
@@ -103,7 +113,7 @@ export default function MessagesPage() {
     return matchesSearch;
   }) || [];
 
-  const selectedUser = allUsers?.find(u => u.id === activeChat);
+  const selectedUser = allUsers?.find(u => u.id === activeChat) || activeUserFromDoc;
   const isChatMutual = activeChat ? isMutualFriend(activeChat) : false;
 
   const chatId = activeChat && authUser?.uid 
@@ -403,16 +413,18 @@ export default function MessagesPage() {
                 <button onClick={() => setActiveChat(null)} className="md:hidden p-2 hover:bg-muted rounded-full transition-colors text-foreground">
                   <ArrowLeft className="h-6 w-6" />
                 </button>
-                <div className="relative">
-                  <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background">
+                <Link href={`/users/${selectedUser.id}`} className="relative group">
+                  <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background transition-transform group-hover:scale-105">
                     <AvatarImage src={selectedUser.avatarUrl} />
                     <AvatarFallback className="bg-zinc-800 text-zinc-400 font-black">{getInitials(selectedUser.name)}</AvatarFallback>
                   </Avatar>
                   {isChatMutual && isMicOn && <span className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.9)]"></span>}
-                </div>
+                </Link>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className={`text-base font-black leading-none tracking-tight ${!isChatMutual && 'text-foreground'}`}>{selectedUser.name}</p>
+                    <Link href={`/users/${selectedUser.id}`} className={`text-base font-black leading-none tracking-tight hover:underline ${!isChatMutual && 'text-foreground'}`}>
+                      {selectedUser.name}
+                    </Link>
                     {isChatMutual && <Badge variant="outline" className="h-5 px-2 text-[9px] border-zinc-700 text-zinc-400 font-black tracking-widest bg-zinc-800/50">MUTUAL CONNECTION</Badge>}
                   </div>
                   {isChatMutual ? (
@@ -522,9 +534,16 @@ export default function MessagesPage() {
                         );
                       }
                       return (
-                        <Button className="w-full h-12 rounded-xl gap-2 font-bold" onClick={() => handleFollowUser(selectedUser.id, selectedUser.name)}>
-                          {hasRequestedMe ? <><UserCheck className="h-4 w-4" /> Accept & Follow Back</> : <><UserPlus className="h-4 w-4" /> Send Connection Request</>}
-                        </Button>
+                        <div className="space-y-2">
+                          <Button className="w-full h-12 rounded-xl gap-2 font-bold" onClick={() => handleFollowUser(selectedUser.id, selectedUser.name)}>
+                            {hasRequestedMe ? <><UserCheck className="h-4 w-4" /> Accept & Follow Back</> : <><UserPlus className="h-4 w-4" /> Send Connection Request</>}
+                          </Button>
+                          <Link href={`/users/${selectedUser.id}`} className="block">
+                            <Button variant="ghost" className="w-full h-12 rounded-xl gap-2 font-bold">
+                              <ExternalLink className="h-4 w-4" /> View Full Profile
+                            </Button>
+                          </Link>
+                        </div>
                       );
                     })()}
                   </div>
