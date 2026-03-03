@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -22,24 +21,21 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Different Method: Allow listing for all signed in users to enable filtered frontend queries
-      // Privacy is enforced by the app's query: where('uids', 'array-contains', uid)
-      allow list: if isSignedIn();
-      allow get, write: if isSignedIn();
+      // Use consolidated 'read' to authorize listing via frontend filters
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
+      allow write: if isSignedIn();
     }
 
     match /messages/{messageId} {
-      // Different Method: Allow listing for participants via frontend filters
-      allow list: if isSignedIn();
-      allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
+      // Participants can read their own messages. Filters are applied on the frontend.
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
     }
 
     match /notifications/{notificationId} {
-      // Different Method: Allow listing for signed in users
-      allow list: if isSignedIn();
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Users can only read their own notifications.
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn();
     }
 

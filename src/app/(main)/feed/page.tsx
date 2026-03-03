@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -106,8 +105,8 @@ export default function FeedPage() {
             </div>
             <div className="flex items-center justify-between border-t border-muted/50 pt-4 px-2">
               <CldUploadWidget 
-                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-                options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
+                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
+                options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dyvntidqy" }}
                 onSuccess={(result: any) => setImageUrl(result.info.secure_url)}
               >
                 {({ open }) => (
