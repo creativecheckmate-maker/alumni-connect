@@ -109,6 +109,7 @@ export default function MessagesPage() {
 
   // Fetch messages for the active chat
   const messagesQuery = useMemoFirebase(() => {
+    // Critical: Only fetch if chatId is valid and user is part of the chat
     if (!firestore || !chatId || !authUser?.uid || !isChatMutual) return null;
     
     return query(
@@ -231,7 +232,7 @@ export default function MessagesPage() {
           <ShieldCheck className="h-16 w-16 text-primary mx-auto opacity-20" />
           <div className="space-y-2">
             <h2 className="text-2xl font-bold font-headline tracking-tight">Private Alumni Network</h2>
-            <p className="text-muted-foreground text-sm leading-relaxed">Log in to build mutual connections, manage follow-back requests, and start secure encrypted conversations.</p>
+            <p className="text-muted-foreground text-sm leading-relaxed">Log in to build mutual connections and start secure conversations.</p>
           </div>
           <Button asChild className="w-full font-bold h-12 rounded-xl shadow-lg shadow-primary/20">
             <a href="/login">Access Alumni Hub</a>
@@ -244,7 +245,7 @@ export default function MessagesPage() {
   return (
     <div className="flex h-[calc(100vh-140px)] gap-4 flex-col md:flex-row max-w-6xl mx-auto w-full">
       {/* Sidebar - Connection Lists */}
-      <Card className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-xl bg-card ${activeChat && !isVideoCallActive ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`w-full md:w-80 flex flex-col overflow-hidden border-none shadow-xl bg-card rounded-xl border ${activeChat && !isVideoCallActive ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b space-y-4 bg-muted/10">
           <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
             <TabsList className="grid grid-cols-2 w-full h-10 p-1 bg-muted/50 rounded-lg">
@@ -287,7 +288,7 @@ export default function MessagesPage() {
                   >
                     <div className="relative">
                       <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background shadow-md">
-                        <AvatarImage src={user.avatarUrl} />
+                        <AvatarImage src={user.avatarUrl} className="object-cover" />
                         <AvatarFallback className="font-bold bg-muted">{getInitials(user.name)}</AvatarFallback>
                       </Avatar>
                       {isMutual && <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></span>}
@@ -332,7 +333,7 @@ export default function MessagesPage() {
             )}
           </div>
         </ScrollArea>
-      </Card>
+      </div>
 
       {/* Main Interaction Window */}
       <Card className={`flex-1 flex flex-col overflow-hidden border-none shadow-2xl bg-card ${!activeChat ? 'hidden md:flex' : 'flex'}`}>
@@ -346,7 +347,7 @@ export default function MessagesPage() {
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full h-full max-w-5xl">
                 <div className="relative rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800 shadow-2xl flex items-center justify-center group">
                    <Avatar className="h-32 w-32 border-4 border-primary/20 ring-8 ring-black/50 transition-transform group-hover:scale-110 duration-500">
-                      <AvatarImage src={authUser?.photoURL || ''} />
+                      <AvatarImage src={authUser?.photoURL || ''} className="object-cover" />
                       <AvatarFallback className="text-2xl font-black">YOU</AvatarFallback>
                    </Avatar>
                    <div className="absolute bottom-6 left-6 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full">
@@ -355,7 +356,7 @@ export default function MessagesPage() {
                 </div>
                 <div className="relative rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-zinc-800 shadow-2xl flex items-center justify-center group">
                    <Avatar className="h-32 w-32 border-4 border-primary/20 ring-8 ring-black/50 transition-transform group-hover:scale-110 duration-500">
-                      <AvatarImage src={selectedUser?.avatarUrl} />
+                      <AvatarImage src={selectedUser?.avatarUrl} className="object-cover" />
                       <AvatarFallback className="text-2xl font-black">{getInitials(selectedUser?.name || 'U')}</AvatarFallback>
                    </Avatar>
                    <div className="absolute bottom-6 left-6 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full">
@@ -382,7 +383,7 @@ export default function MessagesPage() {
                 </button>
                 <div className="relative">
                   <Avatar className="h-12 w-12 ring-2 ring-offset-2 ring-background">
-                    <AvatarImage src={selectedUser.avatarUrl} />
+                    <AvatarImage src={selectedUser.avatarUrl} className="object-cover" />
                     <AvatarFallback className="bg-zinc-800 text-zinc-400 font-black">{getInitials(selectedUser.name)}</AvatarFallback>
                   </Avatar>
                   {isChatMutual && isMicOn && <span className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.9)]"></span>}

@@ -8,7 +8,7 @@ import type { User, Student, Professor } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, Image as ImageIcon, RefreshCcw } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EditProfileForm } from '@/components/profile/edit-profile-form';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -44,7 +44,7 @@ export default function ProfilePage() {
       setNewAvatarUrl(result.info.secure_url);
       toast({
         title: "Image Uploaded",
-        description: "Click 'Save Profile Photo' to update your account permanently.",
+        description: "Click 'Save & Update Profile Photo' to apply changes.",
       });
     }
   };
@@ -59,11 +59,11 @@ export default function ProfilePage() {
       });
       toast({
         title: "Profile Updated",
-        description: "Your new picture is now live for all users in real-time.",
+        description: "Your new avatar is now visible to all users in real-time.",
       });
       setNewAvatarUrl(null);
     } catch (e) {
-      toast({ variant: 'destructive', title: "Error", description: "Failed to save image." });
+      toast({ variant: 'destructive', title: "Error", description: "Failed to save profile photo." });
     } finally {
       setIsSavingAvatar(false);
     }
@@ -102,7 +102,7 @@ export default function ProfilePage() {
                     <DialogHeader>
                         <DialogTitle>Edit Professional Profile</DialogTitle>
                         <DialogDescription>
-                            Keep your academic and professional details updated for the AI recommendation engine.
+                            Update your academic and professional details.
                         </DialogDescription>
                     </DialogHeader>
                     <EditProfileForm currentUser={currentUser} />
@@ -114,10 +114,10 @@ export default function ProfilePage() {
             <CardHeader className="relative flex flex-col items-center justify-center space-y-6 bg-card p-10 text-center">
                 <div className="absolute top-0 left-0 w-full h-32 bg-primary/5 -z-1"></div>
                 
-                <div className="flex flex-col items-center gap-4">
+                <div className="flex flex-col items-center gap-6">
                   <div className="relative group">
-                    <Avatar className="h-32 w-32 md:h-40 md:w-40 border-8 border-background bg-background shadow-2xl transition-transform duration-500 group-hover:scale-105">
-                      <AvatarImage src={newAvatarUrl || currentUser.avatarUrl} alt={currentUser.name} />
+                    <Avatar className="h-32 w-32 md:h-44 md:w-44 border-8 border-background bg-background shadow-2xl transition-all duration-500 group-hover:scale-105">
+                      <AvatarImage src={newAvatarUrl || currentUser.avatarUrl} alt={currentUser.name} className="object-cover" />
                       <AvatarFallback className="text-4xl font-black bg-muted">{getInitials(currentUser.name)}</AvatarFallback>
                     </Avatar>
                     
@@ -130,24 +130,29 @@ export default function ProfilePage() {
                         <Button 
                           size="icon" 
                           variant="secondary" 
-                          className="absolute bottom-2 right-2 h-10 w-10 rounded-full shadow-lg border-2 border-background z-10"
+                          className="absolute bottom-2 right-2 h-12 w-12 rounded-full shadow-2xl border-4 border-background z-10 hover:bg-primary hover:text-white transition-colors"
                           onClick={() => open()}
                         >
-                          <ImageIcon className="h-5 w-5" />
+                          <RefreshCcw className="h-5 w-5" />
                         </Button>
                       )}
                     </CldUploadWidget>
                   </div>
 
                   {newAvatarUrl && (
-                    <Button 
-                      onClick={handleSaveAvatar} 
-                      disabled={isSavingAvatar}
-                      className="bg-green-600 hover:bg-green-700 animate-in zoom-in-95 duration-300 shadow-lg font-bold"
-                    >
-                      {isSavingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-                      Save Profile Photo
-                    </Button>
+                    <div className="flex flex-col gap-2 items-center animate-in slide-in-from-top-4 duration-500">
+                        <p className="text-[10px] font-black uppercase text-primary tracking-widest">New Image Pending Save</p>
+                        <Button 
+                            onClick={handleSaveAvatar} 
+                            disabled={isSavingAvatar}
+                            size="lg"
+                            className="bg-green-600 hover:bg-green-700 shadow-xl font-black rounded-xl px-8 h-12"
+                        >
+                            {isSavingAvatar ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
+                            Save & Update Profile Photo
+                        </Button>
+                        <Button variant="link" size="sm" className="text-muted-foreground" onClick={() => setNewAvatarUrl(null)}>Cancel</Button>
+                    </div>
                   )}
                 </div>
 
@@ -233,13 +238,6 @@ export default function ProfilePage() {
                                 <Badge key={preference} variant="secondary" className="px-4 py-1 font-bold">{preference}</Badge>
                             ))}
                         </div>
-                    </div>
-                )}
-                
-                {currentUser.networkActivity && (
-                    <div className="pt-8 border-t">
-                        <h3 className="font-bold text-sm uppercase tracking-widest text-muted-foreground mb-4">Platform Engagement</h3>
-                        <p className="text-base text-muted-foreground italic leading-relaxed">"{currentUser.networkActivity}"</p>
                     </div>
                 )}
             </CardContent>

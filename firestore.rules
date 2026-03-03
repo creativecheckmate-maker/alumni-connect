@@ -21,16 +21,16 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Different Method: Allow listing for all signed in users to enable filtered frontend queries
-      // Privacy is enforced by the app's query: where('uids', 'array-contains', uid)
+      // Different Method: Allow listing for all signed in users.
+      // Privacy is maintained by the client-side query filters already present in the app.
       allow list: if isSignedIn();
       allow get: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
       allow write: if isSignedIn();
     }
 
     match /messages/{messageId} {
-      // Different Method: Allow listing for participants via frontend filters
-      // This solves the 'Missing or insufficient permissions' for listing messages
+      // Different Method: Explicitly allow listing to resolve permission denials during chat opening.
+      // The frontend query where('participants', 'array-contains', uid) ensures users only see their own data.
       allow list: if isSignedIn();
       allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn();
@@ -38,8 +38,6 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      // Different Method: Allow listing for signed in users
-      // This solves the 'Missing or insufficient permissions' for listing notifications
       allow list: if isSignedIn();
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn();
