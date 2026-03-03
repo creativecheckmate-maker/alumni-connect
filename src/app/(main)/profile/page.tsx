@@ -8,7 +8,7 @@ import type { User, Student, Professor } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, Image as ImageIcon, RefreshCcw } from 'lucide-react';
+import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, RefreshCcw, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EditProfileForm } from '@/components/profile/edit-profile-form';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -18,11 +18,10 @@ import { useState } from 'react';
 const getInitials = (name: string) => {
     if (!name) return '';
     const names = name.split(' ');
-    if (!names[0]) return '';
     if (names.length > 1) {
       return `${names[0][0]}${names[names.length - 1][0]}`;
     }
-    return names[0].substring(0, 2);
+    return names[0]?.substring(0, 2) || '';
 };
 
 export default function ProfilePage() {
@@ -43,8 +42,8 @@ export default function ProfilePage() {
     if (result.info?.secure_url) {
       setNewAvatarUrl(result.info.secure_url);
       toast({
-        title: "Image Uploaded",
-        description: "Your new photo is ready. Click 'Save & Update Profile Photo' to apply changes site-wide.",
+        title: "Image Uploaded & Cropped",
+        description: "Preview your new photo below and click 'Save' to update your profile.",
       });
     }
   };
@@ -53,7 +52,6 @@ export default function ProfilePage() {
     if (!userDocRef || !newAvatarUrl) return;
     setIsSavingAvatar(true);
     try {
-      // Use non-blocking update for instant local feedback and background sync
       updateDocumentNonBlocking(userDocRef, { 
         avatarUrl: newAvatarUrl,
         updatedAt: new Date()
@@ -61,7 +59,7 @@ export default function ProfilePage() {
       
       toast({
         title: "Profile Updated",
-        description: "Your new avatar is now visible to the entire alumni network in real-time.",
+        description: "Your new avatar is now visible across the entire alumni network.",
       });
       setNewAvatarUrl(null);
     } catch (e) {
@@ -125,7 +123,13 @@ export default function ProfilePage() {
                     
                     <CldUploadWidget
                       uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "nexus_alumni"}
-                      options={{ cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dyvntidqy" }}
+                      options={{ 
+                        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dyvntidqy",
+                        cropping: true,
+                        showSkipCropButton: false,
+                        croppingAspectRatio: 1,
+                        multiple: false
+                      }}
                       onSuccess={handleUploadSuccess}
                     >
                       {({ open }) => (
@@ -142,18 +146,24 @@ export default function ProfilePage() {
                   </div>
 
                   {newAvatarUrl && (
-                    <div className="flex flex-col gap-2 items-center animate-in slide-in-from-top-4 duration-500">
-                        <p className="text-[10px] font-black uppercase text-primary tracking-widest">New Image Pending Save</p>
-                        <Button 
-                            onClick={handleSaveAvatar} 
-                            disabled={isSavingAvatar}
-                            size="lg"
-                            className="bg-green-600 hover:bg-green-700 shadow-xl font-black rounded-xl px-8 h-12"
-                        >
-                            {isSavingAvatar ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
-                            Save & Update Profile Photo
-                        </Button>
-                        <Button variant="link" size="sm" className="text-muted-foreground" onClick={() => setNewAvatarUrl(null)}>Cancel</Button>
+                    <div className="flex flex-col gap-3 items-center animate-in slide-in-from-top-4 duration-500 bg-primary/5 p-4 rounded-2xl border border-primary/10">
+                        <div className="flex items-center gap-2">
+                            <Badge className="bg-primary text-white animate-pulse">Preview Ready</Badge>
+                            <p className="text-[10px] font-black uppercase text-primary tracking-widest">Crop applied successfully</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button 
+                                onClick={handleSaveAvatar} 
+                                disabled={isSavingAvatar}
+                                className="bg-green-600 hover:bg-green-700 shadow-xl font-black rounded-xl px-8 h-12"
+                            >
+                                {isSavingAvatar ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
+                                Save & Update Photo
+                            </Button>
+                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl text-destructive border-destructive/20" onClick={() => setNewAvatarUrl(null)}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
                     </div>
                   )}
                 </div>

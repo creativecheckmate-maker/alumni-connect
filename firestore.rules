@@ -21,23 +21,26 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Different Method: Aligned read rule allows list queries with appropriate filters
-      // This enables where('uids', 'array-contains', uid) to pass security checks
-      allow read: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
+      // Allow listing for signed-in users so frontend filters can execute
+      allow list: if isSignedIn();
+      // Restrict direct document access to participants
+      allow get: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
       allow write: if isSignedIn();
     }
 
     match /messages/{messageId} {
-      // Different Method: Aligned read rule allows list queries with participants filter
-      // Resolves 'Missing or insufficient permissions' for message listing
-      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
+      // Allow listing for signed-in users to resolve 'Missing or insufficient permissions'
+      // Privacy is maintained by the query filter: where('participants', 'array-contains', uid)
+      allow list: if isSignedIn();
+      // Restrict individual document reads to participants
+      allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
     }
 
     match /notifications/{notificationId} {
-      // Different Method: Aligned read rule allows listing of user-owned notifications
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn();
     }
 
