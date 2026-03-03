@@ -40,8 +40,9 @@ export default function ProfilePage() {
   const { data: currentUser, isLoading: isUserLoading } = useDoc<User>(userDocRef);
 
   const handleUploadSuccess = (result: any) => {
-    if (result.info?.secure_url) {
-      setNewAvatarUrl(result.info.secure_url);
+    const url = result?.info?.secure_url || result?.info?.url;
+    if (url) {
+      setNewAvatarUrl(url);
       toast({
         title: "Photo Cropped & Uploaded",
         description: "Click 'Save & Sync' to update your professional identity.",
@@ -147,7 +148,8 @@ export default function ProfilePage() {
                         multiple: false,
                         maxImageWidth: 1080,
                         maxImageHeight: 1080,
-                        sources: ['local', 'url', 'camera']
+                        sources: ['local', 'url', 'camera'],
+                        clientAllowedFormats: ['jpg', 'png', 'jpeg', 'webp']
                       }}
                       onSuccess={handleUploadSuccess}
                     >
