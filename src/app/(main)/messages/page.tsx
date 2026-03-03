@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card } from '@/components/ui/card';
@@ -301,7 +300,7 @@ export default function MessagesPage() {
                     </div>
                     
                     {!isMutual && (
-                      <div className="flex flex-col gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex flex-col gap-1 shrink-0">
                         {isRequestedByMe ? (
                           <Button 
                             size="sm" 

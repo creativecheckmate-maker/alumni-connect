@@ -21,24 +21,23 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Different Method: Explicitly split list and get to help the query optimizer
-      allow list: if isSignedIn() && request.auth.uid in resource.data.uids;
-      allow get: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
+      // Different Method: Require the user to be one of the listed UIDs for any read operation
+      // This enforces query-rule alignment for useCollection
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
       allow write: if isSignedIn();
     }
 
     match /messages/{messageId} {
-      // Different Method: Explicitly split list and get to resolve listing denials
-      allow list: if isSignedIn() && request.auth.uid in resource.data.participants;
-      allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
+      // Different Method: Explicitly authorize list and get if user is a participant
+      // This solves the 'Missing or insufficient permissions' for listing messages
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
     }
 
     match /notifications/{notificationId} {
-      // Different Method: Explicitly split list and get for real-time listeners
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Different Method: Authorize based on ownership
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn();
     }
 
