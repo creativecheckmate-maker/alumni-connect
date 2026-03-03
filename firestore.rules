@@ -21,25 +21,26 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Allow listing for filtered dashboard queries (e.g. uids array-contains uid)
-      allow list: if isSignedIn();
-      allow get: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
-      allow write: if isSignedIn();
+      // Consolidate read to allow listing if uid is in uids
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (request.auth.uid in resource.data.uids || isAdmin());
+      allow delete: if isAdmin();
     }
 
     match /messages/{messageId} {
-      // Allow listing for chat selection filtered by participants
-      allow list: if isSignedIn();
-      allow get: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
-      allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.participants);
+      // Secure listing and getting: uid must be a participant
+      // Note: By using 'read' (which includes list), we allow Firestore to authorize filtered queries
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
+      allow create: if isSignedIn() && (request.auth.uid in request.resource.data.participants);
+      allow update: if isSignedIn() && (request.auth.uid in resource.data.participants || isAdmin());
+      allow delete: if isAdmin();
     }
 
     match /notifications/{notificationId} {
-      // Allow listing for the user's private notification feed
-      allow list: if isSignedIn();
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow write: if isSignedIn();
+      // Secure listing and getting: uid must be the owner
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isSignedIn() && (request.resource.data.userId == request.auth.uid || resource.data.userId == request.auth.uid || isAdmin());
     }
 
     match /feed/{postId} {

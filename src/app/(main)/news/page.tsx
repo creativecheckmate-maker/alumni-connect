@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -73,7 +72,8 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
                 )}
                 {key.toLowerCase().includes('url') && (
                   <CldUploadWidget 
-                    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                    uploadPreset="ml_default"
+                    options={{ cloudName: "dnex9nw0f" }}
                     onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
                   >
                     {({ open }) => (
@@ -195,7 +195,8 @@ export default function NewsPage() {
                       <div className="flex gap-2">
                         <Input value={newsImageUrl || ""} placeholder="Image URL (will be set after upload)" readOnly />
                         <CldUploadWidget 
-                          uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                          uploadPreset="ml_default"
+                          options={{ cloudName: "dnex9nw0f", cropping: true, multiple: false }}
                           onSuccess={(result: any) => setNewsImageUrl(result.info.secure_url)}
                         >
                           {({ open }) => (
