@@ -61,7 +61,8 @@ export default function MessagesPage() {
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'active' | 'network'>('active');
+  // User wants users in Network tab until they are mutual (active)
+  const [activeTab, setActiveTab] = useState<'active' | 'network'>('network');
   const [isSending, setIsSending] = useState(false);
   
   const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === SECONDARY_ADMIN_EMAIL || authUser?.email === 'geminiak8@gmail.com';
@@ -115,8 +116,15 @@ export default function MessagesPage() {
   const followingList = allUsers?.filter(u => {
     if (u.id === authUser?.uid) return false;
     const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    if (activeTab === 'active') return (isMutualFriend(u.id) || isAdmin) && matchesSearch;
-    return matchesSearch;
+    const isMutual = isMutualFriend(u.id);
+    
+    if (activeTab === 'active') {
+      // Chats: Only mutuals (admins see everyone if they are in "Chats" tab)
+      return (isMutual || isAdmin) && matchesSearch;
+    } else {
+      // Network: Everyone else UNTIL they become mutual
+      return !isMutual && matchesSearch;
+    }
   }) || [];
 
   const selectedUser = allUsers?.find(u => u.id === activeChat) || activeUserFromDoc;

@@ -44,8 +44,8 @@ export default function ProfilePage() {
     if (url) {
       setNewAvatarUrl(url);
       toast({
-        title: "Photo Cropped & Uploaded",
-        description: "Click 'Save & Sync' to finalize your look.",
+        title: "Photo Ready",
+        description: "Click 'Save Profile Photo' to update your look.",
       });
     }
   };
@@ -74,7 +74,7 @@ export default function ProfilePage() {
       });
       
       toast({
-        title: "Profile Synchronized",
+        title: "Profile Updated",
         description: "Your new avatar is now live across the network.",
       });
       setNewAvatarUrl(null);
@@ -174,7 +174,7 @@ export default function ProfilePage() {
                     <div className="flex flex-col gap-3 items-center animate-in zoom-in-95 duration-500 bg-primary/5 p-6 rounded-[2rem] border-2 border-primary/10 shadow-lg">
                         <div className="flex items-center gap-2 mb-1">
                             <ShieldCheck className="h-4 w-4 text-green-600" />
-                            <p className="text-[10px] font-black uppercase text-green-600 tracking-widest">Image Cropped & Verified</p>
+                            <p className="text-[10px] font-black uppercase text-green-600 tracking-widest">Image Verified</p>
                         </div>
                         <div className="flex gap-2">
                             <Button 

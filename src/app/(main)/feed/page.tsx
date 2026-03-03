@@ -128,6 +128,7 @@ export default function FeedPage() {
                   cropping: true,
                   showSkipCropButton: true,
                   singleUploadAutoClose: true,
+                  croppingAspectRatio: 1.77,
                   croppingDefaultSelection: 'transform',
                   croppingShowBackButton: true,
                   multiple: false,
@@ -138,8 +139,8 @@ export default function FeedPage() {
               >
                 {({ open }) => (
                   <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/5 gap-2 px-4 rounded-full font-bold transition-all active:scale-95" onClick={() => open()}>
-                    <Scissors className="h-5 w-5" />
-                    <span className="text-sm">Adjust Photo</span>
+                    <ImageIcon className="h-5 w-5" />
+                    <span className="text-sm">Add Photo</span>
                   </Button>
                 )}
               </CldUploadWidget>
