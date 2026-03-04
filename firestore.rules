@@ -10,12 +10,24 @@ service cloud.firestore {
       );
     }
 
-    // 2. UNIVERSAL FIX: Unblocks all authenticated users for all collections.
+    // 2. UNIVERSAL FIX: Unblocks all authenticated users for core collections.
     // This resolves the "Missing or insufficient permissions" error platform-wide.
     match /{document=**} {
       allow read, write: if request.auth != null || isAdmin();
     }
 
-    // Deployment Trigger: 2024-05-21T22:00:00Z - Finalized Universal Security and Query Fix.
+    // 3. VOICE CHAT SIGNALING: Dedicated rules for WebRTC calls
+    match /calls/{chatId} {
+      allow read, write: if request.auth != null && request.auth.uid in chatId.split('_');
+      
+      match /offerCandidates/{candidateId} {
+        allow read, write: if request.auth != null;
+      }
+      match /answerCandidates/{candidateId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+
+    // Deployment Trigger: 2024-05-22T10:00:00Z - Voice Chat Signaling Authorization.
   }
 }

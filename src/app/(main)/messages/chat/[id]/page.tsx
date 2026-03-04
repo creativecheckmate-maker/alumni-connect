@@ -1,16 +1,26 @@
 'use client';
 
-import { useDoc, useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { doc, collection, query, where, serverTimestamp, limit } from 'firebase/firestore';
+import { useDoc, useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { doc, collection, query, where, serverTimestamp, limit, onSnapshot, getDoc } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Send, ShieldCheck, Loader2, MoreVertical, Phone, Video, Check, CheckCheck } from 'lucide-react';
+import { ArrowLeft, Send, ShieldCheck, Loader2, MoreVertical, Phone, Video, Check, CheckCheck, Mic, MicOff, PhoneOff, Volume2 } from 'lucide-react';
 import type { User, Message, Friendship } from '@/lib/definitions';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
+
+const servers = {
+  iceServers: [
+    {
+      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
+    },
+  ],
+  iceCandidatePoolSize: 10,
+};
 
 export default function ChatRoomPage() {
   const params = useParams();
@@ -18,8 +28,18 @@ export default function ChatRoomPage() {
   const { user: authUser } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
   const [content, setContent] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Voice Chat States
+  const [isCalling, setIsCalling] = useState(false);
+  const [isIncomingCall, setIsIncomingCall] = useState(false);
+  const [pc, setPc] = useState<RTCPeerConnection | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [isTalking, setIsTalking] = useState(false);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   const receiverDocRef = useMemoFirebase(() => {
     if (!firestore || !receiverId) return null;
@@ -64,6 +84,185 @@ export default function ChatRoomPage() {
       return timeA - timeB;
     });
   }, [rawMessages]);
+
+  // Voice Analysis for "Talking" Indicator
+  useEffect(() => {
+    if (!localStream) return;
+    const audioContext = new AudioContext();
+    const analyser = audioContext.createAnalyser();
+    const microphone = audioContext.createMediaStreamSource(localStream);
+    const javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+
+    analyser.smoothingTimeConstant = 0.8;
+    analyser.fftSize = 1024;
+
+    microphone.connect(analyser);
+    analyser.connect(javascriptNode);
+    javascriptNode.connect(audioContext.destination);
+
+    javascriptNode.onaudioprocess = () => {
+      const array = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(array);
+      let values = 0;
+      const length = array.length;
+      for (let i = 0; i < length; i++) {
+        values += array[i];
+      }
+      const average = values / length;
+      setIsTalking(average > 20); // Threshold for talking
+    };
+
+    return () => {
+      javascriptNode.disconnect();
+      analyser.disconnect();
+      microphone.disconnect();
+      audioContext.close();
+    };
+  }, [localStream]);
+
+  // Signaling Listener for incoming calls
+  useEffect(() => {
+    if (!firestore || !chatId || !authUser) return;
+
+    const callDoc = doc(firestore, 'calls', chatId);
+    const unsubscribe = onSnapshot(callDoc, (snapshot) => {
+      const data = snapshot.data();
+      if (data?.offer && !pc && !isCalling) {
+        setIsIncomingCall(true);
+      }
+      if (!data && pc) {
+        // Call was hung up by remote
+        endCall();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [firestore, chatId, pc, isCalling, authUser]);
+
+  const setupWebRTC = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    const localPc = new RTCPeerConnection(servers);
+    const remoteStreamObj = new MediaStream();
+
+    stream.getTracks().forEach((track) => {
+      localPc.addTrack(track, stream);
+    });
+
+    localPc.ontrack = (event) => {
+      event.streams[0].getTracks().forEach((track) => {
+        remoteStreamObj.addTrack(track);
+      });
+    };
+
+    setLocalStream(stream);
+    setRemoteStream(remoteStreamObj);
+    setPc(localPc);
+
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteStreamObj;
+    }
+
+    return { localPc, stream };
+  };
+
+  const startCall = async () => {
+    if (!firestore || !chatId) return;
+    setIsCalling(true);
+    const { localPc, stream } = await setupWebRTC();
+
+    const callDoc = doc(firestore, 'calls', chatId);
+    const offerCandidates = collection(callDoc, 'offerCandidates');
+    const answerCandidates = collection(callDoc, 'answerCandidates');
+
+    localPc.onicecandidate = (event) => {
+      if (event.candidate) {
+        addDocumentNonBlocking(offerCandidates, event.candidate.toJSON());
+      }
+    };
+
+    const offerDescription = await localPc.createOffer();
+    await localPc.setLocalDescription(offerDescription);
+
+    const offer = {
+      sdp: offerDescription.sdp,
+      type: offerDescription.type,
+    };
+
+    await setDocumentNonBlocking(callDoc, { offer }, { merge: true });
+
+    onSnapshot(callDoc, (snapshot) => {
+      const data = snapshot.data();
+      if (!localPc.currentRemoteDescription && data?.answer) {
+        const answerDescription = new RTCSessionDescription(data.answer);
+        localPc.setRemoteDescription(answerDescription);
+      }
+    });
+
+    onSnapshot(answerCandidates, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          localPc.addIceCandidate(new RTCIceCandidate(data));
+        }
+      });
+    });
+  };
+
+  const answerCall = async () => {
+    if (!firestore || !chatId) return;
+    setIsIncomingCall(false);
+    setIsCalling(true);
+    const { localPc, stream } = await setupWebRTC();
+
+    const callDoc = doc(firestore, 'calls', chatId);
+    const offerCandidates = collection(callDoc, 'offerCandidates');
+    const answerCandidates = collection(callDoc, 'answerCandidates');
+
+    localPc.onicecandidate = (event) => {
+      if (event.candidate) {
+        addDocumentNonBlocking(answerCandidates, event.candidate.toJSON());
+      }
+    };
+
+    const callData = (await getDoc(callDoc)).data();
+    const offerDescription = callData?.offer;
+    await localPc.setRemoteDescription(new RTCSessionDescription(offerDescription));
+
+    const answerDescription = await localPc.createAnswer();
+    await localPc.setLocalDescription(answerDescription);
+
+    const answer = {
+      type: answerDescription.type,
+      sdp: answerDescription.sdp,
+    };
+
+    await updateDocumentNonBlocking(callDoc, { answer });
+
+    onSnapshot(offerCandidates, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          localPc.addIceCandidate(new RTCIceCandidate(data));
+        }
+      });
+    });
+  };
+
+  const endCall = () => {
+    if (pc) {
+      pc.close();
+      setPc(null);
+    }
+    if (localStream) {
+      localStream.getTracks().forEach(t => t.stop());
+      setLocalStream(null);
+    }
+    setIsCalling(false);
+    setIsIncomingCall(false);
+    if (firestore && chatId) {
+      deleteDocumentNonBlocking(doc(firestore, 'calls', chatId));
+    }
+  };
 
   useEffect(() => {
     if (!firestore || !authUser?.uid || !messages || messages.length === 0) return;
@@ -146,6 +345,11 @@ export default function ChatRoomPage() {
               {isOnline && (
                 <span className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 border-2 border-white rounded-full shadow-sm animate-pulse"></span>
               )}
+              {isTalking && (
+                <div className="absolute -top-1 -right-1 bg-primary rounded-full p-0.5 animate-bounce shadow-lg">
+                  <Volume2 className="h-3 w-3 text-white" />
+                </div>
+              )}
             </div>
             <div className="min-w-0">
               <h2 className="text-sm font-black tracking-tight leading-none truncate">{receiver?.name}</h2>
@@ -159,7 +363,24 @@ export default function ChatRoomPage() {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 opacity-40 cursor-not-allowed"><Phone className="h-4 w-4" /></Button>
+          {isCalling ? (
+            <Button variant="destructive" size="icon" className="rounded-full h-10 w-10 animate-pulse" onClick={endCall}>
+              <PhoneOff className="h-5 w-5" />
+            </Button>
+          ) : isIncomingCall ? (
+            <div className="flex gap-2">
+              <Button variant="default" size="sm" className="rounded-full bg-green-600 hover:bg-green-700 animate-bounce" onClick={answerCall}>
+                Answer
+              </Button>
+              <Button variant="ghost" size="icon" className="rounded-full text-destructive" onClick={endCall}>
+                <PhoneOff className="h-5 w-5" />
+              </Button>
+            </div>
+          ) : (
+            <Button variant="ghost" size="icon" className={`rounded-full h-9 w-9 ${isOnline ? 'text-primary' : 'opacity-40 cursor-not-allowed'}`} onClick={() => isOnline && startCall()}>
+              <Phone className="h-4 w-4" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 opacity-40 cursor-not-allowed"><Video className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" className="rounded-full h-9 w-9"><MoreVertical className="h-4 w-4" /></Button>
         </div>
@@ -223,6 +444,9 @@ export default function ChatRoomPage() {
           </Button>
         </form>
       </footer>
+
+      {/* Hidden audio element for WebRTC */}
+      <audio ref={(audio) => { if (audio && remoteStream) audio.srcObject = remoteStream; }} autoPlay />
     </div>
   );
 }
