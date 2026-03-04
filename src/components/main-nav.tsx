@@ -26,8 +26,7 @@ import {
   Globe,
   Edit,
   Loader2,
-  TrendingUp,
-  MessageSquare
+  TrendingUp
 } from 'lucide-react';
 import { Logo } from './logo';
 import { usePathname, useRouter } from 'next/navigation';
@@ -129,7 +128,6 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
     mentorship: 'Mentorship',
     notifications: 'Notifications',
     analytics: 'Career Insights',
-    messages: 'Messages',
     about: 'About Us',
     news: 'News',
     community: 'Community Hub',
@@ -146,7 +144,6 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
     { href: '/dashboard', label: labels.dashboard, icon: LayoutGrid, public: false },
     { href: '/directory', label: labels.directory, icon: Users, public: true },
     { href: '/feed', label: labels.feed, icon: Rss, public: false },
-    { href: '/messages', label: labels.messages, icon: MessageSquare, public: false },
     { href: '/events', label: labels.events, icon: Calendar, public: true },
     { href: '/jobs', label: labels.jobs, icon: Briefcase, public: true },
     { href: '/mentorship', label: labels.mentorship, icon: GraduationCap, public: true },

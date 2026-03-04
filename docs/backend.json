@@ -11,13 +11,12 @@
         "name": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "avatarUrl": { "type": "string", "format": "uri" },
-        "branch": { "type": "string", "description": "Academic branch (e.g. CSE, ME)" },
-        "batch": { "type": "string", "description": "Graduation year or batch name" },
+        "branch": { "type": "string" },
+        "batch": { "type": "string" },
         "university": { "type": "string" },
         "college": { "type": "string" },
         "feedbackRating": { "type": "number" },
         "feedbackCount": { "type": "number" },
-        "totalFeedbackPoints": { "type": "number" },
         "isVisibleInDirectory": { "type": "boolean" },
         "status": { "type": "string", "enum": ["active", "deactivated"] },
         "createdAt": { "type": "string", "format": "date-time" },
@@ -77,7 +76,6 @@
         "location": { "type": "string" },
         "description": { "type": "string" },
         "posterId": { "type": "string" },
-        "companyLogoUrl": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "title", "company", "posterId", "createdAt"]
@@ -101,7 +99,7 @@
         "definition": {
           "entityName": "Friendship",
           "schema": { "$ref": "#/backend/entities/Friendship" },
-          "description": "Tracks mutual follows between users."
+          "description": "Tracks connections between users."
         }
       },
       {
