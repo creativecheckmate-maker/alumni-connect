@@ -27,7 +27,9 @@ import {
   Edit,
   Loader2,
   TrendingUp,
-  Trophy
+  Trophy,
+  MessageSquare,
+  Network
 } from 'lucide-react';
 import { Logo } from './logo';
 import { usePathname, useRouter } from 'next/navigation';
@@ -136,7 +138,10 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
     signOut: 'Sign Out',
     joinButton: 'Join the Network',
     profile: 'My Profile',
-    settings: 'Settings'
+    settings: 'Settings',
+    messages: 'Messaging',
+    chat: 'Chat',
+    network: 'Network'
   };
 
   const labels = sidebarContent?.data || defaultSidebar;
@@ -152,6 +157,11 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
     { href: '/mentorship', label: labels.mentorship, icon: GraduationCap, public: true },
     { href: '/analytics', label: labels.analytics, icon: TrendingUp, public: true },
     { href: '/notifications', label: labels.notifications, icon: Bell, public: false },
+  ];
+
+  const messageItems = [
+    { href: '/messages/chat', label: labels.chat || 'Chat', icon: MessageSquare },
+    { href: '/messages/network', label: labels.network || 'Network', icon: Network },
   ];
 
   const frontPageOptions = [
@@ -196,6 +206,29 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+
+          {user && (
+            <>
+              <div className="px-4 py-2 mt-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                {labels.messages}
+              </div>
+              {messageItems.map((item) => (
+                <SidebarMenuItem key={item.href} className="mb-1">
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith(item.href)}
+                    className="h-11 px-4 rounded-xl transition-all duration-200"
+                    tooltip={item.label}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className={`h-5 w-5 ${pathname.startsWith(item.href) ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <span className={`font-bold text-sm ${pathname.startsWith(item.href) ? 'text-primary' : 'text-muted-foreground'}`}>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </>
+          )}
           
           <div className="px-4 py-2 mt-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
             Explore

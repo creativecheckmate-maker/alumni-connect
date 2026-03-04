@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 1. ADMIN LOGIC: Absolute access for management accounts.
+    // 1. ADMIN BYPASS: Gives your specific email and UIDs absolute access everywhere.
     function isAdmin() {
       return request.auth != null && (
         request.auth.token.email == "creativecheckmate@gmail.com" ||
@@ -12,46 +12,51 @@ service cloud.firestore {
       );
     }
 
-    // 2. GLOBAL BYPASS: High-priority match for Admin troubleshooting.
     match /{document=**} {
       allow read, write: if isAdmin();
     }
 
-    // 3. USERS: Allows authenticated 'list' and 'get' for the Directory and Leaderboard.
+    // 2. USERS: Allows authenticated 'list' and 'get' for Directory and Leaderboard.
     match /users/{userId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow update, delete: if request.auth != null && (request.auth.uid == userId);
     }
 
-    // 4. NOTIFICATIONS: Restricted to recipient or admin.
+    // 3. NOTIFICATIONS: Restricted to recipient or admin.
     match /notifications/{notificationId} {
-      allow read: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
+      allow update, delete: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
     }
 
-    // 5. FRIENDSHIPS: Secure connection tracking.
+    // 4. FRIENDSHIPS: Secure connection tracking.
     match /friendships/{friendshipId} {
-      allow read: if request.auth != null && (resource == null || request.auth.uid in resource.data.uids || isAdmin());
+      allow read: if request.auth != null && (resource == null || request.auth.uid in resource.data.uids);
       allow write: if request.auth != null;
+    }
+
+    // 5. MESSAGES: Private one-on-one chat.
+    match /messages/{messageId} {
+      allow read: if request.auth != null && (resource == null || resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
+      allow create: if request.auth != null;
     }
 
     // 6. SOCIAL FEED: Community updates.
     match /feed/{postId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && (resource == null || resource.data.authorId == request.auth.uid || isAdmin());
+      allow update, delete: if request.auth != null && (resource == null || resource.data.authorId == request.auth.uid);
     }
 
     // 7. CAREERS: Job board access.
     match /jobPostings/{jobId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && (resource == null || resource.data.posterId == request.auth.uid || isAdmin());
+      allow update, delete: if request.auth != null && (resource == null || resource.data.posterId == request.auth.uid);
     }
 
-    // 8. INFRASTRUCTURE: Public site content and event listings.
+    // 8. INFRASTRUCTURE: Public content.
     match /siteContent/{docId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -61,6 +66,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Deployment Sync Trigger: 2024-05-20T14:30:00Z
+    // Deployment Trigger: 2024-05-21T10:00:00Z - Fixed list permissions everywhere.
   }
 }
