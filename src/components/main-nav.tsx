@@ -26,7 +26,8 @@ import {
   Globe,
   Edit,
   Loader2,
-  TrendingUp
+  TrendingUp,
+  Trophy
 } from 'lucide-react';
 import { Logo } from './logo';
 import { usePathname, useRouter } from 'next/navigation';
@@ -128,6 +129,7 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
     mentorship: 'Mentorship',
     notifications: 'Notifications',
     analytics: 'Career Insights',
+    leaderboard: 'Leaderboard',
     about: 'About Us',
     news: 'News',
     community: 'Community Hub',
@@ -143,6 +145,7 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
     { href: '/', label: labels.home, icon: HomeIcon, public: true },
     { href: '/dashboard', label: labels.dashboard, icon: LayoutGrid, public: false },
     { href: '/directory', label: labels.directory, icon: Users, public: true },
+    { href: '/leaderboard', label: labels.leaderboard, icon: Trophy, public: true },
     { href: '/feed', label: labels.feed, icon: Rss, public: false },
     { href: '/events', label: labels.events, icon: Calendar, public: true },
     { href: '/jobs', label: labels.jobs, icon: Briefcase, public: true },
