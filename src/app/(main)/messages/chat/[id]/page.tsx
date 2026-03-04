@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Send, ShieldCheck, Loader2, MoreVertical, Phone, Video, Check, CheckCheck, Mic, MicOff, PhoneOff, Volume2, Radio } from 'lucide-react';
+import { ArrowLeft, Send, ShieldCheck, Loader2, MoreVertical, Phone, Check, CheckCheck, Mic, MicOff, PhoneOff, Volume2, Radio } from 'lucide-react';
 import type { User, Message, Friendship } from '@/lib/definitions';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
@@ -23,7 +23,10 @@ const servers = {
   iceCandidatePoolSize: 10,
 };
 
-// Helper hook for PUBG-style stream volume analysis
+/**
+ * Custom hook for real-time audio volume analysis.
+ * Mirroring the PUBG communication HUD speaking indicator.
+ */
 function useStreamVolume(stream: MediaStream | null) {
   const [isTalking, setIsTalking] = useState(false);
 
@@ -42,7 +45,6 @@ function useStreamVolume(stream: MediaStream | null) {
       audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       analyser = audioContext.createAnalyser();
       source = audioContext.createMediaStreamSource(stream);
-      // Use 2048 buffer size for real-time responsiveness
       processor = audioContext.createScriptProcessor(2048, 1, 1);
 
       analyser.fftSize = 256;
@@ -54,10 +56,10 @@ function useStreamVolume(stream: MediaStream | null) {
         const data = new Uint8Array(analyser!.frequencyBinCount);
         analyser!.getByteFrequencyData(data);
         const volume = data.reduce((a, b) => a + b, 0) / data.length;
-        setIsTalking(volume > 30); // Sensitivity threshold
+        setIsTalking(volume > 30); // Volume threshold for "active speaking"
       };
     } catch (e) {
-      console.warn("Audio analysis failed:", e);
+      console.warn("Audio analysis context failed:", e);
     }
 
     return () => {
@@ -81,7 +83,7 @@ export default function ChatRoomPage() {
   const [content, setContent] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Voice Chat States
+  // Voice Chat (WebRTC) States
   const [isCalling, setIsCalling] = useState(false);
   const [isIncomingCall, setIsIncomingCall] = useState(false);
   const [pc, setPc] = useState<RTCPeerConnection | null>(null);
@@ -135,20 +137,18 @@ export default function ChatRoomPage() {
     });
   }, [rawMessages]);
 
-  // Signaling Listener for incoming calls
+  // Signaling Listener for Live Calls
   useEffect(() => {
     if (!firestore || !chatId || !authUser) return;
 
     const callDoc = doc(firestore, 'calls', chatId);
     const unsubscribe = onSnapshot(callDoc, (snapshot) => {
       const data = snapshot.data();
-      // Only trigger incoming UI if there's an active offer and we didn't send it
       if (data?.offer && !pc && !isCalling && !isIncomingCall) {
         if (data.callerId !== authUser.uid) {
           setIsIncomingCall(true);
         }
       }
-      // If the signaling document is deleted while we are in a call, cleanup
       if (!data && (pc || isCalling)) {
         endCall();
       }
@@ -179,7 +179,7 @@ export default function ChatRoomPage() {
 
       return { localPc, stream };
     } catch (e) {
-      toast({ variant: 'destructive', title: "Microphone Required", description: "Voice chat requires microphone permissions." });
+      toast({ variant: 'destructive', title: "Mic Access Required", description: "Please enable your microphone for voice chat." });
       throw e;
     }
   };
@@ -188,7 +188,7 @@ export default function ChatRoomPage() {
     if (!firestore || !chatId || !authUser) return;
     setIsCalling(true);
     try {
-      const { localPc, stream } = await setupWebRTC();
+      const { localPc } = await setupWebRTC();
 
       const callDoc = doc(firestore, 'calls', chatId);
       const offerCandidates = collection(callDoc, 'offerCandidates');
@@ -203,13 +203,8 @@ export default function ChatRoomPage() {
       const offerDescription = await localPc.createOffer();
       await localPc.setLocalDescription(offerDescription);
 
-      const offer = {
-        sdp: offerDescription.sdp,
-        type: offerDescription.type,
-      };
-
       await setDocumentNonBlocking(callDoc, { 
-        offer, 
+        offer: { sdp: offerDescription.sdp, type: offerDescription.type }, 
         callerId: authUser.uid,
         status: 'calling',
         createdAt: serverTimestamp() 
@@ -218,16 +213,14 @@ export default function ChatRoomPage() {
       onSnapshot(callDoc, (snapshot) => {
         const data = snapshot.data();
         if (!localPc.currentRemoteDescription && data?.answer) {
-          const answerDescription = new RTCSessionDescription(data.answer);
-          localPc.setRemoteDescription(answerDescription);
+          localPc.setRemoteDescription(new RTCSessionDescription(data.answer));
         }
       });
 
       onSnapshot(answerCandidates, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'added') {
-            const data = change.doc.data();
-            localPc.addIceCandidate(new RTCIceCandidate(data));
+            localPc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
           }
         });
       });
@@ -241,7 +234,7 @@ export default function ChatRoomPage() {
     setIsIncomingCall(false);
     setIsCalling(true);
     try {
-      const { localPc, stream } = await setupWebRTC();
+      const { localPc } = await setupWebRTC();
 
       const callDoc = doc(firestore, 'calls', chatId);
       const offerCandidates = collection(callDoc, 'offerCandidates');
@@ -254,26 +247,21 @@ export default function ChatRoomPage() {
       };
 
       const callData = (await getDoc(callDoc)).data();
-      const offerDescription = callData?.offer;
-      if (!offerDescription) throw new Error("No offer found");
+      if (!callData?.offer) throw new Error("Missing offer");
 
-      await localPc.setRemoteDescription(new RTCSessionDescription(offerDescription));
-
+      await localPc.setRemoteDescription(new RTCSessionDescription(callData.offer));
       const answerDescription = await localPc.createAnswer();
       await localPc.setLocalDescription(answerDescription);
 
-      const answer = {
-        type: answerDescription.type,
-        sdp: answerDescription.sdp,
-      };
-
-      await updateDocumentNonBlocking(callDoc, { answer, status: 'connected' });
+      await updateDocumentNonBlocking(callDoc, { 
+        answer: { type: answerDescription.type, sdp: answerDescription.sdp }, 
+        status: 'connected' 
+      });
 
       onSnapshot(offerCandidates, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'added') {
-            const data = change.doc.data();
-            localPc.addIceCandidate(new RTCIceCandidate(data));
+            localPc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
           }
         });
       });
@@ -301,33 +289,23 @@ export default function ChatRoomPage() {
 
   useEffect(() => {
     if (!firestore || !authUser?.uid || !messages || messages.length === 0) return;
-
-    const unreadMessages = messages.filter(
-      m => m.receiverId === authUser.uid && m.status !== 'read'
-    );
-
+    const unreadMessages = messages.filter(m => m.receiverId === authUser.uid && m.status !== 'read');
     if (unreadMessages.length > 0) {
       unreadMessages.forEach(m => {
-        updateDocumentNonBlocking(doc(firestore, 'messages', m.id), {
-          status: 'read'
-        });
+        updateDocumentNonBlocking(doc(firestore, 'messages', m.id), { status: 'read' });
       });
     }
   }, [messages, authUser?.uid, firestore]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (scrollRef.current) scrollRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore || !authUser || !content.trim() || !receiverId || !chatId) return;
-
     const messageContent = content.trim();
     setContent('');
-
     addDocumentNonBlocking(collection(firestore, 'messages'), {
       chatId: chatId,
       senderId: authUser.uid,
@@ -350,10 +328,9 @@ export default function ChatRoomPage() {
     return (
       <div className="max-w-md mx-auto text-center py-20 space-y-6">
         <ShieldCheck className="h-16 w-16 text-primary mx-auto opacity-20" />
-        <h2 className="text-2xl font-black">Connection Required</h2>
+        <h2 className="text-2xl font-black">Secure Connection Required</h2>
         <p className="text-muted-foreground leading-relaxed">
-          You can only message members who have accepted your connection request. 
-          Please send a request to **{receiver?.name}** first.
+          You can only message members after a mutual connection is established.
         </p>
         <Link href={`/users/${receiverId}`}>
           <Button className="font-black px-10 h-12 rounded-xl">View Profile to Connect</Button>
@@ -404,7 +381,6 @@ export default function ChatRoomPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* My PUBG-style speaking indicator */}
           {localIsTalking && (
             <div className="flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-full animate-in fade-in zoom-in">
               <Volume2 className="h-3 w-3 text-primary animate-pulse" />
@@ -437,7 +413,6 @@ export default function ChatRoomPage() {
                 <Phone className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 opacity-40 cursor-not-allowed"><Video className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" className="rounded-full h-9 w-9"><MoreVertical className="h-4 w-4" /></Button>
           </div>
         </div>
@@ -502,7 +477,6 @@ export default function ChatRoomPage() {
         </form>
       </footer>
 
-      {/* Audio sink for WebRTC stream */}
       <audio ref={(audio) => { if (audio && remoteStream) audio.srcObject = remoteStream; }} autoPlay />
     </div>
   );
