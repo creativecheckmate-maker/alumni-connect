@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Deployment Trigger: Simplified rules for robust notification listing - 2024-05-22
+    // Deployment Trigger: Robust permission unblocking - 2024-05-23
     
     function isSignedIn() {
       return request.auth != null;
@@ -30,9 +30,10 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      // Allow signed-in users to read notifications. 
-      // Privacy is enforced by the application-layer query filter (where userId == auth.uid).
-      allow read: if isSignedIn();
+      // Explicitly allowing list and get for all signed-in users.
+      // Privacy is handled by the query where('userId', '==', auth.uid) in the application.
+      allow list: if isSignedIn();
+      allow get: if isSignedIn();
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid));
     }

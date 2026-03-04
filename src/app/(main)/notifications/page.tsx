@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, UserPlus, Calendar, Info, Bell, Loader2, ShieldAlert, AlertCircle } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Calendar, Info, Bell, Loader2, ShieldAlert } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, limit, orderBy } from 'firebase/firestore';
 import type { Notification } from '@/lib/definitions';
@@ -30,7 +30,7 @@ export default function NotificationsPage() {
     );
   }, [firestore, user?.uid]);
 
-  const { data: notifications, isLoading, error: queryError } = useCollection<Notification>(notificationsQuery);
+  const { data: notifications, isLoading } = useCollection<Notification>(notificationsQuery);
 
   const filteredNotifications = notifications?.filter(n => filter === 'all' || n.type === filter) || [];
 
