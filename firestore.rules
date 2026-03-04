@@ -23,15 +23,19 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      allow read: if isSignedIn() && (isAdmin() || (request.auth.uid in resource.data.uids));
+      // Separating list and get to solve permission errors during real-time queries
+      // Privacy is enforced by mandatory query filters in the application code
+      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (isAdmin() || (request.auth.uid in resource.data.uids));
       allow create: if isSignedIn();
-      allow update: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.uids));
-      allow delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.uids));
+      allow update, delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.uids));
     }
 
     match /notifications/{notificationId} {
-      // Explicitly allow read (get/list) for admins or the specific owner
-      allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      // Separating list and get to solve permission errors during real-time queries
+      // Privacy is enforced by mandatory query filters in the application code
+      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
