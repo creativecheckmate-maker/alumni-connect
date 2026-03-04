@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Deployment Trigger: Universal Unblock Fix - 2024-05-23
+    // Deployment Trigger: Universal Unblock Fix - 2024-05-23 14:15
     // This solves the "Missing or insufficient permissions" error across all sections once and for all.
     
     function isSignedIn() {
@@ -28,26 +28,32 @@ service cloud.firestore {
 
     // 2. SPECIFIC WRITE OVERRIDES: Allows users to manage their own profile and interactions.
     match /users/{userId} {
+      allow read: if isSignedIn();
       allow write: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
     }
 
     match /notifications/{notificationId} {
+      allow read: if isSignedIn();
       allow write: if isAdmin() || (isSignedIn() && (request.resource.data.userId == request.auth.uid || resource.data.userId == request.auth.uid));
     }
 
     match /friendships/{friendshipId} {
+      allow read: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     match /feed/{postId} {
+      allow read: if isSignedIn();
       allow write: if isAdmin() || (isSignedIn() && (request.resource.data.authorId == request.auth.uid || resource.data.authorId == request.auth.uid));
     }
 
     match /events/{eventId} {
+      allow read: if isSignedIn();
       allow write: if isAdmin() || (isSignedIn() && (request.resource.data.organizerId == request.auth.uid || resource.data.organizerId == request.auth.uid));
     }
 
     match /jobPostings/{jobId} {
+      allow read: if isSignedIn();
       allow write: if isAdmin() || (isSignedIn() && (request.resource.data.posterId == request.auth.uid || resource.data.posterId == request.auth.uid));
     }
     
