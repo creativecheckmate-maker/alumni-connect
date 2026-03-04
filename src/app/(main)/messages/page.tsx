@@ -93,7 +93,8 @@ export default function MessagesPage() {
     if (activeTab === 'chats') {
       return isMutual && matchesSearch;
     } else {
-      return matchesSearch;
+      // In 'network' tab, show everyone else (non-mutual)
+      return !isMutual && matchesSearch;
     }
   }) || [];
 
@@ -132,7 +133,7 @@ export default function MessagesPage() {
     if (!firestore || !authUser || !activeChat || !messageText.trim() || !chatId || isSending) return;
     
     if (!isChatEligible) {
-      toast({ variant: 'destructive', title: "Mutual Connection Required", description: "Establish a mutual follow to unlock secure interaction." });
+      toast({ variant: 'destructive', title: "Interaction Locked", description: "Establish a mutual follow to enable secure messaging." });
       return;
     }
 
@@ -140,7 +141,7 @@ export default function MessagesPage() {
     try {
       const moderation = await moderateContent({ text: messageText });
       if (!moderation.isSafe) {
-        toast({ variant: 'destructive', title: "Policy Violation", description: moderation.reason || "Content violates community standards." });
+        toast({ variant: 'destructive', title: "Policy Violation", description: moderation.reason || "Your message violates community standards." });
         setIsSending(false);
         return;
       }
@@ -200,7 +201,7 @@ export default function MessagesPage() {
         createdAt: serverTimestamp()
       });
     }
-    toast({ title: "Success", description: "Interaction status updated." });
+    toast({ title: "Status Updated", description: "Relationship synchronized." });
   };
 
   if (!authUser && !isUserLoading) {
@@ -208,10 +209,10 @@ export default function MessagesPage() {
       <div className="flex-1 flex items-center justify-center p-10">
         <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-none">
           <Lock className="h-16 w-16 text-primary mx-auto opacity-20" />
-          <h2 className="text-2xl font-bold font-headline">Secure Network</h2>
-          <p className="text-muted-foreground">Log in to establish mutual connections and unlock encrypted interaction channels.</p>
+          <h2 className="text-2xl font-bold font-headline">Secure Access Required</h2>
+          <p className="text-muted-foreground text-sm leading-relaxed">Log in to establish connections and unlock encrypted interaction channels with the Nexus community.</p>
           <Button asChild className="w-full font-bold h-12 rounded-xl">
-            <Link href="/login">Access Alumni Hub</Link>
+            <Link href="/login">Log In to Nexus</Link>
           </Button>
         </Card>
       </div>
@@ -225,10 +226,10 @@ export default function MessagesPage() {
           <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
             <TabsList className="grid grid-cols-2 w-full h-10 p-1 bg-muted/50 rounded-lg">
               <TabsTrigger value="chats" className="text-xs font-bold gap-2">
-                <MessageCircle className="h-3.5 w-3.5" /> Chats
+                <MessageCircle className="h-3.5 w-3.5" /> Mutual
               </TabsTrigger>
               <TabsTrigger value="network" className="text-xs font-bold gap-2">
-                <UsersIcon className="h-3.5 w-3.5" /> Network
+                <UsersIcon className="h-3.5 w-3.5" /> Discovery
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -265,11 +266,11 @@ export default function MessagesPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold truncate">{user.name}</p>
                       <p className="text-[10px] text-muted-foreground uppercase font-medium">
-                        {isMutual ? 'Connected' : (isRequested ? 'Requested' : 'Alumni')}
+                        {isMutual ? 'Connected' : (isRequested ? 'Request Sent' : 'Discovery')}
                       </p>
                     </div>
                     {activeTab === 'network' && (
-                      <Button size="sm" variant="default" className="px-3 rounded-full text-[9px] h-7" onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id); }}>
+                      <Button size="sm" variant="outline" className="px-3 rounded-full text-[9px] h-7 border-primary/20 text-primary" onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id); }}>
                         {isRequested ? "Pending" : "Connect"}
                       </Button>
                     )}
@@ -277,9 +278,9 @@ export default function MessagesPage() {
                 );
               })
             ) : (
-              <div className="text-center py-10">
-                <p className="text-xs text-muted-foreground">
-                  {activeTab === 'chats' ? 'Establish mutual connections to unlock secure chats.' : 'No alumni matches found.'}
+              <div className="text-center py-10 px-6">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {activeTab === 'chats' ? 'Establish mutual follows in the Discovery tab to unlock conversations.' : 'No alumni profiles found matching your search criteria.'}
                 </p>
               </div>
             )}
@@ -302,7 +303,7 @@ export default function MessagesPage() {
                 <div>
                   <Link href={`/users/${selectedUser.id}`} className="text-base font-black hover:underline">{selectedUser.name}</Link>
                   <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest flex items-center gap-1.5 mt-1">
-                    <Radio className={`h-3 w-3 ${isChatEligible ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> {isChatEligible ? 'SECURE CHANNEL ACTIVE' : 'CHANNEL LOCKED'}
+                    <Radio className={`h-3 w-3 ${isChatEligible ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> {isChatEligible ? 'SECURE CHANNEL ACTIVE' : 'PRIVATE CHANNEL LOCKED'}
                   </p>
                 </div>
               </div>
@@ -321,13 +322,13 @@ export default function MessagesPage() {
                   ) : messagesError ? (
                     <div className="text-center py-20 bg-destructive/5 rounded-2xl border border-destructive/10">
                         <ShieldAlert className="h-10 w-10 text-destructive mx-auto mb-4 opacity-40" />
-                        <p className="text-sm font-bold text-destructive">Secure Authorization Failed</p>
-                        <p className="text-xs text-muted-foreground mt-1 px-10">If you are an administrator, ensure your credentials are active.</p>
+                        <p className="text-sm font-bold text-destructive">Authorization Error</p>
+                        <p className="text-xs text-muted-foreground mt-1 px-10">Access to this private interaction channel has been denied by Nexus security.</p>
                     </div>
                   ) : messages && messages.length > 0 ? (
                     messages.map((msg) => (
                         <div key={msg.id} className={`flex ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[80%] p-4 rounded-2xl shadow-xl ${msg.senderId === authUser?.uid ? 'bg-zinc-900 text-white rounded-tr-none' : 'bg-white text-zinc-900 rounded-tl-none border border-zinc-200'}`}>
+                          <div className={`max-w-[80%] p-4 rounded-2xl shadow-lg ${msg.senderId === authUser?.uid ? 'bg-zinc-900 text-white rounded-tr-none' : 'bg-white text-zinc-900 rounded-tl-none border border-zinc-200'}`}>
                             <p className="text-sm font-medium">{msg.text}</p>
                             <div className={`flex items-center gap-2 mt-3 ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'}`}>
                               <p className="text-[10px] font-black uppercase opacity-40">{msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || '...'}</p>
@@ -337,7 +338,7 @@ export default function MessagesPage() {
                       ))
                   ) : (
                     <div className="text-center py-20">
-                        <p className="text-xs text-muted-foreground italic">No encrypted messages in this channel yet.</p>
+                        <p className="text-xs text-muted-foreground italic">Your secure interaction with {selectedUser.name} has begun.</p>
                     </div>
                   )}
                   <div ref={scrollRef} />
@@ -350,11 +351,11 @@ export default function MessagesPage() {
                   </div>
                   <div className="space-y-3">
                     <h3 className="text-xl font-black uppercase">Mutual Connection Required</h3>
-                    <p className="text-sm text-muted-foreground font-medium">Interaction channels are only unlocked once both individuals follow each other.</p>
+                    <p className="text-sm text-muted-foreground font-medium">Interaction channels are only unlocked once both individuals follow each other to ensure network privacy.</p>
                   </div>
                   <div className="flex flex-col gap-3 w-full">
                     <Button className="w-full h-12 rounded-xl font-bold" onClick={() => handleFollowUser(selectedUser.id)}>
-                      {getFriendshipWith(selectedUser.id)?.followedBy.includes(authUser?.uid || '') ? "Connection Pending" : "Send Connection Request"}
+                      {getFriendshipWith(selectedUser.id)?.followedBy.includes(authUser?.uid || '') ? "Request Pending" : "Follow Back to Unlock Chat"}
                     </Button>
                     <Link href={`/users/${selectedUser.id}`} className="w-full"><Button variant="ghost" className="w-full h-12 rounded-xl font-bold">View Nexus Profile</Button></Link>
                   </div>
@@ -382,8 +383,8 @@ export default function MessagesPage() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-zinc-50/30">
             <ShieldCheck className="h-20 w-20 text-primary opacity-20 mb-8" />
-            <h3 className="font-black text-3xl text-zinc-900 tracking-tighter">SECURE ALUMNI HUB</h3>
-            <p className="text-sm max-w-xs text-muted-foreground mt-3">Establishing a mutual follow creates a private, encrypted interaction channel.</p>
+            <h3 className="font-black text-3xl text-zinc-900 tracking-tighter">SECURE NEXUS HUB</h3>
+            <p className="text-sm max-w-xs text-muted-foreground mt-3">Establish mutual follows to create private, encrypted interaction channels within the alumni community.</p>
           </div>
         )}
       </Card>
