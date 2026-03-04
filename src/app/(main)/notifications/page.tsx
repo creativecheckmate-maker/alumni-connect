@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -18,9 +17,11 @@ export default function NotificationsPage() {
   const firestore = useFirestore();
   const [filter, setFilter] = useState('all');
 
+  // Memoized query ensures stable reference for the useCollection hook
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid || isUserLoading) return null;
     
+    // Explicit filter by userId ensures privacy despite permissive security rules
     return query(
       collection(firestore, 'notifications'), 
       where('userId', '==', user.uid), 
