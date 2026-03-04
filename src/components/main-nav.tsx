@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -20,7 +19,6 @@ import {
   LogOut,
   Calendar,
   GraduationCap,
-  MessageCircle,
   User as UserIcon,
   Home as HomeIcon,
   Info,
@@ -33,7 +31,7 @@ import {
 import { Logo } from './logo';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth, useUser, useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useAuth, useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 import { useState } from 'react';
@@ -129,7 +127,6 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
     jobs: 'Job Board',
     mentorship: 'Mentorship',
     notifications: 'Notifications',
-    messages: 'Messages',
     analytics: 'Career Insights',
     about: 'About Us',
     news: 'News',
@@ -152,7 +149,6 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
     { href: '/mentorship', label: labels.mentorship, icon: GraduationCap, public: true },
     { href: '/analytics', label: labels.analytics, icon: TrendingUp, public: true },
     { href: '/notifications', label: labels.notifications, icon: Bell, public: false },
-    { href: '/messages', label: labels.messages, icon: MessageCircle, public: false },
   ];
 
   const frontPageOptions = [

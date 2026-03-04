@@ -1,4 +1,3 @@
-
 export type UserRole = 'student' | 'professor' | 'non-teaching-staff';
 
 export type UserProfile = {
@@ -60,19 +59,6 @@ export type Notification = {
   type: 'connection' | 'event' | 'general';
   message: string;
   read: boolean;
-  createdAt: any;
-};
-
-export type MessageStatus = 'sent' | 'delivered' | 'seen';
-
-export type Message = {
-  id: string;
-  senderId: string;
-  receiverId: string;
-  participants: string[];
-  chatId: string;
-  text: string;
-  status: MessageStatus;
   createdAt: any;
 };
 

@@ -23,24 +23,13 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Allow participants to manage their relationships
-      // Explicitly allow list for participants
       allow read: if isSignedIn() && (isAdmin() || (request.auth.uid in resource.data.uids));
       allow create: if isSignedIn();
       allow update: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.uids));
-      // Allow deletion if the user is part of the friendship (e.g. cancelling a request)
       allow delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.uids));
     }
 
-    match /messages/{messageId} {
-      // Explicitly allow list/get for participants to match filtered queries in code
-      allow read: if isSignedIn() && (isAdmin() || (request.auth.uid in resource.data.participants));
-      allow create: if isSignedIn();
-      allow update, delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.participants));
-    }
-
     match /notifications/{notificationId} {
-      // Explicitly allow list/get for recipients
       allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
