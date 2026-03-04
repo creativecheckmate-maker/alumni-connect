@@ -30,6 +30,7 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
+      // Explicitly allow read (get/list) for admins or the specific owner
       allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
