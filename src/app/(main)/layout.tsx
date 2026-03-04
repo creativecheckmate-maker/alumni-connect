@@ -198,9 +198,9 @@ export default function MainLayout({
             </div>
           )}
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
           {children}
-        </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );
