@@ -17,6 +17,7 @@
         "college": { "type": "string" },
         "feedbackRating": { "type": "number" },
         "feedbackCount": { "type": "number" },
+        "totalFeedbackPoints": { "type": "number" },
         "isVisibleInDirectory": { "type": "boolean" },
         "status": { "type": "string", "enum": ["active", "deactivated"] },
         "createdAt": { "type": "string", "format": "date-time" },
