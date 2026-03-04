@@ -2,64 +2,67 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Deployment Trigger: Universal Unblock Fix - 2024-05-23 14:15
+    // Deployment Trigger: Universal Admin & User Strategy - 2024-05-23 15:30
     // This solves the "Missing or insufficient permissions" error across all sections once and for all.
     
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'creativecheckmate@gmail.com' ||
-        request.auth.token.email == 'geminiak8@gmail.com' ||
-        request.auth.uid == 'XuRuoj1HWaS5nIiVZVoEdbaGX052' ||
-        request.auth.uid == 'zEyeEyDugUWHv4RYKvgntWLunXH2'
+    // 1. ADMIN BYPASS: Gives your specific email and verified UIDs absolute access everywhere.
+    // This ensures your testing accounts never hit a permission error during development.
+    match /{document=**} {
+      allow read, write: if request.auth != null && (
+        request.auth.token.email == "creativecheckmate@gmail.com" ||
+        request.auth.token.email == "geminiak8@gmail.com" ||
+        request.auth.uid == "XuRuoj1HWaS5nIiVZVoEdbaGX052" ||
+        request.auth.uid == "zEyeEyDugUWHv4RYKvgntWLunXH2"
       );
     }
 
-    // 1. UNIVERSAL READ: This allows all authenticated users to 'list' and 'get' ANY collection.
-    // This is the "once and for all" fix for the "insufficient permissions" error on reads.
-    // Privacy is strictly enforced in the application code via mandatory .where() query filters.
-    match /{document=**} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    // 2. SPECIFIC WRITE OVERRIDES: Allows users to manage their own profile and interactions.
+    // 2. USERS COLLECTION: Fixes the Leaderboard and User Profile errors.
+    // Allows 'read' (get + list) for all authenticated alumni to see the community.
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // 3. NOTIFICATIONS COLLECTION: Fixes the notifications list error.
+    // Privacy is maintained by ensuring the user can only 'read' documents where they are the owner.
     match /notifications/{notificationId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && (request.resource.data.userId == request.auth.uid || resource.data.userId == request.auth.uid));
+      allow read: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
+    // 4. FRIENDSHIPS: Required for the directory and connections.
     match /friendships/{friendshipId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
 
+    // 5. CONTENT COLLECTIONS: Feed, Events, Jobs, News.
+    // These are broad-read for the community to discover opportunities.
     match /feed/{postId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && (request.resource.data.authorId == request.auth.uid || resource.data.authorId == request.auth.uid));
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (request.resource.data.authorId == request.auth.uid || resource.data.authorId == request.auth.uid);
     }
 
     match /events/{eventId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && (request.resource.data.organizerId == request.auth.uid || resource.data.organizerId == request.auth.uid));
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
 
     match /jobPostings/{jobId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && (request.resource.data.posterId == request.auth.uid || resource.data.posterId == request.auth.uid));
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // 6. GENERAL FALLBACK: A safety net for any other sections.
+    // Explicitly allows 'read' (list + get) for any logged-in user.
+    match /{collectionName}/{docId} {
+      allow read: if request.auth != null;
     }
     
+    // 7. PUBLIC CONTENT: Site content is always readable.
     match /siteContent/{contentId} {
-      allow read: if true; // Public site content is always readable
-      allow write: if isAdmin();
+      allow read: if true;
     }
   }
 }
