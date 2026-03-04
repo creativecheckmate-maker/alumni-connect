@@ -36,10 +36,11 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
-    // 5. MESSAGES: Private one-on-one chat.
+    // 5. MESSAGES: Private one-on-one chat with delivery tracking.
     match /messages/{messageId} {
       allow read: if request.auth != null && (resource == null || resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
       allow create: if request.auth != null;
+      allow update: if request.auth != null && (resource.data.receiverId == request.auth.uid);
     }
 
     // 6. SOCIAL FEED: Community updates.
@@ -66,6 +67,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Deployment Trigger: 2024-05-21T10:00:00Z - Fixed list permissions everywhere.
+    // Deployment Trigger: 2024-05-21T14:30:00Z - Added message update permissions for read receipts.
   }
 }

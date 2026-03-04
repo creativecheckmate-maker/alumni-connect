@@ -5,18 +5,17 @@ import { UserNav } from '@/components/user-nav';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Search, Settings2, Edit, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirebase, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { ADMIN_EMAIL } from '@/lib/config';
-import { useState } from 'react';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { doc, setDoc, serverTimestamp, query, collection, where, onSnapshot } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { SiteContent } from '@/lib/definitions';
-import { Logo } from '@/components/logo';
 
 function HeaderEditDialog({ initialData }: { initialData: any }) {
   const { toast } = useToast();
@@ -98,6 +97,25 @@ export default function MainLayout({
 
   const currentHeader = headerContent?.data || defaultHeader;
 
+  // Background message delivery listener
+  useEffect(() => {
+    if (!firestore || !user?.uid) return;
+
+    const q = query(
+      collection(firestore, 'messages'),
+      where('receiverId', '==', user.uid),
+      where('status', '==', 'sent')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docs.forEach((d) => {
+        updateDocumentNonBlocking(d.ref, { status: 'delivered' });
+      });
+    });
+
+    return () => unsubscribe();
+  }, [firestore, user?.uid]);
+
   return (
     <SidebarProvider>
       <MainNav logoPart1={currentHeader.logoPart1} logoPart2={currentHeader.logoPart2} />
@@ -143,7 +161,7 @@ export default function MainLayout({
             </div>
           )}
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background overflow-hidden">
           {children}
         </main>
       </SidebarInset>

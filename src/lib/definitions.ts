@@ -87,11 +87,14 @@ export type JobPosting = {
   createdAt?: any;
 };
 
+export type MessageStatus = 'sent' | 'delivered' | 'read';
+
 export type Message = {
   id: string;
   senderId: string;
   receiverId: string;
   content: string;
+  status: MessageStatus;
   createdAt: any;
 };
 
