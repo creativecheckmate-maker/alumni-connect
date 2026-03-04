@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowLeft, Send, ShieldCheck, Loader2, MoreVertical, Phone, Video, Check, CheckCheck } from 'lucide-react';
 import type { User, Message, Friendship } from '@/lib/definitions';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 export default function ChatRoomPage() {
@@ -40,26 +40,27 @@ export default function ChatRoomPage() {
   const { data: friendships, isLoading: isFriendshipLoading } = useCollection<Friendship>(friendshipQuery);
   const isMutual = friendships?.some(f => f.uids.includes(receiverId));
 
+  // Generate a stable chatId for the conversation
+  const chatId = useMemo(() => {
+    if (!authUser?.uid || !receiverId) return null;
+    return [authUser.uid, receiverId].sort().join('_');
+  }, [authUser?.uid, receiverId]);
+
   const messagesQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser?.uid || !receiverId) return null;
+    if (!firestore || !chatId) return null;
     return query(
       collection(firestore, 'messages'),
-      where('senderId', 'in', [authUser.uid, receiverId]),
+      where('chatId', '==', chatId),
       orderBy('createdAt', 'asc'),
       limit(100)
     );
-  }, [firestore, authUser?.uid, receiverId]);
+  }, [firestore, chatId]);
 
-  const { data: allMessages } = useCollection<Message>(messagesQuery);
-  
-  const messages = allMessages?.filter(m => 
-    (m.senderId === authUser?.uid && m.receiverId === receiverId) || 
-    (m.senderId === receiverId && m.receiverId === authUser?.uid)
-  ) || [];
+  const { data: messages } = useCollection<Message>(messagesQuery);
 
   // Mark as read logic
   useEffect(() => {
-    if (!firestore || !authUser?.uid || messages.length === 0) return;
+    if (!firestore || !authUser?.uid || !messages || messages.length === 0) return;
 
     const unreadMessages = messages.filter(
       m => m.receiverId === authUser.uid && m.status !== 'read'
@@ -82,12 +83,13 @@ export default function ChatRoomPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firestore || !authUser || !content.trim() || !receiverId) return;
+    if (!firestore || !authUser || !content.trim() || !receiverId || !chatId) return;
 
     const messageContent = content.trim();
     setContent('');
 
     addDocumentNonBlocking(collection(firestore, 'messages'), {
+      chatId: chatId,
       senderId: authUser.uid,
       receiverId: receiverId,
       content: messageContent,
@@ -154,7 +156,7 @@ export default function ChatRoomPage() {
             <p className="text-[10px] font-black uppercase tracking-[0.2em]">End-to-End Secure</p>
           </div>
           
-          {messages.map((m) => {
+          {messages?.map((m) => {
             const isMe = m.senderId === authUser?.uid;
             const status = m.status || 'sent';
             

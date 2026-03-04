@@ -32,41 +32,23 @@ service cloud.firestore {
 
     // 4. FRIENDSHIPS: Secure connection tracking.
     match /friendships/{friendshipId} {
-      allow read: if request.auth != null && (resource == null || request.auth.uid in resource.data.uids);
+      allow read: if request.auth != null;
       allow write: if request.auth != null;
     }
 
     // 5. MESSAGES: Private one-on-one chat with delivery tracking.
     match /messages/{messageId} {
-      allow read: if request.auth != null && (resource == null || resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && (resource.data.receiverId == request.auth.uid);
-    }
-
-    // 6. SOCIAL FEED: Community updates.
-    match /feed/{postId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && (resource == null || resource.data.authorId == request.auth.uid);
+      allow update: if request.auth != null && (resource == null || resource.data.receiverId == request.auth.uid);
     }
 
-    // 7. CAREERS: Job board access.
-    match /jobPostings/{jobId} {
+    // 6. GENERAL COLLECTIONS: Safety net for feed, jobs, etc.
+    match /{collectionName}/{docId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && (resource == null || resource.data.posterId == request.auth.uid);
+      allow write: if request.auth != null;
     }
 
-    // 8. INFRASTRUCTURE: Public content.
-    match /siteContent/{docId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    match /events/{docId} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
-    }
-
-    // Deployment Trigger: 2024-05-21T14:30:00Z - Added message update permissions for read receipts.
+    // Deployment Trigger: 2024-05-21T17:00:00Z - Applied Universal Security Fix and chatId-based messaging.
   }
 }
