@@ -14,7 +14,7 @@ import { Search, Briefcase, Plus, MapPin, Building2, ExternalLink, Trash2, Edit,
 import { useCollection, useFirestore, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc, setDoc } from 'firebase/firestore';
 import type { JobPosting, SiteContent } from '@/lib/definitions';
-import { ADMIN_EMAIL } from '@/lib/config';
+import { ADMIN_EMAIL, SECONDARY_ADMIN_EMAIL } from '@/lib/config';
 import Link from 'next/link';
 import { CldUploadWidget } from 'next-cloudinary';
 
@@ -24,7 +24,7 @@ export default function JobsPage() {
   const firestore = useFirestore();
   const [searchTerm, setSearchTerm] = useState('');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === 'geminiak8@gmail.com' || authUser?.uid === 'zEyeEyDugUWHv4RYKvgntWLunXH2';
+  const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === SECONDARY_ADMIN_EMAIL || authUser?.email === 'geminiak8@gmail.com' || authUser?.uid === 'zEyeEyDugUWHv4RYKvgntWLunXH2';
 
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore) return null;

@@ -9,7 +9,7 @@ import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical
 import { useCollection, useFirestore, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 import type { FeedPost, User } from '@/lib/definitions';
-import { ADMIN_EMAIL } from '@/lib/config';
+import { ADMIN_EMAIL, SECONDARY_ADMIN_EMAIL } from '@/lib/config';
 import Image from 'next/image';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,7 @@ export default function FeedPage() {
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
-  const isAdmin = user?.email === ADMIN_EMAIL || user?.email === 'geminiak8@gmail.com' || user?.uid === 'zEyeEyDugUWHv4RYKvgntWLunXH2';
+  const isAdmin = user?.email === ADMIN_EMAIL || user?.email === SECONDARY_ADMIN_EMAIL || user?.email === 'geminiak8@gmail.com' || user?.uid === 'zEyeEyDugUWHv4RYKvgntWLunXH2';
 
   const userProfileDocRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;

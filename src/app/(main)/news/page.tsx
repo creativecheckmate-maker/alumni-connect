@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Newspaper, ArrowRight, Calendar, Edit, Loader2, Plus, Trash2, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
-import { ADMIN_EMAIL } from '@/lib/config';
+import { ADMIN_EMAIL, SECONDARY_ADMIN_EMAIL } from '@/lib/config';
 import { collection, addDoc, serverTimestamp, doc, deleteDoc, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';

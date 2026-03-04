@@ -24,9 +24,11 @@ service cloud.firestore {
 
     match /friendships/{friendshipId} {
       // Allow participants to manage their relationships
-      allow read: if isSignedIn();
+      // Explicitly allow list for participants
+      allow read: if isSignedIn() && (isAdmin() || (request.auth.uid in resource.data.uids));
       allow create: if isSignedIn();
       allow update: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.uids));
+      // Allow deletion if the user is part of the friendship (e.g. cancelling a request)
       allow delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.uids));
     }
 
