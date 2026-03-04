@@ -14,7 +14,7 @@ import { EditProfileForm } from '@/components/profile/edit-profile-form';
 import { CldUploadWidget } from 'next-cloudinary';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { moderateContent } from '@/ai/flows/moderation';
+import { moderateContent } from '@/ai/flows/moderate-content';
 
 const getInitials = (name: string) => {
     if (!name) return '';
@@ -43,10 +43,7 @@ export default function ProfilePage() {
     const url = result?.info?.secure_url || result?.info?.url;
     if (url) {
       setNewAvatarUrl(url);
-      toast({
-        title: "Photo Ready",
-        description: "Click 'Save Profile Photo' to update your look.",
-      });
+      toast({ title: "Photo Ready", description: "Click 'Save Profile Photo' to update your look." });
     }
   };
 
@@ -54,15 +51,9 @@ export default function ProfilePage() {
     if (!userDocRef || !newAvatarUrl) return;
     setIsSavingAvatar(true);
     try {
-      // AI Image Moderation Check
       const moderation = await moderateContent({ imageUrl: newAvatarUrl });
-      
       if (!moderation.isSafe) {
-        toast({
-          variant: 'destructive',
-          title: "Policy Violation",
-          description: moderation.reason || "NSFW imagery is not allowed.",
-        });
+        toast({ variant: 'destructive', title: "Policy Violation", description: moderation.reason || "Inappropriate imagery detected." });
         setNewAvatarUrl(null);
         setIsSavingAvatar(false);
         return;
@@ -73,10 +64,7 @@ export default function ProfilePage() {
         updatedAt: serverTimestamp()
       });
       
-      toast({
-        title: "Profile Updated",
-        description: "Your new avatar is now live across the network.",
-      });
+      toast({ title: "Profile Updated", description: "Your new avatar is now live." });
       setNewAvatarUrl(null);
     } catch (e) {
       toast({ variant: 'destructive', title: "Sync Error", description: "Failed to update profile image." });
@@ -89,19 +77,7 @@ export default function ProfilePage() {
     return (
       <div className="max-w-4xl mx-auto space-y-8 pb-20">
         <PageHeader title="Your Profile" />
-         <Card className="overflow-hidden border-none shadow-sm">
-            <CardHeader className="relative flex flex-col items-center justify-center space-y-4 bg-card p-10 text-center">
-                <div className="absolute top-0 left-0 w-full h-24 bg-primary/5 -z-1"></div>
-                <Skeleton className="h-32 w-32 rounded-full border-4 border-background bg-background shadow-md" />
-                <div className="space-y-2">
-                    <Skeleton className="h-8 w-48" />
-                    <Skeleton className="h-4 w-64" />
-                </div>
-            </CardHeader>
-            <CardContent className="p-6 grid gap-6">
-                 <Skeleton className="h-48 w-full rounded-2xl" />
-            </CardContent>
-        </Card>
+         <Card className="overflow-hidden border-none shadow-sm"><CardContent className="p-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /></CardContent></Card>
       </div>
     );
   }
@@ -118,9 +94,7 @@ export default function ProfilePage() {
                 <DialogContent className="sm:max-w-[625px]">
                     <DialogHeader>
                         <DialogTitle>Update Profile</DialogTitle>
-                        <DialogDescription>
-                            Refine your academic and professional data.
-                        </DialogDescription>
+                        <DialogDescription>Refine your academic and professional data.</DialogDescription>
                     </DialogHeader>
                     <EditProfileForm currentUser={currentUser} />
                 </DialogContent>
@@ -130,7 +104,6 @@ export default function ProfilePage() {
         <Card className="overflow-hidden border-none shadow-2xl bg-card">
             <CardHeader className="relative flex flex-col items-center justify-center space-y-6 p-12 text-center">
                 <div className="absolute top-0 left-0 w-full h-40 bg-primary/5 -z-1"></div>
-                
                 <div className="flex flex-col items-center gap-6">
                   <div className="relative group">
                     <Avatar className="h-36 w-32 md:h-48 md:w-48 border-8 border-background bg-background shadow-2xl transition-all duration-500 hover:scale-105">
@@ -147,13 +120,8 @@ export default function ProfilePage() {
                         singleUploadAutoClose: true,
                         croppingAspectRatio: 1,
                         croppingDefaultSelection: 'transform',
-                        croppingShowDimensions: true,
-                        croppingShowBackButton: true,
                         multiple: false,
-                        maxImageWidth: 1080,
-                        maxImageHeight: 1080,
-                        sources: ['local', 'url', 'camera'],
-                        clientAllowedFormats: ['jpg', 'png', 'jpeg', 'webp']
+                        sources: ['local', 'url', 'camera']
                       }}
                       onSuccess={handleUploadSuccess}
                     >
@@ -172,22 +140,11 @@ export default function ProfilePage() {
 
                   {newAvatarUrl && (
                     <div className="flex flex-col gap-3 items-center animate-in zoom-in-95 duration-500 bg-primary/5 p-6 rounded-[2rem] border-2 border-primary/10 shadow-lg">
-                        <div className="flex items-center gap-2 mb-1">
-                            <ShieldCheck className="h-4 w-4 text-green-600" />
-                            <p className="text-[10px] font-black uppercase text-green-600 tracking-widest">Image Verified</p>
-                        </div>
                         <div className="flex gap-2">
-                            <Button 
-                                onClick={handleSaveAvatar} 
-                                disabled={isSavingAvatar}
-                                className="bg-green-600 hover:bg-green-700 shadow-xl font-black rounded-xl px-10 h-12 gap-2"
-                            >
-                                {isSavingAvatar ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
-                                Save Profile Photo
+                            <Button onClick={handleSaveAvatar} disabled={isSavingAvatar} className="bg-green-600 hover:bg-green-700 shadow-xl font-black rounded-xl px-10 h-12 gap-2">
+                                {isSavingAvatar ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />} Save Profile Photo
                             </Button>
-                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl text-destructive border-destructive/20 hover:bg-red-50" onClick={() => setNewAvatarUrl(null)}>
-                                <X className="h-5 w-5" />
-                            </Button>
+                            <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl text-destructive border-destructive/20" onClick={() => setNewAvatarUrl(null)}><X className="h-5 w-5" /></Button>
                         </div>
                     </div>
                   )}
@@ -205,83 +162,21 @@ export default function ProfilePage() {
             <CardContent className="p-12 pt-0 grid gap-12">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div className="flex items-start gap-5">
-                        <div className="p-3 rounded-2xl bg-primary/5 text-primary shadow-sm">
-                          <Mail className="h-7 w-7" />
-                        </div>
+                        <div className="p-3 rounded-2xl bg-primary/5 text-primary shadow-sm"><Mail className="h-7 w-7" /></div>
                         <div className="space-y-1">
                             <h3 className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Official Email</h3>
-                            <a href={`mailto:${currentUser.email}`} className="text-primary font-bold text-lg hover:underline transition-all">{currentUser.email}</a>
+                            <a href={`mailto:${currentUser.email}`} className="text-primary font-bold text-lg hover:underline">{currentUser.email}</a>
                         </div>
                     </div>
-
                     <div className="flex items-start gap-5">
-                        <div className="p-3 rounded-2xl bg-primary/5 text-primary shadow-sm">
-                          <School className="h-7 w-7" />
-                        </div>
+                        <div className="p-3 rounded-2xl bg-primary/5 text-primary shadow-sm"><School className="h-7 w-7" /></div>
                         <div className="space-y-1">
                             <h3 className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Academic Institution</h3>
                             <p className="font-bold text-lg">{currentUser.university}</p>
                             <p className="text-muted-foreground font-medium text-sm">{currentUser.college}</p>
                         </div>
                     </div>
-
-                    {currentUser.role === 'student' ? (
-                    <>
-                        <div className="flex items-start gap-5">
-                            <div className="p-3 rounded-2xl bg-primary/5 text-primary shadow-sm">
-                              <GraduationCap className="h-7 w-7" />
-                            </div>
-                            <div className="space-y-1">
-                                <h3 className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Primary Major</h3>
-                                <p className="font-bold text-lg">{(currentUser as Student).major}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-5">
-                            <div className="p-3 rounded-2xl bg-primary/5 text-primary shadow-sm">
-                              <GraduationCap className="h-7 w-7" />
-                            </div>
-                            <div className="space-y-1">
-                                <h3 className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Graduation Legacy</h3>
-                                <p className="font-bold text-lg text-primary">Class of {(currentUser as Student).graduationYear}</p>
-                            </div>
-                        </div>
-                    </>
-                    ) : (
-                    <>
-                        <div className="flex items-start gap-5">
-                            <div className="p-3 rounded-2xl bg-primary/5 text-primary shadow-sm">
-                              <Briefcase className="h-7 w-7" />
-                            </div>
-                            <div className="space-y-1">
-                                <h3 className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Department</h3>
-                                <p className="font-bold text-lg">{(currentUser as Professor).department}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-5">
-                            <div className="p-3 rounded-2xl bg-primary/5 text-primary shadow-sm">
-                              <BrainCircuit className="h-7 w-7" />
-                            </div>
-                            <div className="space-y-1">
-                                <h3 className="font-black text-muted-foreground uppercase text-[10px] tracking-widest">Expertise Hub</h3>
-                                <p className="font-bold text-lg leading-snug">{(currentUser as Professor).researchInterests?.join(', ') || 'Professional Mentor'}</p>
-                            </div>
-                        </div>
-                    </>
-                    )}
                 </div>
-    
-                {currentUser.preferences && currentUser.preferences.length > 0 && (
-                    <div className="pt-10 border-t border-muted/50">
-                        <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-6">Interests & Academic Preferences</h3>
-                        <div className="flex flex-wrap gap-2.5">
-                            {currentUser.preferences.map(preference => (
-                                <Badge key={preference} variant="secondary" className="px-5 py-2 font-bold text-xs bg-muted/50 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors cursor-default">
-                                  {preference}
-                                </Badge>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </CardContent>
         </Card>
     </div>
