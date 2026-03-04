@@ -45,7 +45,6 @@ export default function ChatRoomPage() {
     return [authUser.uid, receiverId].sort().join('_');
   }, [authUser?.uid, receiverId]);
 
-  // Fetching messages without orderBy to avoid index requirements
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId) return null;
     return query(
@@ -57,7 +56,6 @@ export default function ChatRoomPage() {
 
   const { data: rawMessages } = useCollection<Message>(messagesQuery);
 
-  // Client-side sorting for chronological order
   const messages = useMemo(() => {
     if (!rawMessages) return [];
     return [...rawMessages].sort((a, b) => {
@@ -67,7 +65,6 @@ export default function ChatRoomPage() {
     });
   }, [rawMessages]);
 
-  // Mark as read logic
   useEffect(() => {
     if (!firestore || !authUser?.uid || !messages || messages.length === 0) return;
 
@@ -133,20 +130,29 @@ export default function ChatRoomPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] bg-card rounded-[2rem] shadow-2xl overflow-hidden border border-muted/30">
-      {/* Header */}
       <header className="px-6 py-4 border-b bg-muted/10 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="rounded-full" onClick={() => router.back()}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 ring-2 ring-primary/5">
-              <AvatarImage src={receiver?.avatarUrl} />
-              <AvatarFallback className="font-bold">{receiver?.name?.[0]}</AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className={`h-10 w-10 ring-2 ${receiver?.isOnline ? 'ring-green-500/20' : 'ring-primary/5'}`}>
+                <AvatarImage src={receiver?.avatarUrl} />
+                <AvatarFallback className="font-bold">{receiver?.name?.[0]}</AvatarFallback>
+              </Avatar>
+              {receiver?.isOnline && (
+                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 border-2 border-white rounded-full"></span>
+              )}
+            </div>
             <div className="min-w-0">
               <h2 className="text-sm font-black tracking-tight leading-none truncate">{receiver?.name}</h2>
-              <p className="text-[10px] text-green-600 font-bold uppercase tracking-widest mt-1">Encrypted Connection</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className={`h-1.5 w-1.5 rounded-full ${receiver?.isOnline ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`}></span>
+                <p className={`text-[9px] font-black uppercase tracking-widest ${receiver?.isOnline ? 'text-green-600' : 'text-muted-foreground'}`}>
+                  {receiver?.isOnline ? 'Online Now' : 'Offline'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -157,7 +163,6 @@ export default function ChatRoomPage() {
         </div>
       </header>
 
-      {/* Messages */}
       <ScrollArea className="flex-1 p-4 md:p-6">
         <div className="space-y-6">
           <div className="flex flex-col items-center py-10 space-y-2 opacity-30">
@@ -203,7 +208,6 @@ export default function ChatRoomPage() {
         </div>
       </ScrollArea>
 
-      {/* Input */}
       <footer className="p-4 md:p-6 bg-muted/5 border-t shrink-0">
         <form onSubmit={handleSendMessage} className="flex gap-3">
           <Input 

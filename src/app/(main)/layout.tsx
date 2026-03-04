@@ -116,6 +116,36 @@ export default function MainLayout({
     return () => unsubscribe();
   }, [firestore, user?.uid]);
 
+  // Real-time Presence Sync
+  useEffect(() => {
+    if (!firestore || !user?.uid) return;
+
+    const userRef = doc(firestore, 'users', user.uid);
+
+    const setPresence = (isOnline: boolean) => {
+      updateDocumentNonBlocking(userRef, {
+        isOnline,
+        lastSeen: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    };
+
+    // Initial online status
+    setPresence(true);
+
+    const handleVisibilityChange = () => {
+      setPresence(document.visibilityState === 'visible');
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Cleanup on unmount or tab close
+    return () => {
+      setPresence(false);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [firestore, user?.uid]);
+
   return (
     <SidebarProvider>
       <MainNav logoPart1={currentHeader.logoPart1} logoPart2={currentHeader.logoPart2} />

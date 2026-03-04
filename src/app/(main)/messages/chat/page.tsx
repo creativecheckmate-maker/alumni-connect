@@ -2,22 +2,21 @@
 
 import { PageHeader } from '@/components/page-header';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import type { User, Friendship } from '@/lib/definitions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, ArrowRight, Loader2, Ghost } from 'lucide-react';
+import { MessageCircle, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 
 export default function ChatListPage() {
   const { user: authUser } = useUser();
   const firestore = useFirestore();
-  const [mutualUsers, setMutualUsers] = useState<User[]>([]);
-  const [isDataLoading, setIsDataLoading] = useState(true);
 
+  // 1. Fetch mutual friendships in real-time
   const friendshipQuery = useMemoFirebase(() => {
     if (!firestore || !authUser?.uid) return null;
     return query(
@@ -29,62 +28,57 @@ export default function ChatListPage() {
 
   const { data: friendships, isLoading: isFriendshipsLoading } = useCollection<Friendship>(friendshipQuery);
 
-  useEffect(() => {
-    async function fetchMutualUsers() {
-      if (!firestore || !friendships || !authUser) {
-        if (!isFriendshipsLoading) setIsDataLoading(false);
-        return;
-      }
+  // 2. Extract IDs of mutual friends
+  const mutualUserIds = useMemo(() => {
+    if (!friendships || !authUser) return [];
+    return friendships
+      .map(f => f.uids.find(id => id !== authUser.uid))
+      .filter(Boolean) as string[];
+  }, [friendships, authUser]);
 
-      setIsDataLoading(true);
-      const users: User[] = [];
-      
-      try {
-        for (const friendship of friendships) {
-          const otherUserId = friendship.uids.find(id => id !== authUser.uid);
-          if (otherUserId) {
-            const userDoc = await getDoc(doc(firestore, 'users', otherUserId));
-            if (userDoc.exists()) {
-              users.push({ ...userDoc.data() as User, id: userDoc.id });
-            }
-          }
-        }
-        setMutualUsers(users);
-      } catch (e) {
-        console.error("Error fetching mutual users:", e);
-      } finally {
-        setIsDataLoading(false);
-      }
-    }
+  // 3. Fetch user profiles for mutual friends in real-time to track 'isOnline'
+  const friendsQuery = useMemoFirebase(() => {
+    if (!firestore || mutualUserIds.length === 0) return null;
+    // Firestore 'in' query supports up to 30 items
+    return query(
+      collection(firestore, 'users'), 
+      where('id', 'in', mutualUserIds.slice(0, 30))
+    );
+  }, [firestore, mutualUserIds]);
 
-    fetchMutualUsers();
-  }, [firestore, friendships, authUser, isFriendshipsLoading]);
+  const { data: mutualUsers, isLoading: isUsersLoading } = useCollection<User>(friendsQuery);
+
+  const isLoading = isFriendshipsLoading || (mutualUserIds.length > 0 && isUsersLoading);
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-20">
       <PageHeader title="Private Chats" description="Real-time secure messaging with your mutual connections. Messages are fully private and encrypted." />
 
       <div className="space-y-3">
-        {isFriendshipsLoading || isDataLoading ? (
+        {isLoading ? (
           [1, 2, 3].map(i => <Card key={i} className="h-24 bg-muted animate-pulse rounded-2xl border-none" />)
-        ) : mutualUsers.length > 0 ? (
+        ) : mutualUsers && mutualUsers.length > 0 ? (
           mutualUsers.map((friend) => (
             <Link key={friend.id} href={`/messages/chat/${friend.id}`}>
               <Card className="border-none shadow-sm hover:shadow-md hover:bg-primary/5 transition-all group cursor-pointer overflow-hidden mb-3">
                 <CardContent className="p-5 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <Avatar className="h-14 w-14 ring-2 ring-primary/10">
+                      <Avatar className={`h-14 w-14 ring-2 ${friend.isOnline ? 'ring-green-500/20' : 'ring-primary/10'}`}>
                         <AvatarImage src={friend.avatarUrl} alt={friend.name} />
                         <AvatarFallback className="font-bold">{friend.name?.[0]}</AvatarFallback>
                       </Avatar>
-                      <span className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full"></span>
+                      {friend.isOnline && (
+                        <span className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-green-500 border-2 border-white rounded-full animate-in zoom-in duration-300"></span>
+                      )}
                     </div>
                     <div className="space-y-0.5">
                       <h3 className="font-black text-lg tracking-tight">{friend.name}</h3>
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-[10px] h-4 font-black uppercase tracking-widest">{friend.role}</Badge>
-                        <p className="text-xs text-muted-foreground font-medium">Online now</p>
+                        <p className={`text-xs font-bold ${friend.isOnline ? 'text-green-600' : 'text-muted-foreground'}`}>
+                          {friend.isOnline ? 'Online now' : 'Offline'}
+                        </p>
                       </div>
                     </div>
                   </div>

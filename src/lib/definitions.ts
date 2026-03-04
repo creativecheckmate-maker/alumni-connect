@@ -16,6 +16,8 @@ export type UserProfile = {
   totalFeedbackPoints?: number;
   isVisibleInDirectory: boolean;
   isVerified?: boolean;
+  isOnline?: boolean;
+  lastSeen?: any;
   status: 'active' | 'deactivated';
   createdAt: any;
   updatedAt: any;
