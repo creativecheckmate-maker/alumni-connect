@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Deployment Trigger: Universal Admin & User Strategy - 2024-05-23 15:30
+    // Deployment Trigger: 2024-05-23 16:30 - Global Bug Fix
     // This solves the "Missing or insufficient permissions" error across all sections once and for all.
     
     // 1. ADMIN BYPASS: Gives your specific email and verified UIDs absolute access everywhere.
@@ -28,20 +28,14 @@ service cloud.firestore {
     match /notifications/{notificationId} {
       allow read: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && (resource != null && resource.data.userId == request.auth.uid);
     }
 
-    // 4. FRIENDSHIPS: Required for the directory and connections.
-    match /friendships/{friendshipId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
-    }
-
-    // 5. CONTENT COLLECTIONS: Feed, Events, Jobs, News.
+    // 4. CONTENT COLLECTIONS: Feed, Events, Jobs, News.
     // These are broad-read for the community to discover opportunities.
     match /feed/{postId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && (request.resource.data.authorId == request.auth.uid || resource.data.authorId == request.auth.uid);
+      allow write: if request.auth != null && (request.resource.data.authorId == request.auth.uid || (resource != null && resource.data.authorId == request.auth.uid));
     }
 
     match /events/{eventId} {
@@ -54,10 +48,17 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
+    // 5. FRIENDSHIPS: Required for the directory and connections.
+    match /friendships/{friendshipId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
     // 6. GENERAL FALLBACK: A safety net for any other sections.
     // Explicitly allows 'read' (list + get) for any logged-in user.
     match /{collectionName}/{docId} {
       allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
     
     // 7. PUBLIC CONTENT: Site content is always readable.
