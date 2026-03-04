@@ -130,19 +130,26 @@ export default function MainLayout({
       });
     };
 
-    // Initial online status
+    // Initial online status when app mounts
     setPresence(true);
 
     const handleVisibilityChange = () => {
+      // Offline when user hides tab or app
       setPresence(document.visibilityState === 'visible');
     };
 
+    const handleBeforeUnload = () => {
+      setPresence(false);
+    };
+
     window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
     
-    // Cleanup on unmount or tab close
+    // Cleanup on logout or component destruction
     return () => {
       setPresence(false);
       window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [firestore, user?.uid]);
 
