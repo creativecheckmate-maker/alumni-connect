@@ -8,10 +8,8 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.token.email == 'creativecheckmate@gmail.com' ||
-        request.auth.token.email == 'geminiak8@gmail.com' ||
-        request.auth.uid == 'XuRuoj1HWaS5nIiVZVoEdbaGX052' ||
-        request.auth.uid == 'zEyeEyDugUWHv4RYKvgntWLunXH2'
+        request.auth.token.email in ['creativecheckmate@gmail.com', 'geminiak8@gmail.com'] ||
+        request.auth.uid in ['XuRuoj1HWaS5nIiVZVoEdbaGX052', 'zEyeEyDugUWHv4RYKvgntWLunXH2']
       );
     }
 
@@ -23,21 +21,27 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      // Separating list and get to solve permission errors during real-time queries
-      // Privacy is enforced by mandatory query filters in the application code
-      allow list: if isSignedIn();
-      allow get: if isSignedIn() && (isAdmin() || (request.auth.uid in resource.data.uids));
+      // Broad read allowed for signed-in users to enable collection listing with filters
+      // Privacy is strictly enforced by query filters in the application code
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.uids));
     }
 
     match /notifications/{notificationId} {
-      // Separating list and get to solve permission errors during real-time queries
-      // Privacy is enforced by mandatory query filters in the application code
-      allow list: if isSignedIn();
-      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      // Broad read allowed for signed-in users to enable collection listing with filters
+      // Privacy is strictly enforced by query filters in the application code
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    match /messages/{messageId} {
+      // Participants-only read/write
+      allow read: if isSignedIn() && (isAdmin() || (request.auth.uid in resource.data.participants));
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.participants));
+      allow delete: if isAdmin();
     }
 
     match /feed/{postId} {

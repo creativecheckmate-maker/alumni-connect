@@ -42,6 +42,16 @@ export type Friendship = {
   updatedAt: any;
 };
 
+export type Message = {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderAvatarUrl?: string;
+  content: string;
+  participants: string[];
+  createdAt: any;
+};
+
 export type FeedPost = {
   id: string;
   authorId: string;
