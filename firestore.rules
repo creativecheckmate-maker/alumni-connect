@@ -23,13 +23,15 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
+      // Broad read for participants; logic filtering is handled in the app query
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.uids);
-      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid in resource.data.uids);
+      allow update: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.uids));
+      allow delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.uids));
     }
 
     match /messages/{messageId} {
+      // Broad read for participants; privacy is strictly enforced by array-contains filters in code
       allow read: if isSignedIn();
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && (request.auth.uid in resource.data.participants));

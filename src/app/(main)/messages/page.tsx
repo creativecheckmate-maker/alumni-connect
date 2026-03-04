@@ -50,7 +50,7 @@ export default function MessagesPage() {
   const [activeTab, setActiveTab] = useState<'chats' | 'network'>('network');
   const [isSending, setIsSending] = useState(false);
   
-  const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === SECONDARY_ADMIN_EMAIL || authUser?.email === 'geminiak8@gmail.com';
+  const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === SECONDARY_ADMIN_EMAIL || authUser?.email === 'geminiak8@gmail.com' || authUser?.uid === 'zEyeEyDugUWHv4RYKvgntWLunXH2';
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -93,7 +93,6 @@ export default function MessagesPage() {
     if (activeTab === 'chats') {
       return isMutual && matchesSearch;
     } else {
-      // Until accept request or follow back, stay in network
       return matchesSearch;
     }
   }) || [];
@@ -108,7 +107,7 @@ export default function MessagesPage() {
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId || !authUser?.uid || !isChatEligible) return null;
     
-    // Privacy is enforced by the participants filter in the query
+    // Admins can see all messages for moderation; standard users only their own
     let q = query(
       collection(firestore, 'messages'),
       where('chatId', '==', chatId),
@@ -123,7 +122,7 @@ export default function MessagesPage() {
     return q;
   }, [firestore, chatId, authUser?.uid, isChatEligible, isAdmin]);
 
-  const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
+  const { data: messages, isLoading: isMessagesLoading, error: messagesError } = useCollection<Message>(messagesQuery);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -280,7 +279,7 @@ export default function MessagesPage() {
             ) : (
               <div className="text-center py-10">
                 <p className="text-xs text-muted-foreground">
-                  {activeTab === 'chats' ? 'Secure chat is reserved for mutual connections.' : 'No alumni matches found.'}
+                  {activeTab === 'chats' ? 'Establish mutual connections to unlock secure chats.' : 'No alumni matches found.'}
                 </p>
               </div>
             )}
@@ -319,16 +318,28 @@ export default function MessagesPage() {
                 <div className="space-y-8 max-w-4xl mx-auto">
                   {isMessagesLoading ? (
                     <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
-                  ) : messages?.map((msg) => (
-                    <div key={msg.id} className={`flex ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] p-4 rounded-2xl shadow-xl ${msg.senderId === authUser?.uid ? 'bg-zinc-900 text-white rounded-tr-none' : 'bg-white text-zinc-900 rounded-tl-none border border-zinc-200'}`}>
-                        <p className="text-sm font-medium">{msg.text}</p>
-                        <div className={`flex items-center gap-2 mt-3 ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'}`}>
-                          <p className="text-[10px] font-black uppercase opacity-40">{msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || '...'}</p>
-                        </div>
-                      </div>
+                  ) : messagesError ? (
+                    <div className="text-center py-20 bg-destructive/5 rounded-2xl border border-destructive/10">
+                        <ShieldAlert className="h-10 w-10 text-destructive mx-auto mb-4 opacity-40" />
+                        <p className="text-sm font-bold text-destructive">Secure Authorization Failed</p>
+                        <p className="text-xs text-muted-foreground mt-1 px-10">If you are an administrator, ensure your credentials are active.</p>
                     </div>
-                  ))}
+                  ) : messages && messages.length > 0 ? (
+                    messages.map((msg) => (
+                        <div key={msg.id} className={`flex ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[80%] p-4 rounded-2xl shadow-xl ${msg.senderId === authUser?.uid ? 'bg-zinc-900 text-white rounded-tr-none' : 'bg-white text-zinc-900 rounded-tl-none border border-zinc-200'}`}>
+                            <p className="text-sm font-medium">{msg.text}</p>
+                            <div className={`flex items-center gap-2 mt-3 ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'}`}>
+                              <p className="text-[10px] font-black uppercase opacity-40">{msg.createdAt?.toDate?.()?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || '...'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                  ) : (
+                    <div className="text-center py-20">
+                        <p className="text-xs text-muted-foreground italic">No encrypted messages in this channel yet.</p>
+                    </div>
+                  )}
                   <div ref={scrollRef} />
                 </div>
               ) : (

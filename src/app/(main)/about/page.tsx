@@ -108,7 +108,7 @@ function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { s
 export default function AboutPage() {
   const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
-  const isAdmin = authUser?.email === ADMIN_EMAIL;
+  const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === 'geminiak8@gmail.com' || authUser?.uid === 'zEyeEyDugUWHv4RYKvgntWLunXH2';
 
   const contentDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'about_main'), [firestore]);
   const { data: mainContent } = useDoc<SiteContent>(contentDocRef);

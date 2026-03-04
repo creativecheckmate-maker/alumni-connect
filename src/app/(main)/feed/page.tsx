@@ -24,7 +24,7 @@ export default function FeedPage() {
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
-  const isAdmin = user?.email === ADMIN_EMAIL || user?.email === 'geminiak8@gmail.com';
+  const isAdmin = user?.email === ADMIN_EMAIL || user?.email === 'geminiak8@gmail.com' || user?.uid === 'zEyeEyDugUWHv4RYKvgntWLunXH2';
 
   const userProfileDocRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
