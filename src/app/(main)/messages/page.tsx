@@ -10,27 +10,16 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Search, 
   Send, 
-  Mic, 
-  MicOff, 
-  Volume2, 
-  VolumeX, 
   Loader2, 
   ArrowLeft, 
   MessageCircle,
   Radio,
-  Check,
-  CheckCheck,
   Video,
-  Phone,
-  ShieldCheck,
   Users as UsersIcon,
-  XCircle,
-  Handshake,
   Lock,
   UserPlus,
   UserCheck,
-  ShieldAlert,
-  ExternalLink,
+  ShieldCheck,
   AlertCircle
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
@@ -43,7 +32,6 @@ import {
   updateDocumentNonBlocking,
   setDocumentNonBlocking,
   addDocumentNonBlocking,
-  deleteDocumentNonBlocking,
   useFirebase
 } from '@/firebase';
 import { collection, query, where, serverTimestamp, limit, doc, orderBy } from 'firebase/firestore';
@@ -55,7 +43,6 @@ import Link from 'next/link';
 
 export default function MessagesPage() {
   const { user: authUser, isUserLoading } = useUser();
-  const { isEditMode } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [activeChat, setActiveChat] = useState<string | null>(null);
@@ -66,14 +53,9 @@ export default function MessagesPage() {
   
   const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === SECONDARY_ADMIN_EMAIL || authUser?.email === 'geminiak8@gmail.com';
   
-  // Voice/Video State
-  const [isMicOn, setIsMicOn] = useState(false);
-  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
-  const [isVideoCallActive, setIsVideoCallActive] = useState(false);
-  
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch friendships
+  // Fetch friendships involving the current user
   const friendshipQuery = useMemoFirebase(() => {
     if (!firestore || !authUser?.uid) return null;
     return query(
@@ -82,42 +64,47 @@ export default function MessagesPage() {
     );
   }, [firestore, authUser?.uid]);
 
-  const { data: friendships, error: friendshipError, isLoading: isFriendshipsLoading } = useCollection<Friendship>(friendshipQuery);
+  const { data: friendships, isLoading: isFriendshipsLoading } = useCollection<Friendship>(friendshipQuery);
 
-  // Fetch users
+  // Fetch all visible users
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !authUser?.uid) return null;
     return query(
       collection(firestore, 'users'), 
       where('isVisibleInDirectory', '==', true),
-      limit(50)
+      limit(100)
     );
   }, [firestore, authUser?.uid]);
 
-  const { data: allUsers, isLoading: isUsersLoading, error: usersError } = useCollection<User>(usersQuery);
-
-  const activeUserDocRef = useMemoFirebase(() => {
-    if (!firestore || !activeChat) return null;
-    return doc(firestore, 'users', activeChat);
-  }, [firestore, activeChat]);
-  const { data: activeUserFromDoc } = useDoc<User>(activeUserDocRef);
+  const { data: allUsers, isLoading: isUsersLoading } = useCollection<User>(usersQuery);
 
   const getFriendshipWith = (otherId: string) => friendships?.find(f => f.uids.includes(otherId));
   const isMutualFriend = (otherId: string) => getFriendshipWith(otherId)?.status === 'mutual';
 
+  // Logic: 
+  // - Chats tab: Only mutual friends
+  // - Network tab: Everyone else (excluding self)
+  const mutualFriendIds = new Set(
+    friendships
+      ?.filter(f => f.status === 'mutual')
+      .map(f => f.uids.find(id => id !== authUser?.uid))
+      .filter(Boolean) as string[]
+  );
+
   const displayList = allUsers?.filter(u => {
     if (u.id === authUser?.uid) return false;
     const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const isMutual = isMutualFriend(u.id);
+    const isMutual = mutualFriendIds.has(u.id);
     
     if (activeTab === 'chats') {
-      return (isMutual || isAdmin) && matchesSearch;
+      return isMutual && matchesSearch;
     } else {
       return !isMutual && matchesSearch;
     }
   }) || [];
 
-  const selectedUser = allUsers?.find(u => u.id === activeChat) || activeUserFromDoc;
+  // Active chat state
+  const selectedUser = allUsers?.find(u => u.id === activeChat);
   const isChatEligible = activeChat ? (isMutualFriend(activeChat) || isAdmin) : false;
 
   const chatId = activeChat && authUser?.uid 
@@ -127,15 +114,22 @@ export default function MessagesPage() {
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId || !authUser?.uid || !isChatEligible) return null;
     
-    return query(
+    let q = query(
       collection(firestore, 'messages'),
       where('chatId', '==', chatId),
       orderBy('createdAt', 'asc'),
       limit(100)
     );
-  }, [firestore, chatId, authUser?.uid, isChatEligible]);
 
-  const { data: messages, isLoading: isMessagesLoading, error: messagesError } = useCollection<Message>(messagesQuery);
+    // Filter by participants to comply with rules list check for non-admins
+    if (!isAdmin) {
+      q = query(q, where('participants', 'array-contains', authUser.uid));
+    }
+    
+    return q;
+  }, [firestore, chatId, authUser?.uid, isChatEligible, isAdmin]);
+
+  const { data: messages, isLoading: isMessagesLoading } = useCollection<Message>(messagesQuery);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -145,7 +139,7 @@ export default function MessagesPage() {
     if (!firestore || !authUser || !activeChat || !messageText.trim() || !chatId || isSending) return;
     
     if (!isChatEligible) {
-      toast({ variant: 'destructive', title: "Mutual Connection Required", description: "You must follow each other to start a chat." });
+      toast({ variant: 'destructive', title: "Mutual Connection Required", description: "You must both follow each other to unlock secure chat." });
       return;
     }
 
@@ -173,7 +167,7 @@ export default function MessagesPage() {
     }
   };
 
-  const handleFollowUser = async (otherId: string, otherName: string) => {
+  const handleFollowUser = async (otherId: string) => {
     if (!firestore || !authUser) return;
     const friendshipId = [authUser.uid, otherId].sort().join('_');
     const existing = getFriendshipWith(otherId);
@@ -220,8 +214,9 @@ export default function MessagesPage() {
     return (
       <div className="flex-1 flex items-center justify-center p-10">
         <Card className="max-w-md w-full p-8 text-center space-y-6 shadow-2xl border-none">
-          <ShieldCheck className="h-16 w-16 text-primary mx-auto opacity-20" />
-          <h2 className="text-2xl font-bold font-headline">Private Network</h2>
+          <Lock className="h-16 w-16 text-primary mx-auto opacity-20" />
+          <h2 className="text-2xl font-bold font-headline">Secure Network</h2>
+          <p className="text-muted-foreground">Log in to establish mutual connections and unlock encrypted interaction channels.</p>
           <Button asChild className="w-full font-bold h-12 rounded-xl">
             <Link href="/login">Access Alumni Hub</Link>
           </Button>
@@ -281,7 +276,7 @@ export default function MessagesPage() {
                       </p>
                     </div>
                     {activeTab === 'network' && (
-                      <Button size="sm" variant="default" className="px-3 rounded-full text-[9px] h-7" onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id, user.name); }}>
+                      <Button size="sm" variant="default" className="px-3 rounded-full text-[9px] h-7" onClick={(e) => { e.stopPropagation(); handleFollowUser(user.id); }}>
                         {isRequested ? "Pending" : "Connect"}
                       </Button>
                     )}
@@ -289,7 +284,11 @@ export default function MessagesPage() {
                 );
               })
             ) : (
-              <div className="text-center py-10"><p className="text-xs text-muted-foreground">No matches found.</p></div>
+              <div className="text-center py-10">
+                <p className="text-xs text-muted-foreground">
+                  {activeTab === 'chats' ? 'No mutual friends yet.' : 'No alumni matches found.'}
+                </p>
+              </div>
             )}
           </div>
         </ScrollArea>
@@ -310,13 +309,13 @@ export default function MessagesPage() {
                 <div>
                   <Link href={`/users/${selectedUser.id}`} className="text-base font-black hover:underline">{selectedUser.name}</Link>
                   <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest flex items-center gap-1.5 mt-1">
-                    <Radio className={`h-3 w-3 ${isMicOn ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> {isChatEligible ? (isMicOn ? 'SECURE CHANNEL ACTIVE' : 'SECURE CHANNEL READY') : 'CHANNEL LOCKED'}
+                    <Radio className={`h-3 w-3 ${isChatEligible ? 'text-green-500 animate-pulse' : 'text-zinc-600'}`} /> {isChatEligible ? 'SECURE CHANNEL ACTIVE' : 'CHANNEL LOCKED'}
                   </p>
                 </div>
               </div>
               {isChatEligible && (
                 <div className="flex items-center gap-3">
-                  <Button variant="ghost" size="icon" className="h-11 w-11 text-blue-400 hover:bg-blue-500/10 rounded-xl" onClick={() => setIsVideoCallActive(true)}><Video className="h-6 w-6" /></Button>
+                  <Button variant="ghost" size="icon" className="h-11 w-11 text-blue-400 hover:bg-blue-500/10 rounded-xl"><Video className="h-6 w-6" /></Button>
                 </div>
               )}
             </div>
@@ -324,7 +323,9 @@ export default function MessagesPage() {
             <ScrollArea className="flex-1 p-6 bg-zinc-50/50">
               {isChatEligible ? (
                 <div className="space-y-8 max-w-4xl mx-auto">
-                  {messages?.map((msg) => (
+                  {isMessagesLoading ? (
+                    <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
+                  ) : messages?.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.senderId === authUser?.uid ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] p-4 rounded-2xl shadow-xl ${msg.senderId === authUser?.uid ? 'bg-zinc-900 text-white rounded-tr-none' : 'bg-white text-zinc-900 rounded-tl-none border border-zinc-200'}`}>
                         <p className="text-sm font-medium">{msg.text}</p>
@@ -344,13 +345,13 @@ export default function MessagesPage() {
                   </div>
                   <div className="space-y-3">
                     <h3 className="text-xl font-black uppercase">Mutual Connection Required</h3>
-                    <p className="text-sm text-muted-foreground font-medium">Chat features are only available once both individuals follow each other.</p>
+                    <p className="text-sm text-muted-foreground font-medium">Interaction channels are only unlocked once both individuals follow each other.</p>
                   </div>
                   <div className="flex flex-col gap-3 w-full">
-                    <Button className="w-full h-12 rounded-xl font-bold" onClick={() => handleFollowUser(selectedUser.id, selectedUser.name)}>
+                    <Button className="w-full h-12 rounded-xl font-bold" onClick={() => handleFollowUser(selectedUser.id)}>
                       {getFriendshipWith(selectedUser.id)?.followedBy.includes(authUser?.uid || '') ? "Connection Pending" : "Send Connection Request"}
                     </Button>
-                    <Link href={`/users/${selectedUser.id}`} className="w-full"><Button variant="ghost" className="w-full h-12 rounded-xl font-bold">View Full Profile</Button></Link>
+                    <Link href={`/users/${selectedUser.id}`} className="w-full"><Button variant="ghost" className="w-full h-12 rounded-xl font-bold">View Nexus Profile</Button></Link>
                   </div>
                 </div>
               )}
@@ -360,7 +361,7 @@ export default function MessagesPage() {
               <div className="p-5 border-t bg-white/80 backdrop-blur-xl">
                 <form className="flex gap-3 max-w-4xl mx-auto" onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}>
                   <Input 
-                    placeholder="Type a message..." 
+                    placeholder="Type a secure message..." 
                     className="bg-zinc-100 border-none rounded-[1.25rem] h-12 px-6 font-medium"
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
@@ -376,8 +377,8 @@ export default function MessagesPage() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-zinc-50/30">
             <ShieldCheck className="h-20 w-20 text-primary opacity-20 mb-8" />
-            <h3 className="font-black text-3xl text-zinc-900 tracking-tighter">SECURE NETWORK</h3>
-            <p className="text-sm max-w-xs text-muted-foreground mt-3">Establish a mutual follow to unlock end-to-end encrypted interaction channels.</p>
+            <h3 className="font-black text-3xl text-zinc-900 tracking-tighter">SECURE ALUMNI HUB</h3>
+            <p className="text-sm max-w-xs text-muted-foreground mt-3">Establishing a mutual follow creates a private, encrypted interaction channel.</p>
           </div>
         )}
       </Card>

@@ -79,7 +79,18 @@ export default function JobsPage() {
                   <Label>Company Logo</Label>
                   <div className="flex gap-2">
                     <Input value={logoUrl || ""} readOnly className="bg-muted/50" />
-                    <CldUploadWidget uploadPreset="ml_default" options={{ cloudName: "dnex9nw0f", cropping: true, showSkipCropButton: true, singleUploadAutoClose: true, croppingAspectRatio: 1, multiple: false }} onSuccess={(result: any) => setLogoUrl(result.info.secure_url)}>
+                    <CldUploadWidget 
+                      uploadPreset="ml_default" 
+                      options={{ 
+                        cloudName: "dnex9nw0f", 
+                        cropping: true, 
+                        showSkipCropButton: true,
+                        singleUploadAutoClose: true, 
+                        croppingAspectRatio: 1, 
+                        multiple: false 
+                      }} 
+                      onSuccess={(result: any) => setLogoUrl(result.info.secure_url)}
+                    >
                       {({ open }) => <Button type="button" variant="outline" onClick={() => open()}><Upload className="h-4 w-4" /></Button>}
                     </CldUploadWidget>
                   </div>

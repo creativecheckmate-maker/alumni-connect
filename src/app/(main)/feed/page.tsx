@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { CldUploadWidget } from 'next-cloudinary';
-import { moderateContent } from '@/ai/flows/moderate-content';
+import { moderateContent } from '@/ai/flows/moderation';
 
 export default function FeedPage() {
   const { user, isEditMode } = useFirebase();
@@ -24,7 +24,7 @@ export default function FeedPage() {
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = user?.email === ADMIN_EMAIL || user?.email === 'geminiak8@gmail.com';
 
   const userProfileDocRef = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;

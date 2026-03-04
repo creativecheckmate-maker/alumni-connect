@@ -4,17 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp } from 'firebase/firestore';
-import type { User, Student, Professor } from '@/lib/definitions';
-import { Skeleton } from '@/components/ui/skeleton';
+import type { User } from '@/lib/definitions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Briefcase, GraduationCap, BrainCircuit, School, Edit, Check, Loader2, RefreshCcw, X, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Mail, School, Edit, Check, Loader2, RefreshCcw, X, ShieldAlert } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { EditProfileForm } from '@/components/profile/edit-profile-form';
 import { CldUploadWidget } from 'next-cloudinary';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { moderateContent } from '@/ai/flows/moderate-content';
+import { moderateContent } from '@/ai/flows/moderation';
 
 const getInitials = (name: string) => {
     if (!name) return '';
@@ -43,7 +42,7 @@ export default function ProfilePage() {
     const url = result?.info?.secure_url || result?.info?.url;
     if (url) {
       setNewAvatarUrl(url);
-      toast({ title: "Photo Ready", description: "Click 'Save Profile Photo' to update your look." });
+      toast({ title: "Photo Ready", description: "Click 'Save Profile Photo' to synchronize your identity." });
     }
   };
 
@@ -64,7 +63,7 @@ export default function ProfilePage() {
         updatedAt: serverTimestamp()
       });
       
-      toast({ title: "Profile Updated", description: "Your new avatar is now live." });
+      toast({ title: "Profile Updated", description: "Your professional avatar is now live across the network." });
       setNewAvatarUrl(null);
     } catch (e) {
       toast({ variant: 'destructive', title: "Sync Error", description: "Failed to update profile image." });
