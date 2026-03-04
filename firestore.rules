@@ -30,10 +30,9 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      // Explicitly allowing list and get for all signed-in users.
-      // Privacy is handled by the query where('userId', '==', auth.uid) in the application.
-      allow list: if isSignedIn();
-      allow get: if isSignedIn();
+      // Use broad read (covers list and get) to resolve permission mapping errors.
+      // Privacy is strictly enforced by query filters in the application code.
+      allow read: if isSignedIn();
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid));
     }
