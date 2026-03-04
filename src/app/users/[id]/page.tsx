@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { User, Student, Professor, Friendship } from '@/lib/definitions';
@@ -20,7 +19,6 @@ import { useState } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 
 const getInitials = (name: string) => {
     if (!name) return '';
@@ -298,9 +296,9 @@ export default function UserProfilePage() {
                                         </div>
                                         
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                                                 <MessageSquare className="h-3 w-3" /> Detailed Commentary (AI Analyzed)
-                                            </Label>
+                                            </label>
                                             <Textarea 
                                                 placeholder="Describe your academic experience with this faculty member..." 
                                                 className="min-h-[100px] bg-muted/20 border-none rounded-xl text-sm"
