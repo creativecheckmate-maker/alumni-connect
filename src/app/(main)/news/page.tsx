@@ -18,94 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import type { SiteContent } from '@/lib/definitions';
 import { CldUploadWidget } from 'next-cloudinary';
 
-function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string, initialData: any, label: string }) {
-  const { toast } = useToast();
-  const firestore = useFirestore();
-  const [data, setData] = useState(initialData);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleSave = async () => {
-    if (!firestore) return;
-    setIsSaving(true);
-    try {
-      await setDoc(doc(firestore, 'siteContent', `news_${sectionId}`), {
-        id: `news_${sectionId}`,
-        pageId: 'news',
-        sectionId,
-        data,
-        updatedAt: serverTimestamp(),
-      });
-      toast({ title: "Updated", description: `${label} saved.` });
-    } catch (e) {
-      toast({ variant: 'destructive', title: "Error", description: "Failed to save." });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button size="icon" variant="secondary" className="rounded-full shadow-lg">
-          <Edit className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit {label}</DialogTitle>
-        </DialogHeader>
-        <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
-          {Object.keys(initialData).map((key) => (
-            <div key={key} className="space-y-2">
-              <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
-              <div className="flex gap-2">
-                {key.toLowerCase().includes('description') || key.toLowerCase().includes('content') ? (
-                  <Textarea 
-                    value={data[key]} 
-                    onChange={(e) => setData({ ...data, [key]: e.target.value })} 
-                  />
-                ) : (
-                  <Input 
-                    value={data[key]} 
-                    onChange={(e) => setData({ ...data, [key]: e.target.value })} 
-                  />
-                )}
-                {key.toLowerCase().includes('url') && (
-                  <CldUploadWidget 
-                    uploadPreset="ml_default"
-                    options={{ 
-                      cloudName: "dnex9nw0f",
-                      cropping: true, 
-                      showSkipCropButton: true,
-                      singleUploadAutoClose: true,
-                      croppingDefaultSelection: 'transform',
-                      croppingAspectRatio: 1.77,
-                      multiple: false
-                    }}
-                    onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
-                  >
-                    {({ open }) => (
-                      <Button variant="outline" size="icon" onClick={() => open()}>
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </CldUploadWidget>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        <DialogFooter>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Changes
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export default function NewsPage() {
   const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
@@ -173,66 +85,62 @@ export default function NewsPage() {
         <div className="flex items-center gap-4">
           <Newspaper className="h-6 w-6 text-primary" />
           {isAdmin && isEditMode && (
-            <>
-              <AdminEditDialog sectionId="intro" initialData={currentIntro} label="Page Intro" />
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="gap-2 rounded-full">
-                    <Plus className="h-4 w-4" /> Add Article
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Publish News Article</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleAddNews} className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Title</Label>
-                      <Input name="title" placeholder="Article Title" required />
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-2 rounded-full">
+                  <Plus className="h-4 w-4" /> Add Article
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Publish News Article</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleAddNews} className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Title</Label>
+                    <Input name="title" placeholder="Article Title" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Input name="category" placeholder="e.g. Achievement, Research" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea name="description" placeholder="Summary of the article..." required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Thumbnail Image</Label>
+                    <div className="flex gap-2">
+                      <Input value={newsImageUrl || ""} placeholder="No image selected" readOnly className="bg-muted/50" />
+                      <CldUploadWidget 
+                        uploadPreset="ml_default"
+                        options={{ 
+                          cloudName: "dnex9nw0f",
+                          cropping: true, 
+                          showSkipCropButton: true,
+                          singleUploadAutoClose: true,
+                          croppingAspectRatio: 1.77,
+                          multiple: false
+                        }}
+                        onSuccess={(result: any) => setNewsImageUrl(result.info.secure_url)}
+                      >
+                        {({ open }) => (
+                          <Button type="button" variant="outline" onClick={() => open()}>
+                            <Upload className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </CldUploadWidget>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Category</Label>
-                      <Input name="category" placeholder="e.g. Achievement, Research" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Description</Label>
-                      <Textarea name="description" placeholder="Summary of the article..." required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Thumbnail Image</Label>
-                      <div className="flex gap-2">
-                        <Input value={newsImageUrl || ""} placeholder="No image selected" readOnly className="bg-muted/50" />
-                        <CldUploadWidget 
-                          uploadPreset="ml_default"
-                          options={{ 
-                            cloudName: "dnex9nw0f",
-                            cropping: true, 
-                            showSkipCropButton: true,
-                            singleUploadAutoClose: true,
-                            croppingDefaultSelection: 'transform',
-                            croppingAspectRatio: 1.77,
-                            multiple: false
-                          }}
-                          onSuccess={(result: any) => setNewsImageUrl(result.info.secure_url)}
-                        >
-                          {({ open }) => (
-                            <Button type="button" variant="outline" onClick={() => open()}>
-                              <Upload className="h-4 w-4 mr-2" /> Upload
-                            </Button>
-                          )}
-                        </CldUploadWidget>
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button type="submit" disabled={isPosting}>
-                        {isPosting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Publish
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={isPosting}>
+                      {isPosting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Publish
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </PageHeader>

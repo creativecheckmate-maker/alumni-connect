@@ -20,7 +20,7 @@ import {
   UserPlus,
   UserCheck,
   ShieldCheck,
-  AlertCircle
+  ShieldAlert
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { 
@@ -55,7 +55,6 @@ export default function MessagesPage() {
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch friendships involving the current user
   const friendshipQuery = useMemoFirebase(() => {
     if (!firestore || !authUser?.uid) return null;
     return query(
@@ -66,7 +65,6 @@ export default function MessagesPage() {
 
   const { data: friendships, isLoading: isFriendshipsLoading } = useCollection<Friendship>(friendshipQuery);
 
-  // Fetch all visible users
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !authUser?.uid) return null;
     return query(
@@ -81,9 +79,6 @@ export default function MessagesPage() {
   const getFriendshipWith = (otherId: string) => friendships?.find(f => f.uids.includes(otherId));
   const isMutualFriend = (otherId: string) => getFriendshipWith(otherId)?.status === 'mutual';
 
-  // Logic: 
-  // - Chats tab: Only mutual friends
-  // - Network tab: Everyone else (excluding self)
   const mutualFriendIds = new Set(
     friendships
       ?.filter(f => f.status === 'mutual')
@@ -103,7 +98,6 @@ export default function MessagesPage() {
     }
   }) || [];
 
-  // Active chat state
   const selectedUser = allUsers?.find(u => u.id === activeChat);
   const isChatEligible = activeChat ? (isMutualFriend(activeChat) || isAdmin) : false;
 
@@ -121,7 +115,6 @@ export default function MessagesPage() {
       limit(100)
     );
 
-    // Filter by participants to comply with rules list check for non-admins
     if (!isAdmin) {
       q = query(q, where('participants', 'array-contains', authUser.uid));
     }
@@ -139,7 +132,7 @@ export default function MessagesPage() {
     if (!firestore || !authUser || !activeChat || !messageText.trim() || !chatId || isSending) return;
     
     if (!isChatEligible) {
-      toast({ variant: 'destructive', title: "Mutual Connection Required", description: "You must both follow each other to unlock secure chat." });
+      toast({ variant: 'destructive', title: "Mutual Connection Required", description: "Establish a mutual follow to unlock secure interaction." });
       return;
     }
 
@@ -147,7 +140,7 @@ export default function MessagesPage() {
     try {
       const moderation = await moderateContent({ text: messageText });
       if (!moderation.isSafe) {
-        toast({ variant: 'destructive', title: "Blocked", description: moderation.reason || "Policy violation detected." });
+        toast({ variant: 'destructive', title: "Policy Violation", description: moderation.reason || "Content violates community standards." });
         setIsSending(false);
         return;
       }
@@ -207,7 +200,7 @@ export default function MessagesPage() {
         createdAt: serverTimestamp()
       });
     }
-    toast({ title: "Success", description: "Connection request updated." });
+    toast({ title: "Success", description: "Interaction status updated." });
   };
 
   if (!authUser && !isUserLoading) {
@@ -242,7 +235,7 @@ export default function MessagesPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Search..."
+              placeholder="Search alumni..."
               className="pl-9 bg-background border-none rounded-xl h-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -286,7 +279,7 @@ export default function MessagesPage() {
             ) : (
               <div className="text-center py-10">
                 <p className="text-xs text-muted-foreground">
-                  {activeTab === 'chats' ? 'No mutual friends yet.' : 'No alumni matches found.'}
+                  {activeTab === 'chats' ? 'Secure chat is reserved for mutual connections.' : 'No alumni matches found.'}
                 </p>
               </div>
             )}

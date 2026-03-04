@@ -42,7 +42,7 @@ export default function ProfilePage() {
     const url = result?.info?.secure_url || result?.info?.url;
     if (url) {
       setNewAvatarUrl(url);
-      toast({ title: "Photo Ready", description: "Click 'Save Profile Photo' to synchronize your identity." });
+      toast({ title: "Photo Ready", description: "Review and save to update your identity." });
     }
   };
 

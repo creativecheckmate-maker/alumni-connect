@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Loader2, Calendar as CalendarIcon, Scissors } from 'lucide-react';
+import { Plus, Trash2, Loader2, Calendar as CalendarIcon, Upload } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
 
 export default function EventsPage() {
@@ -92,7 +92,7 @@ export default function EventsPage() {
                       }}
                       onSuccess={(result: any) => setEventImageUrl(result.info.secure_url)}
                     >
-                      {({ open }) => <Button type="button" variant="outline" className="gap-2 font-bold" onClick={() => open()}><Scissors className="h-4 w-4" /> Upload</Button>}
+                      {({ open }) => <Button type="button" variant="outline" className="gap-2 font-bold" onClick={() => open()}><Upload className="h-4 w-4" /> Upload</Button>}
                     </CldUploadWidget>
                   </div>
                 </div>
