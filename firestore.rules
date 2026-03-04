@@ -2,23 +2,64 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Deployment Trigger: 2024-05-23 17:45 - Universal Platform Unblock
-    // This allows ANY logged-in user to perform 'list' and 'get' operations on ALL collections.
-    // This specifically solves the "Missing or insufficient permissions" errors appearing everywhere.
-    
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-
-    // 1. ADMIN BYPASS: Gives your specific email absolute access everywhere.
-    // This ensures your testing accounts never hit a permission error during development.
-    match /{document=**} {
-      allow read, write: if request.auth != null && (
+    // 1. ADMIN LOGIC: Centralized check for management accounts.
+    // This allows your specific email and UID to bypass restrictions for maintenance.
+    function isAdmin() {
+      return request.auth != null && (
         request.auth.token.email == "creativecheckmate@gmail.com" ||
         request.auth.token.email == "geminiak8@gmail.com" ||
         request.auth.uid == "XuRuoj1HWaS5nIiVZVoEdbaGX052" ||
         request.auth.uid == "zEyeEyDugUWHv4RYKvgntWLunXH2"
       );
+    }
+
+    // 2. GLOBAL BYPASS: High-priority match for Admin troubleshooting.
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // 3. USERS: Allows authenticated 'list' and 'get' for the Directory and Leaderboard.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 4. NOTIFICATIONS: Restricted 'list' and 'get' to ensure user privacy.
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
+    }
+
+    // 5. FRIENDSHIPS: Secure connection tracking.
+    match /friendships/{friendshipId} {
+      allow read: if request.auth != null && (resource == null || request.auth.uid in resource.data.uids);
+      allow write: if request.auth != null;
+    }
+
+    // 6. SOCIAL FEED: Community updates.
+    match /feed/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (resource == null || resource.data.authorId == request.auth.uid);
+    }
+
+    // 7. CAREERS: Job board access.
+    match /jobPostings/{jobId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (resource == null || resource.data.posterId == request.auth.uid);
+    }
+
+    // 8. INFRASTRUCTURE: Public site content and event listings.
+    match /siteContent/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /events/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
   }
 }
