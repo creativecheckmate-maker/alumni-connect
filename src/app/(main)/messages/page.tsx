@@ -28,7 +28,6 @@ import {
   useFirestore, 
   useMemoFirebase, 
   useCollection, 
-  useDoc,
   updateDocumentNonBlocking,
   setDocumentNonBlocking,
   addDocumentNonBlocking,
@@ -94,7 +93,8 @@ export default function MessagesPage() {
     if (activeTab === 'chats') {
       return isMutual && matchesSearch;
     } else {
-      return !isMutual && matchesSearch;
+      // Until accept request or follow back, stay in network
+      return matchesSearch;
     }
   }) || [];
 
@@ -108,6 +108,7 @@ export default function MessagesPage() {
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId || !authUser?.uid || !isChatEligible) return null;
     
+    // Privacy is enforced by the participants filter in the query
     let q = query(
       collection(firestore, 'messages'),
       where('chatId', '==', chatId),
