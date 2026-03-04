@@ -2,6 +2,7 @@
 
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import type { User, Professor } from '@/lib/definitions';
