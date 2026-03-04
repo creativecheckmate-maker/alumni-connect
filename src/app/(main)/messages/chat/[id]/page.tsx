@@ -1,7 +1,7 @@
 'use client';
 
 import { useDoc, useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { doc, collection, query, where, orderBy, serverTimestamp, limit } from 'firebase/firestore';
+import { doc, collection, query, where, serverTimestamp, limit } from 'firebase/firestore';
 import { useParams, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -40,23 +40,32 @@ export default function ChatRoomPage() {
   const { data: friendships, isLoading: isFriendshipLoading } = useCollection<Friendship>(friendshipQuery);
   const isMutual = friendships?.some(f => f.uids.includes(receiverId));
 
-  // Generate a stable chatId for the conversation
   const chatId = useMemo(() => {
     if (!authUser?.uid || !receiverId) return null;
     return [authUser.uid, receiverId].sort().join('_');
   }, [authUser?.uid, receiverId]);
 
+  // Fetching messages without orderBy to avoid index requirements
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId) return null;
     return query(
       collection(firestore, 'messages'),
       where('chatId', '==', chatId),
-      orderBy('createdAt', 'asc'),
       limit(100)
     );
   }, [firestore, chatId]);
 
-  const { data: messages } = useCollection<Message>(messagesQuery);
+  const { data: rawMessages } = useCollection<Message>(messagesQuery);
+
+  // Client-side sorting for chronological order
+  const messages = useMemo(() => {
+    if (!rawMessages) return [];
+    return [...rawMessages].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeA - timeB;
+    });
+  }, [rawMessages]);
 
   // Mark as read logic
   useEffect(() => {

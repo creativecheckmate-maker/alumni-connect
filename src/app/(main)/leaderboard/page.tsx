@@ -4,28 +4,34 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, limit } from 'firebase/firestore';
 import type { User, Professor } from '@/lib/definitions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Star, Award, Medal, Loader2, TrendingUp, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
+import { useMemo } from 'react';
 
 export default function LeaderboardPage() {
   const firestore = useFirestore();
 
-  // Fetching specifically professors ranked by feedbackRating
+  // Fetching specifically professors without orderBy to avoid index requirements
   const professorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, 'users'),
       where('role', '==', 'professor'),
-      orderBy('feedbackRating', 'desc'),
-      limit(50)
+      limit(100)
     );
   }, [firestore]);
 
-  const { data: professors, isLoading } = useCollection<User>(professorsQuery);
+  const { data: rawProfessors, isLoading } = useCollection<User>(professorsQuery);
+
+  // Client-side sort by feedbackRating
+  const professors = useMemo(() => {
+    if (!rawProfessors) return [];
+    return [...rawProfessors].sort((a, b) => (b.feedbackRating || 0) - (a.feedbackRating || 0));
+  }, [rawProfessors]);
 
   const getRankIcon = (index: number) => {
     switch (index) {
