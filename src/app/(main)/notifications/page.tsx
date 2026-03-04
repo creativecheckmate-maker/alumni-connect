@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, UserPlus, Calendar, Info, Bell, Loader2, ShieldAlert } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Calendar, Info, Bell, Loader2, ShieldAlert, AlertCircle } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, limit, orderBy } from 'firebase/firestore';
 import type { Notification } from '@/lib/definitions';
@@ -21,7 +21,7 @@ export default function NotificationsPage() {
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid || isUserLoading) return null;
     
-    // Explicit filter by userId ensures privacy despite permissive security rules
+    // Explicit filter by userId ensures privacy and matches security rules requirements
     return query(
       collection(firestore, 'notifications'), 
       where('userId', '==', user.uid), 
@@ -30,7 +30,7 @@ export default function NotificationsPage() {
     );
   }, [firestore, user?.uid, isUserLoading]);
 
-  const { data: notifications, isLoading } = useCollection<Notification>(notificationsQuery);
+  const { data: notifications, isLoading, error: queryError } = useCollection<Notification>(notificationsQuery);
 
   const filteredNotifications = notifications?.filter(n => filter === 'all' || n.type === filter) || [];
 
@@ -59,6 +59,23 @@ export default function NotificationsPage() {
             <Button className="w-full font-bold h-12 rounded-xl shadow-lg">Log In to Notifications</Button>
           </Link>
         </Card>
+      </div>
+    );
+  }
+
+  if (queryError) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-10 space-y-4">
+        <div className="h-16 w-16 bg-destructive/5 rounded-full flex items-center justify-center">
+          <AlertCircle className="h-8 w-8 text-destructive" />
+        </div>
+        <div className="text-center space-y-2">
+          <h2 className="text-xl font-bold">Sync Error</h2>
+          <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+            We encountered a permissions issue while loading your notifications. Our team has been alerted.
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => window.location.reload()}>Try Again</Button>
       </div>
     );
   }

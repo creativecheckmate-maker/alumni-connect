@@ -2,6 +2,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Deployment Trigger: Updated rules for robust notification listing - 2024-05-22
+    
     function isSignedIn() {
       return request.auth != null;
     }
@@ -28,8 +30,9 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      // Allow broad read for authenticated users to enable collection listing with filters
-      allow read: if isSignedIn();
+      // Explicitly split list and get to ensure filtered queries are authorized
+      allow list: if isSignedIn();
+      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid));
     }
