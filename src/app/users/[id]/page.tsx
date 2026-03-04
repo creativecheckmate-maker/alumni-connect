@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2, UserPlus, UserCheck, XCircle } from 'lucide-react';
+import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2, UserPlus, UserCheck, XCircle, MessageSquare } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useFirebase, useCollection, setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp, collection, query, where } from 'firebase/firestore';
@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useState } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 
 const getInitials = (name: string) => {
     if (!name) return '';
@@ -65,6 +66,7 @@ export default function UserProfilePage() {
   const hasRequestedMe = friendship && !friendship.followedBy.includes(authUser?.uid || '') && !isMutual;
 
   const [ratingValue, setRatingValue] = useState(80);
+  const [feedbackComment, setFeedbackComment] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
 
@@ -73,8 +75,8 @@ export default function UserProfilePage() {
   const isStudentViewer = viewerProfile?.role === 'student';
   const isProfessorOrStaffTarget = user?.role === 'professor' || user?.role === 'non-teaching-staff';
 
-  const handleFeedbackSubmit = () => {
-    if (!userDocRef || !user) return;
+  const handleFeedbackSubmit = async () => {
+    if (!userDocRef || !user || !firestore || !authUser) return;
     setIsSubmittingFeedback(true);
 
     const currentPoints = user.totalFeedbackPoints || user.feedbackRating || 0;
@@ -84,6 +86,7 @@ export default function UserProfilePage() {
     const newCount = currentCount + 1;
     const newAverage = Math.round(newTotalPoints / newCount);
 
+    // 1. Update Faculty Profile
     updateDocumentNonBlocking(userDocRef, {
       feedbackRating: newAverage,
       feedbackCount: newCount,
@@ -91,13 +94,24 @@ export default function UserProfilePage() {
       updatedAt: serverTimestamp(),
     });
 
+    // 2. Log Individual Feedback Entry for AI processing
+    const feedbacksCol = collection(userDocRef, 'feedbacks');
+    addDocumentNonBlocking(feedbacksCol, {
+      studentId: authUser.uid,
+      facultyId: userId,
+      rating: ratingValue,
+      comment: feedbackComment,
+      createdAt: serverTimestamp(),
+    });
+
     toast({
       title: "Feedback Submitted!",
-      description: `Thank you for rating ${user.name}.`,
+      description: `Your review for ${user.name} has been processed.`,
     });
 
     setIsSubmittingFeedback(false);
     setIsFeedbackDialogOpen(false);
+    setFeedbackComment('');
   };
 
   const handleCancelRequest = async () => {
@@ -258,37 +272,49 @@ export default function UserProfilePage() {
                         {authUser && isStudentViewer && isProfessorOrStaffTarget && !isOwnProfile && (
                             <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button className="bg-primary hover:bg-primary/90"><Star className="mr-2 h-4 w-4" /> Give Feedback</Button>
+                                    <Button className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"><Star className="mr-2 h-4 w-4" /> Give Feedback</Button>
                                 </DialogTrigger>
                                 <DialogContent className="sm:max-w-[425px]">
                                     <DialogHeader>
-                                        <DialogTitle>Rate {user.name}</DialogTitle>
+                                        <DialogTitle>Nexus AI Reputation Audit</DialogTitle>
                                         <DialogDescription>
-                                            Share your feedback as a student. This will help fellow alumni know about {user.name}'s contributions.
+                                            Submit your rating and detailed comments. Nexus AI will analyze your feedback to rank {user.name} accurately within the community.
                                         </DialogDescription>
                                     </DialogHeader>
-                                    <div className="py-12 space-y-8">
-                                        <div className="flex justify-between items-center px-2">
-                                            <span className="text-sm font-medium">Poor</span>
-                                            <span className="text-2xl font-bold text-primary">{ratingValue}/100</span>
-                                            <span className="text-sm font-medium">Excellent</span>
+                                    <div className="py-6 space-y-8">
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center px-2">
+                                                <span className="text-xs font-bold uppercase text-muted-foreground">Rating Quality</span>
+                                                <span className="text-3xl font-black text-primary">{ratingValue}</span>
+                                            </div>
+                                            <Slider
+                                                defaultValue={[ratingValue]}
+                                                max={100}
+                                                step={1}
+                                                onValueChange={(vals) => setRatingValue(vals[0])}
+                                                className="w-full"
+                                            />
                                         </div>
-                                        <Slider
-                                            defaultValue={[ratingValue]}
-                                            max={100}
-                                            step={1}
-                                            onValueChange={(vals) => setRatingValue(vals[0])}
-                                            className="w-full"
-                                        />
+                                        
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                                <MessageSquare className="h-3 w-3" /> Detailed Commentary (AI Analyzed)
+                                            </Label>
+                                            <Textarea 
+                                                placeholder="Describe your academic experience with this faculty member..." 
+                                                className="min-h-[100px] bg-muted/20 border-none rounded-xl text-sm"
+                                                value={feedbackComment}
+                                                onChange={(e) => setFeedbackComment(e.target.value)}
+                                            />
+                                        </div>
                                     </div>
                                     <DialogFooter>
                                         <Button 
                                             onClick={handleFeedbackSubmit} 
-                                            className="w-full"
+                                            className="w-full h-12 font-black rounded-xl"
                                             disabled={isSubmittingFeedback}
                                         >
-                                            {isSubmittingFeedback && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                            Submit Rating
+                                            {isSubmittingFeedback ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Submit AI-Powered Rating"}
                                         </Button>
                                     </DialogFooter>
                                 </DialogContent>
@@ -317,6 +343,21 @@ export default function UserProfilePage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-10 grid gap-10">
+                    {user.aiReputationSummary && (
+                        <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-3 opacity-10">
+                                <Star className="h-12 w-12 text-primary" />
+                            </div>
+                            <div className="flex items-center gap-2 mb-3">
+                                <Badge className="bg-primary text-white font-black uppercase text-[9px] tracking-tighter">AI Reputation Insight</Badge>
+                                {user.aiReputationPersona && <span className="text-sm font-black text-primary uppercase tracking-widest">{user.aiReputationPersona}</span>}
+                            </div>
+                            <p className="text-muted-foreground italic leading-relaxed text-base">
+                                "{user.aiReputationSummary}"
+                            </p>
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10 text-base">
                         <div className="flex items-start gap-4">
                            <div className="p-2 rounded-lg bg-primary/10 text-primary">

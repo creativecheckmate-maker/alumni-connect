@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -18,12 +19,28 @@
         "feedbackRating": { "type": "number" },
         "feedbackCount": { "type": "number" },
         "totalFeedbackPoints": { "type": "number" },
+        "aiReputationPersona": { "type": "string" },
+        "aiReputationSummary": { "type": "string" },
         "isVisibleInDirectory": { "type": "boolean" },
         "status": { "type": "string", "enum": ["active", "deactivated"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "externalAuthId", "role", "name", "email", "isVisibleInDirectory", "createdAt", "updatedAt"]
+    },
+    "FacultyFeedback": {
+      "title": "FacultyFeedback",
+      "type": "object",
+      "description": "Individual feedback entries given by students to faculty.",
+      "properties": {
+        "id": { "type": "string" },
+        "facultyId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "facultyId", "studentId", "rating", "createdAt"]
     },
     "Friendship": {
       "title": "Friendship",
@@ -93,6 +110,14 @@
           "entityName": "UserProfile",
           "schema": { "$ref": "#/backend/entities/UserProfile" },
           "description": "Stores individual user profiles."
+        }
+      },
+      {
+        "path": "users/{userId}/feedbacks/{feedbackId}",
+        "definition": {
+          "entityName": "FacultyFeedback",
+          "schema": { "$ref": "#/backend/entities/FacultyFeedback" },
+          "description": "Sub-collection for faculty feedback entries."
         }
       },
       {

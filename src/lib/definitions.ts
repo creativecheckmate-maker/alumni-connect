@@ -1,3 +1,4 @@
+
 export type UserRole = 'student' | 'professor' | 'non-teaching-staff';
 
 export type UserProfile = {
@@ -14,6 +15,8 @@ export type UserProfile = {
   feedbackRating?: number;
   feedbackCount?: number;
   totalFeedbackPoints?: number;
+  aiReputationPersona?: string;
+  aiReputationSummary?: string;
   isVisibleInDirectory: boolean;
   isVerified?: boolean;
   isOnline?: boolean;
@@ -33,6 +36,15 @@ export type User = UserProfile;
 
 export type Student = UserProfile & { role: 'student'; major: string; graduationYear: number };
 export type Professor = UserProfile & { role: 'professor'; department: string; researchInterests: string[] };
+
+export type FacultyFeedback = {
+  id: string;
+  facultyId: string;
+  studentId: string;
+  rating: number;
+  comment?: string;
+  createdAt: any;
+};
 
 export type FriendshipStatus = 'pending' | 'mutual';
 
