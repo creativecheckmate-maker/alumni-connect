@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Send, ShieldCheck, Loader2, MoreVertical, Phone, Check, CheckCheck, Mic, MicOff, PhoneOff, Volume2, Radio, Zap } from 'lucide-react';
+import { ArrowLeft, Send, ShieldCheck, Loader2, MoreVertical, Phone, Check, CheckCheck, Mic, MicOff, PhoneOff, Volume2, Radio, Zap, Activity } from 'lucide-react';
 import type { User, Message, Friendship } from '@/lib/definitions';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
@@ -97,6 +97,7 @@ export default function ChatRoomPage() {
   // Voice Chat States
   const [isCalling, setIsCalling] = useState(false);
   const [isIncomingCall, setIsIncomingCall] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const [pc, setPc] = useState<RTCPeerConnection | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -110,18 +111,6 @@ export default function ChatRoomPage() {
   }, [firestore, receiverId]);
 
   const { data: receiver, isLoading: isReceiverLoading } = useDoc<User>(receiverDocRef);
-
-  const friendshipQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser?.uid || !receiverId) return null;
-    return query(
-      collection(firestore, 'friendships'),
-      where('uids', 'array-contains', authUser.uid),
-      where('status', '==', 'mutual')
-    );
-  }, [firestore, authUser?.uid, receiverId]);
-
-  const { data: friendships, isLoading: isFriendshipLoading } = useCollection<Friendship>(friendshipQuery);
-  const isMutual = friendships?.some(f => f.uids.includes(receiverId));
 
   const chatId = useMemo(() => {
     if (!authUser?.uid || !receiverId) return null;
@@ -280,6 +269,15 @@ export default function ChatRoomPage() {
     }
   };
 
+  const toggleMute = () => {
+    if (localStream) {
+      localStream.getAudioTracks().forEach(track => {
+        track.enabled = isMuted;
+      });
+      setIsMuted(!isMuted);
+    }
+  };
+
   const endCall = () => {
     if (pc) {
       pc.close();
@@ -326,25 +324,10 @@ export default function ChatRoomPage() {
     });
   };
 
-  if (isReceiverLoading || isFriendshipLoading) {
+  if (isReceiverLoading) {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isMutual && !isReceiverLoading) {
-    return (
-      <div className="max-w-md mx-auto text-center py-20 space-y-6">
-        <ShieldCheck className="h-16 w-16 text-primary mx-auto opacity-20" />
-        <h2 className="text-2xl font-black">Authorized Only</h2>
-        <p className="text-muted-foreground leading-relaxed">
-          Start a mutual connection to unlock real-time messaging and live voice channels.
-        </p>
-        <Link href={`/users/${receiverId}`}>
-          <Button className="font-black px-10 h-12 rounded-xl">View Member Profile</Button>
-        </Link>
       </div>
     );
   }
@@ -367,7 +350,7 @@ export default function ChatRoomPage() {
               {isOnline && !isCalling && (
                 <span className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 border-2 border-white rounded-full shadow-sm animate-pulse"></span>
               )}
-              {remoteAudio.isTalking && (
+              {(remoteAudio.isTalking) && (
                 <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-0.5 animate-bounce shadow-lg ring-2 ring-white">
                   <Volume2 className="h-3 w-3 text-white" />
                 </div>
@@ -377,7 +360,7 @@ export default function ChatRoomPage() {
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-black tracking-tight leading-none truncate">{receiver?.name}</h2>
                 {isCalling && (
-                  <Badge className="h-4 px-1.5 text-[8px] bg-red-500 animate-pulse border-none">LIVE</Badge>
+                  <Badge className="h-4 px-1.5 text-[8px] bg-red-500 animate-pulse border-none">LIVE HUD</Badge>
                 )}
               </div>
               <div className="flex items-center gap-1.5 mt-1">
@@ -390,44 +373,62 @@ export default function ChatRoomPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          {isCalling && (
-            <div className="hidden md:flex flex-col items-center gap-1 w-24">
-               <div className="flex items-center justify-between w-full text-[8px] font-black uppercase text-muted-foreground">
-                  <span>HUD</span>
-                  <span>Team Audio</span>
+        {/* PUBG HUD Center Section */}
+        {isCalling && (
+          <div className="hidden lg:flex items-center gap-8 bg-zinc-900/5 px-6 py-2 rounded-2xl border border-zinc-900/5">
+            <div className="flex flex-col gap-1 w-32">
+               <div className="flex items-center justify-between text-[7px] font-black uppercase text-muted-foreground">
+                  <span className="flex items-center gap-1"><Mic className="h-2 w-2" /> Your Mic</span>
+                  <span>{Math.round(localAudio.volume)}%</span>
                </div>
-               <Progress value={remoteAudio.volume * 2} className="h-1 bg-muted rounded-full" />
+               <Progress value={localAudio.volume * 1.5} className="h-1 bg-zinc-200" />
             </div>
-          )}
+            <div className="flex flex-col gap-1 w-32">
+               <div className="flex items-center justify-between text-[7px] font-black uppercase text-primary">
+                  <span className="flex items-center gap-1"><Volume2 className="h-2 w-2" /> Team Audio</span>
+                  <span>{Math.round(remoteAudio.volume)}%</span>
+               </div>
+               <Progress value={remoteAudio.volume * 1.5} className="h-1 bg-primary/20" />
+            </div>
+          </div>
+        )}
 
-          <div className="flex items-center gap-1">
-            {isCalling ? (
-              <Button variant="destructive" size="icon" className="rounded-full h-10 w-10 animate-pulse" onClick={endCall}>
-                <PhoneOff className="h-5 w-5" />
-              </Button>
-            ) : isIncomingCall ? (
-              <div className="flex gap-2 bg-green-500/10 p-1 rounded-full border border-green-500/20">
-                <Button variant="default" size="sm" className="rounded-full bg-green-600 hover:bg-green-700 animate-bounce h-8 text-[10px] font-bold" onClick={answerCall}>
-                  Join Voice
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 text-destructive" onClick={endCall}>
-                  <PhoneOff className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
+        <div className="flex items-center gap-2">
+          {isCalling ? (
+            <div className="flex items-center gap-1 bg-zinc-900/5 p-1 rounded-full border border-zinc-900/5">
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className={`rounded-full h-9 w-9 transition-all ${isOnline ? 'bg-primary/5 text-primary hover:bg-primary/10 hover:scale-110' : 'opacity-40 cursor-not-allowed'}`} 
-                onClick={() => isOnline && startCall()}
-                disabled={!isOnline}
+                className={`rounded-full h-9 w-9 ${isMuted ? 'text-destructive bg-destructive/10' : 'text-primary'}`} 
+                onClick={toggleMute}
               >
-                <Phone className="h-4 w-4" />
+                {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
-            )}
-            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9"><MoreVertical className="h-4 w-4" /></Button>
-          </div>
+              <Button variant="destructive" size="icon" className="rounded-full h-9 w-9 shadow-lg animate-in zoom-in" onClick={endCall}>
+                <PhoneOff className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : isIncomingCall ? (
+            <div className="flex gap-2 bg-green-500/10 p-1 rounded-full border border-green-500/20">
+              <Button variant="default" size="sm" className="rounded-full bg-green-600 hover:bg-green-700 animate-bounce h-8 text-[10px] font-bold" onClick={answerCall}>
+                Join Voice
+              </Button>
+              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 text-destructive" onClick={endCall}>
+                <PhoneOff className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={`rounded-full h-10 w-10 transition-all ${isOnline ? 'bg-primary/5 text-primary hover:bg-primary/10 hover:scale-110 shadow-sm' : 'opacity-40 cursor-not-allowed'}`} 
+              onClick={() => isOnline && startCall()}
+              disabled={!isOnline}
+            >
+              <Phone className="h-5 w-5" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="rounded-full h-9 w-9"><MoreVertical className="h-4 w-4" /></Button>
         </div>
       </header>
 
@@ -438,7 +439,7 @@ export default function ChatRoomPage() {
                <Radio className="h-12 w-12 text-primary animate-pulse" />
                <Zap className="absolute -top-1 -right-1 h-4 w-4 text-primary fill-current" />
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em]">Communication HUD Active</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em]">Communication HUD Ready</p>
           </div>
           
           {messages?.map((m) => {
@@ -490,9 +491,7 @@ export default function ChatRoomPage() {
               />
               {localAudio.isTalking && (
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                   <div className="h-1.5 w-1 bg-primary animate-[bounce_0.5s_infinite]" />
-                   <div className="h-3 w-1 bg-primary animate-[bounce_0.7s_infinite]" />
-                   <div className="h-1.5 w-1 bg-primary animate-[bounce_0.5s_infinite]" />
+                   <Activity className="h-4 w-4 text-primary animate-pulse" />
                 </div>
               )}
           </div>
