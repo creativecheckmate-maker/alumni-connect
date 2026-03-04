@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 1. ADMIN BYPASS: Gives your specific email and UIDs absolute access everywhere.
+    // 1. ADMIN BYPASS: Absolute access for your testing accounts.
     function isAdmin() {
       return request.auth != null && (
         request.auth.token.email == "creativecheckmate@gmail.com" ||
@@ -16,39 +16,38 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // 2. USERS: Allows authenticated 'list' and 'get' for Directory and Leaderboard.
+    // 2. UNIVERSAL READ: Allows authenticated users to list/get from core collections.
+    // This fixes the "Missing or insufficient permissions" error everywhere.
     match /users/{userId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && (request.auth.uid == userId);
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 3. NOTIFICATIONS: Restricted to recipient or admin.
     match /notifications/{notificationId} {
-      allow read: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && (resource == null || resource.data.userId == request.auth.uid);
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
-    // 4. FRIENDSHIPS: Secure connection tracking.
+    match /messages/{messageId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      // Allow receiver to update status (delivered/read)
+      allow update: if request.auth != null && (resource == null || resource.data.receiverId == request.auth.uid || resource.data.senderId == request.auth.uid);
+    }
+
     match /friendships/{friendshipId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null;
     }
 
-    // 5. MESSAGES: Private one-on-one chat with delivery tracking.
-    match /messages/{messageId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && (resource == null || resource.data.receiverId == request.auth.uid);
-    }
-
-    // 6. GENERAL COLLECTIONS: Safety net for feed, jobs, etc.
+    // 3. GENERAL COLLECTIONS SAFETY NET
     match /{collectionName}/{docId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null;
     }
 
-    // Deployment Trigger: 2024-05-21T17:00:00Z - Applied Universal Security Fix and chatId-based messaging.
+    // Deployment Trigger: 2024-05-21T19:30:00Z - Finalized Universal Security Fix and Messaging Architecture.
   }
 }
