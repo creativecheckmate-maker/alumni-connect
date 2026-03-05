@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { getApps, initializeApp, getApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { getFirestore, doc, setDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 import { signupSchema } from '@/lib/schemas';
@@ -20,6 +20,15 @@ const firestore = getFirestore(firebaseApp);
 
 
 export async function signup(prevState: any, formData: FormData) {
+    // 0. SHIELD: Ensure fresh server-side auth state. 
+    // In Next.js Server Actions, the global 'auth' instance can persist between requests.
+    // We sign out explicitly to prevent shared session interference during the creation process.
+    try {
+        await signOut(auth);
+    } catch (e) {
+        // Ignore signout errors as we are just ensuring a clean slate
+    }
+
     const validatedFields = signupSchema.safeParse(Object.fromEntries(formData));
 
     if (!validatedFields.success) {
@@ -33,6 +42,7 @@ export async function signup(prevState: any, formData: FormData) {
 
     try {
         // 1. Create the Authentication entry
+        // If this throws 'auth/email-already-in-use', the record DEFINITELY exists in the Console.
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
@@ -91,8 +101,8 @@ export async function signup(prevState: any, formData: FormData) {
 
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
-            return { message: 'Signup Failed: This email is already registered. If you previously deleted your profile but not your credentials, please LOG IN instead to restore your access and start from scratch.' };
+            return { message: 'Signup Failed: This email is already registered in the Firebase Authentication system. If you recently deleted your credentials from the console, please wait 30 seconds for propagation or try logging in to restore your profile automatically.' };
         }
-        return { message: 'A system error occurred during registration. Please check your connection and try again.' };
+        return { message: error.message || 'A system error occurred during registration. Please check your connection and try again.' };
     }
 }

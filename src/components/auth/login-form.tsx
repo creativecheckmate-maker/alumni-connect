@@ -93,6 +93,7 @@ export function LoginForm() {
           totalFeedbackPoints: initialRating,
           avatarUrl: user.photoURL || `https://picsum.photos/seed/${user.uid}/200/200`,
           preferences: [],
+          networkActivity: '',
         });
         toast({ title: "Profile Restored", description: "Your credentials were found but your profile was missing. A fresh profile has been provisioned." });
       } else if (userDoc.data().status === 'deactivated') {
