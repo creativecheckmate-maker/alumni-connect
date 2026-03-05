@@ -7,26 +7,23 @@ import { getFirestore, doc, setDoc, serverTimestamp, collection, query, where, g
 import { firebaseConfig } from '@/firebase/config';
 import { signupSchema } from '@/lib/schemas';
 
-// Initialize Firebase App
-let firebaseApp;
-if (!getApps().length) {
-  firebaseApp = initializeApp(firebaseConfig);
-} else {
-  firebaseApp = getApp();
-}
-
-const auth = getAuth(firebaseApp);
-const firestore = getFirestore(firebaseApp);
-
-
 export async function signup(prevState: any, formData: FormData) {
-    // 0. SHIELD: Ensure fresh server-side auth state. 
-    // In Next.js Server Actions, the global 'auth' instance can persist between requests.
-    // We sign out explicitly to prevent shared session interference during the creation process.
+    // 1. FRESH INITIALIZATION: Initialize Firebase INSIDE the action to prevent stale sessions
+    let firebaseApp;
+    if (!getApps().length) {
+      firebaseApp = initializeApp(firebaseConfig);
+    } else {
+      firebaseApp = getApp();
+    }
+
+    const auth = getAuth(firebaseApp);
+    const firestore = getFirestore(firebaseApp);
+
+    // 2. SHIELD: Clear any existing server-side auth state
     try {
         await signOut(auth);
     } catch (e) {
-        // Ignore signout errors as we are just ensuring a clean slate
+        // Ignore signout errors
     }
 
     const validatedFields = signupSchema.safeParse(Object.fromEntries(formData));
@@ -41,15 +38,13 @@ export async function signup(prevState: any, formData: FormData) {
     const { name, email, password, role } = validatedFields.data;
 
     try {
-        // 1. Create the Authentication entry
-        // If this throws 'auth/email-already-in-use', the record DEFINITELY exists in the Console.
+        // 3. ATTEMPT CREATION: If this fails with 'email-already-in-use', the record is definitively in the Firebase Auth database.
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
         await updateProfile(user, { displayName: name });
 
-        // 2. STRICTURE: Purge any orphaned profiles with this email but different UIDs
-        // This ensures that even if an account was previously half-deleted, the new profile is unique.
+        // 4. CLEANUP: Purge any orphaned profiles from Firestore to ensure uniqueness
         const usersRef = collection(firestore, 'users');
         const q = query(usersRef, where('email', '==', email));
         const querySnapshot = await getDocs(q);
