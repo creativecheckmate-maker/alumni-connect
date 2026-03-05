@@ -1,27 +1,97 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, UserPlus, Calendar, Info, Bell, Loader2, ShieldAlert } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, limit, orderBy } from 'firebase/firestore';
-import type { Notification } from '@/lib/definitions';
+import { MoreHorizontal, UserPlus, Calendar, Info, Bell, Loader2, ShieldAlert, Edit } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useFirebase, useDoc } from '@/firebase';
+import { collection, query, where, limit, orderBy, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { Notification, SiteContent } from '@/lib/definitions';
 import Link from 'next/link';
+import { ADMIN_EMAIL } from '@/lib/config';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+
+function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = false }: { pageId: string, sectionId: string, initialData: any, label: string, overlay?: boolean }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialData) setData(initialData);
+  }, [initialData]);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', `${pageId}_${sectionId}`), {
+        id: `${pageId}_${sectionId}`,
+        pageId,
+        sectionId,
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Updated", description: `${label} saved.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to update." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!data) return null;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="secondary" className={`${overlay ? 'absolute top-2 right-2 z-50' : 'ml-2'} h-8 w-8 rounded-full shadow-lg`}>
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Edit {label}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+          {Object.keys(data).map((key) => (
+            <div key={key} className="space-y-2">
+              <label className="capitalize text-xs font-bold text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</label>
+              <Input 
+                value={data[key] || ""} 
+                onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+              />
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving} className="w-full">
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function NotificationsPage() {
   const { user, isUserLoading } = useUser();
+  const { isEditMode } = useFirebase();
   const firestore = useFirestore();
   const [filter, setFilter] = useState('all');
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
-  // Memoized query ensures stable reference for the useCollection hook
+  const contentDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'notifications_tabs'), [firestore]);
+  const { data: tabsContent } = useDoc<SiteContent>(contentDocRef);
+
   const notificationsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
-    
-    // Explicit filter by userId ensures privacy and matches security rules requirements
     return query(
       collection(firestore, 'notifications'), 
       where('userId', '==', user.uid), 
@@ -32,6 +102,15 @@ export default function NotificationsPage() {
 
   const { data: notifications, isLoading } = useCollection<Notification>(notificationsQuery);
 
+  const defaultTabs = {
+    all: "All",
+    connection: "Network",
+    event: "Events",
+    general: "Info",
+    emptyMessage: "No active notifications found."
+  };
+
+  const tabs = tabsContent?.data || defaultTabs;
   const filteredNotifications = notifications?.filter(n => filter === 'all' || n.type === filter) || [];
 
   if (isUserLoading) {
@@ -65,14 +144,16 @@ export default function NotificationsPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
-      <PageHeader title="Notifications" description="Your secure alumni activity log and connection updates." />
+      <PageHeader title="Notifications" description="Your secure alumni activity log and connection updates.">
+        {isAdmin && isEditMode && <AdminEditDialog pageId="notifications" sectionId="tabs" initialData={tabs} label="Tab Labels" />}
+      </PageHeader>
 
       <Tabs value={filter} onValueChange={setFilter} className="w-full">
         <TabsList className="grid grid-cols-4 w-full h-auto p-1 bg-muted/50 rounded-xl mb-6">
-          <TabsTrigger value="all" className="rounded-lg py-2 text-xs font-bold">All</TabsTrigger>
-          <TabsTrigger value="connection" className="rounded-lg py-2 text-xs font-bold">Network</TabsTrigger>
-          <TabsTrigger value="event" className="rounded-lg py-2 text-xs font-bold">Events</TabsTrigger>
-          <TabsTrigger value="general" className="rounded-lg py-2 text-xs font-bold">Info</TabsTrigger>
+          <TabsTrigger value="all" className="rounded-lg py-2 text-xs font-bold">{tabs.all}</TabsTrigger>
+          <TabsTrigger value="connection" className="rounded-lg py-2 text-xs font-bold">{tabs.connection}</TabsTrigger>
+          <TabsTrigger value="event" className="rounded-lg py-2 text-xs font-bold">{tabs.event}</TabsTrigger>
+          <TabsTrigger value="general" className="rounded-lg py-2 text-xs font-bold">{tabs.general}</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -114,7 +195,7 @@ export default function NotificationsPage() {
         ) : (
           <div className="text-center py-20 bg-muted/20 rounded-[2rem] border-2 border-dashed border-muted">
             <Bell className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-muted-foreground font-bold">No active notifications found.</p>
+            <p className="text-muted-foreground font-bold">{tabs.emptyMessage}</p>
           </div>
         )}
       </div>
