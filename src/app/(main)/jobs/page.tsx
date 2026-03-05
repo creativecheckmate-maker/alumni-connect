@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Briefcase, Plus, MapPin, Building2, ExternalLink, Trash2, Edit, Loader2, Upload } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc, setDoc } from 'firebase/firestore';
@@ -17,6 +17,77 @@ import type { JobPosting, SiteContent } from '@/lib/definitions';
 import { ADMIN_EMAIL, SECONDARY_ADMIN_EMAIL } from '@/lib/config';
 import Link from 'next/link';
 import { CldUploadWidget } from 'next-cloudinary';
+
+function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: string, sectionId: string, initialData: any, label: string }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialData) setData(initialData);
+  }, [initialData]);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', `${pageId}_${sectionId}`), {
+        id: `${pageId}_${sectionId}`,
+        pageId,
+        sectionId,
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Updated", description: `${label} saved.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to update." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!data) return null;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-lg ml-2">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Edit {label}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+          {Object.keys(data).map((key) => (
+            <div key={key} className="space-y-2">
+              <label className="capitalize text-xs font-bold text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</label>
+              {key.toLowerCase().includes('description') ? (
+                <Textarea 
+                  value={data[key] || ""} 
+                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                />
+              ) : (
+                <Input 
+                  value={data[key] || ""} 
+                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving} className="w-full">
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function JobsPage() {
   const { user: authUser, isEditMode } = useFirebase();
@@ -26,6 +97,9 @@ export default function JobsPage() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const isAdmin = authUser?.email === ADMIN_EMAIL || authUser?.email === SECONDARY_ADMIN_EMAIL || authUser?.email === 'geminiak8@gmail.com' || authUser?.uid === 'zEyeEyDugUWHv4RYKvgntWLunXH2';
 
+  const introDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'jobs_intro'), [firestore]);
+  const { data: introContent } = useDoc<SiteContent>(introDocRef);
+
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'jobPostings'), orderBy('createdAt', 'desc'));
@@ -33,21 +107,32 @@ export default function JobsPage() {
 
   const { data: jobs } = useCollection<JobPosting>(jobsQuery);
 
+  const defaultIntro = {
+    title: "Job Board",
+    description: "Discover curated career opportunities specifically for the Nexus alumni network."
+  };
+
+  const intro = introContent?.data || defaultIntro;
+
   const handlePostJob = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!firestore || !authUser) return;
     const formData = new FormData(e.currentTarget);
-    await addDoc(collection(firestore, 'jobPostings'), {
-      title: formData.get('title'),
-      company: formData.get('company'),
-      location: formData.get('location'),
-      description: formData.get('description'),
-      posterId: authUser.uid,
-      companyLogoUrl: logoUrl || `https://picsum.photos/seed/${Math.random()}/100/100`,
-      createdAt: serverTimestamp(),
-    });
-    setLogoUrl(null);
-    toast({ title: "Job Posted", description: "Your listing is now live." });
+    try {
+      await addDoc(collection(firestore, 'jobPostings'), {
+        title: formData.get('title'),
+        company: formData.get('company'),
+        location: formData.get('location'),
+        description: formData.get('description'),
+        posterId: authUser.uid,
+        companyLogoUrl: logoUrl || `https://picsum.photos/seed/${Math.random()}/100/100`,
+        createdAt: serverTimestamp(),
+      });
+      setLogoUrl(null);
+      toast({ title: "Job Posted", description: "Your listing is now live." });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to post job." });
+    }
   };
 
   const handleDeleteJob = async (id: string) => {
@@ -56,12 +141,16 @@ export default function JobsPage() {
     toast({ title: "Job Deleted", description: "The listing has been removed." });
   };
 
-  const filteredJobs = jobs?.filter(job => job.title.toLowerCase().includes(searchTerm.toLowerCase()) || job.company.toLowerCase().includes(searchTerm.toLowerCase())) || [];
+  const filteredJobs = jobs?.filter(job => 
+    job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    job.company.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <PageHeader title="Job Board">
+      <PageHeader title={intro.title} description={intro.description}>
         <div className="flex items-center gap-3">
+          {isAdmin && isEditMode && <AdminEditDialog pageId="jobs" sectionId="intro" initialData={intro} label="Page Intro" />}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search..." className="w-80 pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
@@ -69,36 +158,38 @@ export default function JobsPage() {
           {authUser ? (
             <Dialog>
               <DialogTrigger asChild><Button className="gap-2 shadow-lg"><Plus className="h-4 w-4" /> Post a Job</Button></DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-[425px]">
                 <DialogHeader><DialogTitle>Post New Opportunity</DialogTitle></DialogHeader>
                 <form onSubmit={handlePostJob} className="grid gap-4 py-4">
-                  <Label>Job Title</Label><Input name="title" required />
-                  <Label>Company</Label><Input name="company" required />
-                  <Label>Location</Label><Input name="location" required />
-                  <Label>Description</Label><Textarea name="description" required />
-                  <Label>Company Logo</Label>
-                  <div className="flex gap-2">
-                    <Input value={logoUrl || ""} readOnly className="bg-muted/50" />
-                    <CldUploadWidget 
-                      uploadPreset="ml_default" 
-                      options={{ 
-                        cloudName: "dnex9nw0f", 
-                        cropping: true, 
-                        showSkipCropButton: true,
-                        singleUploadAutoClose: true, 
-                        croppingAspectRatio: 1, 
-                        multiple: false,
-                        sources: ['local', 'url', 'camera']
-                      }} 
-                      onSuccess={(res: any) => {
-                        const url = res?.info?.secure_url || res?.info?.url;
-                        if (url) {
-                          setLogoUrl(url);
-                        }
-                      }}
-                    >
-                      {({ open }) => <Button type="button" variant="outline" onClick={() => open()}><Upload className="h-4 w-4" /></Button>}
-                    </CldUploadWidget>
+                  <div className="space-y-2"><Label>Job Title</Label><Input name="title" required /></div>
+                  <div className="space-y-2"><Label>Company</Label><Input name="company" required /></div>
+                  <div className="space-y-2"><Label>Location</Label><Input name="location" required /></div>
+                  <div className="space-y-2"><Label>Description</Label><Textarea name="description" required /></div>
+                  <div className="space-y-2">
+                    <Label>Company Logo</Label>
+                    <div className="flex gap-2">
+                      <Input value={logoUrl || ""} readOnly className="bg-muted/50" />
+                      <CldUploadWidget 
+                        uploadPreset="ml_default" 
+                        options={{ 
+                          cloudName: "dnex9nw0f", 
+                          cropping: true, 
+                          showSkipCropButton: true,
+                          singleUploadAutoClose: true, 
+                          croppingAspectRatio: 1, 
+                          multiple: false,
+                          sources: ['local', 'url', 'camera']
+                        }} 
+                        onSuccess={(res: any) => {
+                          const url = res?.info?.secure_url || res?.info?.url;
+                          if (url) {
+                            setLogoUrl(url);
+                          }
+                        }}
+                      >
+                        {({ open }) => <Button type="button" variant="outline" onClick={() => open()}><Upload className="h-4 w-4" /></Button>}
+                      </CldUploadWidget>
+                    </div>
                   </div>
                   <Button type="submit" className="w-full">Submit Job</Button>
                 </form>

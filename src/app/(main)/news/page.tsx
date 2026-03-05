@@ -9,7 +9,7 @@ import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
 import { ADMIN_EMAIL, SECONDARY_ADMIN_EMAIL } from '@/lib/config';
 import { collection, addDoc, serverTimestamp, doc, deleteDoc, setDoc } from 'firebase/firestore';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +17,77 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { SiteContent } from '@/lib/definitions';
 import { CldUploadWidget } from 'next-cloudinary';
+
+function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: string, sectionId: string, initialData: any, label: string }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialData) setData(initialData);
+  }, [initialData]);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', `${pageId}_${sectionId}`), {
+        id: `${pageId}_${sectionId}`,
+        pageId,
+        sectionId,
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Updated", description: `${label} saved.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to update." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!data) return null;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-lg ml-2">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Edit {label}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+          {Object.keys(data).map((key) => (
+            <div key={key} className="space-y-2">
+              <label className="capitalize text-xs font-bold text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</label>
+              {key.toLowerCase().includes('description') ? (
+                <Textarea 
+                  value={data[key] || ""} 
+                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                />
+              ) : (
+                <Input 
+                  value={data[key] || ""} 
+                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving} className="w-full">
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function NewsPage() {
   const { user: authUser, isEditMode } = useFirebase();
@@ -40,9 +111,10 @@ export default function NewsPage() {
   const newsItems = newsDocs?.filter(doc => doc.pageId === 'news' && doc.sectionId === 'article') || [];
 
   const defaultIntro = {
+    title: "University News",
     description: "Stay updated with the latest breakthroughs, achievements, and community stories from across the Nexus network."
   };
-  const currentIntro = introContent?.data || defaultIntro;
+  const intro = introContent?.data || defaultIntro;
 
   const handleAddNews = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -81,78 +153,81 @@ export default function NewsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20">
-      <PageHeader title="University News">
+      <PageHeader title={intro.title}>
         <div className="flex items-center gap-4">
           <Newspaper className="h-6 w-6 text-primary" />
           {isAdmin && isEditMode && (
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-2 rounded-full">
-                  <Plus className="h-4 w-4" /> Add Article
-                </Button>
-              </DialogTrigger>
-              <DialogContent onInteractOutside={(e) => e.preventDefault()}>
-                <DialogHeader>
-                  <DialogTitle>Publish News Article</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleAddNews} className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Title</Label>
-                    <Input name="title" placeholder="Article Title" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Category</Label>
-                    <Input name="category" placeholder="e.g. Achievement, Research" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Textarea name="description" placeholder="Summary of the article..." required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Thumbnail Image</Label>
-                    <div className="flex gap-2">
-                      <Input value={newsImageUrl || ""} placeholder="No image selected" readOnly className="bg-muted/50" />
-                      <CldUploadWidget 
-                        uploadPreset="ml_default"
-                        options={{ 
-                          cloudName: "dnex9nw0f",
-                          cropping: true, 
-                          showSkipCropButton: true,
-                          singleUploadAutoClose: true,
-                          croppingAspectRatio: 1.77,
-                          multiple: false,
-                          sources: ['local', 'url', 'camera']
-                        }}
-                        onSuccess={(res: any) => {
-                          const url = res?.info?.secure_url || res?.info?.url;
-                          if (url) {
-                            setNewsImageUrl(url);
-                          }
-                        }}
-                      >
-                        {({ open }) => (
-                          <Button type="button" variant="outline" onClick={() => open()}>
-                            <Upload className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </CldUploadWidget>
+            <>
+              <AdminEditDialog pageId="news" sectionId="intro" initialData={intro} label="Page Intro" />
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="gap-2 rounded-full">
+                    <Plus className="h-4 w-4" /> Add Article
+                  </Button>
+                </DialogTrigger>
+                <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+                  <DialogHeader>
+                    <DialogTitle>Publish News Article</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleAddNews} className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Title</Label>
+                      <Input name="title" placeholder="Article Title" required />
                     </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={isPosting}>
-                      {isPosting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Publish
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+                    <div className="space-y-2">
+                      <Label>Category</Label>
+                      <Input name="category" placeholder="e.g. Achievement, Research" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Textarea name="description" placeholder="Summary of the article..." required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Thumbnail Image</Label>
+                      <div className="flex gap-2">
+                        <Input value={newsImageUrl || ""} placeholder="No image selected" readOnly className="bg-muted/50" />
+                        <CldUploadWidget 
+                          uploadPreset="ml_default"
+                          options={{ 
+                            cloudName: "dnex9nw0f",
+                            cropping: true, 
+                            showSkipCropButton: true,
+                            singleUploadAutoClose: true,
+                            croppingAspectRatio: 1.77,
+                            multiple: false,
+                            sources: ['local', 'url', 'camera']
+                          }}
+                          onSuccess={(res: any) => {
+                            const url = res?.info?.secure_url || res?.info?.url;
+                            if (url) {
+                              setNewsImageUrl(url);
+                            }
+                          }}
+                        >
+                          {({ open }) => (
+                            <Button type="button" variant="outline" onClick={() => open()}>
+                              <Upload className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </CldUploadWidget>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit" disabled={isPosting}>
+                        {isPosting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Publish
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </>
           )}
         </div>
       </PageHeader>
 
       <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
-        {currentIntro.description}
+        {intro.description}
       </p>
 
       <div className="grid gap-8">
