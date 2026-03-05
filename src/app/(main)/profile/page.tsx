@@ -90,7 +90,7 @@ export default function ProfilePage() {
                       <Edit className="h-4 w-4"/> Edit Professional Details
                     </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[625px]">
+                <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-[625px]">
                     <DialogHeader>
                         <DialogTitle>Update Profile</DialogTitle>
                         <DialogDescription>Refine your academic and professional data.</DialogDescription>
