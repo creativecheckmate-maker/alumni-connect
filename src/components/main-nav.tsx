@@ -117,7 +117,7 @@ function SidebarEditDialog({ initialData }: { initialData: any }) {
             {Object.keys(labels).map((key) => (
               <div key={key} className="flex items-center gap-4 p-3 rounded-xl bg-muted/30 border border-muted/50">
                 <div className="flex-1 space-y-1">
-                  <Label className="capitalize text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{key}</Label>
+                  <label className="capitalize text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">{key}</label>
                   <Input 
                     className="h-9 text-sm font-medium"
                     value={labels[key]} 
@@ -125,7 +125,7 @@ function SidebarEditDialog({ initialData }: { initialData: any }) {
                   />
                 </div>
                 <div className="flex flex-col items-center gap-2 pt-4 min-w-[80px]">
-                  <Label className="text-[9px] font-bold text-muted-foreground uppercase">Visibility</Label>
+                  <label className="text-[9px] font-bold text-muted-foreground uppercase block">Visibility</label>
                   <div className="flex items-center gap-2">
                     {visibility[key] !== false ? <Eye className="h-3 w-3 text-primary" /> : <EyeOff className="h-3 w-3 text-muted-foreground" />}
                     <Switch 

@@ -5,18 +5,82 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Calendar } from '@/components/ui/calendar';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { useFirebase, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
-import type { Event } from '@/lib/definitions';
+import { useFirebase, useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc, setDoc } from 'firebase/firestore';
+import type { Event, SiteContent } from '@/lib/definitions';
 import { ADMIN_EMAIL, SECONDARY_ADMIN_EMAIL } from '@/lib/config';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Loader2, Calendar as CalendarIcon, Upload } from 'lucide-react';
+import { Plus, Trash2, Loader2, Calendar as CalendarIcon, Upload, Edit } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
+
+function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: string, sectionId: string, initialData: any, label: string }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialData) setData(initialData);
+  }, [initialData]);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', `${pageId}_${sectionId}`), {
+        id: `${pageId}_${sectionId}`,
+        pageId,
+        sectionId,
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Updated", description: `${label} saved.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to update." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!data) return null;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-lg ml-2">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Edit {label}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+          {Object.keys(data).map((key) => (
+            <div key={key} className="space-y-2">
+              <label className="capitalize text-xs font-bold text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</label>
+              <Input 
+                value={data[key] || ""} 
+                onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+              />
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving} className="w-full">
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function EventsPage() {
   const { user: authUser, isEditMode } = useFirebase();
@@ -27,12 +91,22 @@ export default function EventsPage() {
   const [open, setOpen] = useState(false);
   const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
 
+  const configDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'events_config'), [firestore]);
+  const { data: eventsConfig } = useDoc<SiteContent>(configDocRef);
+
   const eventsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'events'), orderBy('date', 'asc'));
   }, [firestore]);
 
   const { data: events, isLoading } = useCollection<Event>(eventsQuery);
+
+  const defaultValues = {
+    timelineHeader: "Timeline",
+    calendarHeader: "Calendar"
+  };
+
+  const config = eventsConfig?.data || defaultValues;
 
   const handleAddEvent = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -69,55 +143,61 @@ export default function EventsPage() {
     <div className="max-w-6xl mx-auto space-y-6">
       <PageHeader title="Global Events" description="Discover reunions, workshops, and summits across our network.">
         {isAdmin && isEditMode && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button className="gap-2 rounded-xl h-11 font-bold shadow-lg"><Plus className="h-4 w-4" /> Create New Event</Button></DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader><DialogTitle>Event Builder</DialogTitle></DialogHeader>
-              <form onSubmit={handleAddEvent} className="space-y-4 py-4">
-                <div className="space-y-2"><Label>Event Name</Label><Input name="name" placeholder="e.g. Annual Homecoming" required /></div>
-                <div className="space-y-2"><Label>Date</Label><Input name="date" placeholder="e.g. August 12, 2024" required /></div>
-                <div className="space-y-2">
-                  <Label>Event Banner</Label>
-                  <div className="flex gap-2">
-                    <Input value={eventImageUrl || ""} placeholder="No image selected" readOnly className="bg-muted/50" />
-                    <CldUploadWidget 
-                      uploadPreset="ml_default"
-                      options={{ 
-                        cloudName: "dnex9nw0f", 
-                        cropping: true, 
-                        showSkipCropButton: true,
-                        singleUploadAutoClose: true,
-                        croppingAspectRatio: 1.77,
-                        multiple: false,
-                        sources: ['local', 'url', 'camera']
-                      }}
-                      onSuccess={(res: any) => {
-                        const url = res?.info?.secure_url || res?.info?.url;
-                        if (url) {
-                          setEventImageUrl(url);
-                        }
-                      }}
-                    >
-                      {({ open }) => <Button type="button" variant="outline" className="gap-2 font-bold" onClick={() => open()}><Upload className="h-4 w-4" /> Upload</Button>}
-                    </CldUploadWidget>
-                  </div>
-                </div>
-                <div className="space-y-2"><Label>Description</Label><Textarea name="description" placeholder="Details..." required /></div>
-                <DialogFooter><Button type="submit" disabled={isPosting} className="w-full h-12 font-bold">{isPosting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Publish Event"}</Button></DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <div className="flex items-center gap-2">
+            <AdminEditDialog pageId="events" sectionId="config" initialData={config} label="Events Text Settings" />
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild><Button className="gap-2 rounded-xl h-11 font-bold shadow-lg"><Plus className="h-4 w-4" /> Create New Event</Button></DialogTrigger>
+                <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-lg">
+                <DialogHeader><DialogTitle>Event Builder</DialogTitle></DialogHeader>
+                <form onSubmit={handleAddEvent} className="space-y-4 py-4">
+                    <div className="space-y-2"><Label>Event Name</Label><Input name="name" placeholder="e.g. Annual Homecoming" required /></div>
+                    <div className="space-y-2"><Label>Date</Label><Input name="date" placeholder="e.g. August 12, 2024" required /></div>
+                    <div className="space-y-2">
+                    <Label>Event Banner</Label>
+                    <div className="flex gap-2">
+                        <Input value={eventImageUrl || ""} placeholder="No image selected" readOnly className="bg-muted/50" />
+                        <CldUploadWidget 
+                        uploadPreset="ml_default"
+                        options={{ 
+                            cloudName: "dnex9nw0f", 
+                            cropping: true, 
+                            showSkipCropButton: true,
+                            singleUploadAutoClose: true,
+                            croppingAspectRatio: 1.77,
+                            multiple: false,
+                            sources: ['local', 'url', 'camera']
+                        }}
+                        onSuccess={(res: any) => {
+                            const url = res?.info?.secure_url || res?.info?.url;
+                            if (url) {
+                            setEventImageUrl(url);
+                            }
+                        }}
+                        >
+                        {({ open }) => <Button type="button" variant="outline" className="gap-2 font-bold" onClick={() => open()}><Upload className="h-4 w-4" /> Upload</Button>}
+                        </CldUploadWidget>
+                    </div>
+                    </div>
+                    <div className="space-y-2"><Label>Description</Label><Textarea name="description" placeholder="Details..." required /></div>
+                    <DialogFooter><Button type="submit" disabled={isPosting} className="w-full h-12 font-bold">{isPosting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Publish Event"}</Button></DialogFooter>
+                </form>
+                </DialogContent>
+            </Dialog>
+          </div>
         )}
       </PageHeader>
 
       <div className="grid gap-8 md:grid-cols-3">
         <div className="md:col-span-2 space-y-6">
-            <h2 className="text-2xl font-bold font-headline">Timeline</h2>
+            <h2 className="text-2xl font-bold font-headline">{config.timelineHeader}</h2>
             {isLoading ? <div className="space-y-4"><div className="h-48 w-full bg-muted animate-pulse rounded-2xl" /></div> : events?.map((event) => (
                 <Card key={event.id} className="overflow-hidden border-none shadow-lg bg-card"><div className="grid md:grid-cols-5"><div className="md:col-span-2 relative h-48 md:h-full"><Image src={event.imageUrl || `https://picsum.photos/seed/${event.id}/800/400`} alt={event.name} fill className="object-cover" /></div><div className="md:col-span-3 p-2"><CardHeader><div className="flex justify-between items-start"><div className="space-y-1"><CardTitle className="text-xl font-black">{event.name}</CardTitle><CardDescription className="flex items-center gap-1.5 text-primary font-black uppercase text-[10px]"><CalendarIcon className="h-3 w-3" /> {event.date}</CardDescription></div>{isAdmin && isEditMode && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteEvent(event.id)}><Trash2 className="h-4 w-4" /></Button>}</div></CardHeader><CardContent><p className="text-sm text-muted-foreground line-clamp-3 font-medium">{event.description}</p></CardContent><CardFooter><Button variant="secondary" className="font-black px-8 h-11 rounded-xl">Confirm Attendance</Button></CardFooter></div></div></Card>
             ))}
         </div>
-        <div className="space-y-6"><h2 className="text-2xl font-bold font-headline">Calendar</h2><Card className="border-none shadow-xl bg-card rounded-[2rem] overflow-hidden"><CardContent className="p-4"><Calendar mode="single" selected={new Date()} className="rounded-md" /></CardContent></Card></div>
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold font-headline">{config.calendarHeader}</h2>
+            <Card className="border-none shadow-xl bg-card rounded-[2rem] overflow-hidden"><CardContent className="p-4"><Calendar mode="single" selected={new Date()} className="rounded-md" /></CardContent></Card>
+        </div>
       </div>
     </div>
   );
