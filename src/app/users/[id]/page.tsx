@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2, UserPlus, UserCheck, XCircle, MessageSquare, Phone } from 'lucide-react';
+import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2, UserPlus, UserCheck, XCircle, MessageSquare, Phone, Award, ShieldCheck } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useFirebase, useCollection, setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp, collection, query, where } from 'firebase/firestore';
@@ -34,6 +34,7 @@ export default function UserProfilePage() {
   const userId = params.id as string;
   const { toast } = useToast();
   const router = useRouter();
+  const currentYear = new Date().getFullYear();
 
   const { user: authUser, isUserLoading: isAuthLoading, isEditMode } = useFirebase();
   const firestore = useFirestore();
@@ -51,6 +52,9 @@ export default function UserProfilePage() {
   }, [firestore, userId]);
   
   const { data: user, isLoading: isDocLoading, error } = useDoc<User>(userDocRef);
+
+  // Status helper
+  const isAlumni = user?.role === 'student' && user.graduationYear && user.graduationYear < currentYear;
 
   // Friendship state logic
   const friendshipQuery = useMemoFirebase(() => {
@@ -261,7 +265,7 @@ export default function UserProfilePage() {
                                   </Button>
                                 </Link>
                                 <Link href={`/messages/chat/${user.id}?autoCall=true`}>
-                                  <Button className="gap-2 bg-primary">
+                                  <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                                     <Phone className="h-4 w-4" /> Live Call
                                   </Button>
                                 </Link>
@@ -280,7 +284,7 @@ export default function UserProfilePage() {
                         {authUser && isStudentViewer && isProfessorOrStaffTarget && !isOwnProfile && (
                             <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"><Star className="mr-2 h-4 w-4" /> Give Feedback</Button>
+                                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"><Star className="mr-2 h-4 w-4" /> Give Feedback</Button>
                                 </DialogTrigger>
                                 <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-[425px]">
                                     <DialogHeader>
@@ -330,7 +334,14 @@ export default function UserProfilePage() {
                         )}
                     </div>
                 </div>
-              <Card className="overflow-hidden shadow-lg border-none">
+              <Card className="overflow-hidden shadow-lg border-none relative">
+                {isAlumni && (
+                  <div className="absolute top-4 right-4 z-10">
+                    <Badge className="bg-primary text-white font-black uppercase text-[10px] px-4 py-1 tracking-[0.2em] shadow-xl flex items-center gap-2">
+                      <Award className="h-4 w-4" /> Legacy Alumnus
+                    </Badge>
+                  </div>
+                )}
                 <CardHeader className="relative flex flex-col items-center justify-center space-y-4 bg-card p-10 text-center">
                     <div className="absolute top-0 left-0 w-full h-32 bg-primary/10 -z-1"></div>
                   <Avatar className="h-32 w-32 md:h-40 md:w-40 border-8 border-background bg-background shadow-xl">
@@ -347,7 +358,14 @@ export default function UserProfilePage() {
                         )}
                     </div>
                     <CardDescription className="text-lg">{user.college} — {user.university}</CardDescription>
-                    <Badge variant={user.role === 'student' ? 'secondary' : 'outline'} className="capitalize mt-2 px-4 py-1 text-sm font-semibold">{user.role}</Badge>
+                    <div className="flex justify-center gap-2 mt-2">
+                      <Badge variant={user.role === 'student' ? 'secondary' : 'outline'} className="capitalize px-4 py-1 text-sm font-semibold">{user.role}</Badge>
+                      {user.role === 'student' && (
+                        <Badge className={`px-4 py-1 text-sm font-black uppercase tracking-tighter border-none ${isAlumni ? 'bg-primary/10 text-primary' : 'bg-green-500/10 text-green-600'}`}>
+                          {isAlumni ? 'Alumnus' : 'Current Student'}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-10 grid gap-10">
@@ -403,12 +421,14 @@ export default function UserProfilePage() {
                             </div>
                             <div className="flex items-start gap-4">
                                 <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                                  <GraduationCap className="h-6 w-6" />
+                                  <Award className="h-6 w-6" />
                                 </div>
                                 {user.graduationYear && (
                                   <div>
-                                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Graduation</h3>
-                                      <p className="font-medium text-lg">Class of {(user as Student).graduationYear}</p>
+                                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Graduation Status</h3>
+                                      <p className="font-medium text-lg">
+                                        {isAlumni ? `Alumnus (Class of ${user.graduationYear})` : `Class of ${user.graduationYear}`}
+                                      </p>
                                   </div>
                                 )}
                             </div>

@@ -18,7 +18,7 @@ import {
   AlertDialogFooter,
   AlertDialogDescription,
 } from '@/components/ui/alert-dialog';
-import { Edit, Trash2, GraduationCap, Building2, MapPin, MessageSquare, UserPlus, UserCheck, XCircle, Phone } from 'lucide-react';
+import { Edit, Trash2, GraduationCap, Building2, MapPin, MessageSquare, UserPlus, UserCheck, XCircle, Phone, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, addDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
@@ -42,6 +42,9 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser, friendships }: UserC
   const { user: authUser } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const currentYear = new Date().getFullYear();
+
+  const isAlumni = user.role === 'student' && user.graduationYear && user.graduationYear < currentYear;
 
   const friendship = friendships.find(f => f.uids.includes(user.id));
   const isMutual = friendship?.status === 'mutual';
@@ -105,7 +108,14 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser, friendships }: UserC
   };
 
   return (
-    <Card className="hover:shadow-lg transition-all duration-300 group border-none shadow-sm">
+    <Card className="hover:shadow-lg transition-all duration-300 group border-none shadow-sm relative overflow-hidden">
+      {isAlumni && (
+        <div className="absolute top-0 right-0 p-2">
+           <Badge className="bg-primary text-white border-none text-[8px] font-black uppercase px-2 py-0.5 shadow-sm flex items-center gap-1">
+              <Award className="h-2 w-2" /> Alumni Legacy
+           </Badge>
+        </div>
+      )}
       <CardContent className="p-5 flex flex-col gap-4">
         <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
@@ -115,9 +125,16 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser, friendships }: UserC
                 </Avatar>
                 <div className="space-y-0.5">
                     <h3 className="text-lg font-bold leading-none group-hover:text-primary transition-colors">{user.name}</h3>
-                    <Badge variant={user.role === 'student' ? 'secondary' : 'outline'} className="capitalize text-[10px] h-4 font-bold tracking-tight">
-                        {user.role === 'non-teaching-staff' ? 'Staff' : user.role}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Badge variant={user.role === 'student' ? 'secondary' : 'outline'} className="capitalize text-[9px] h-4 font-black tracking-tight px-1.5">
+                          {user.role === 'non-teaching-staff' ? 'Staff' : user.role}
+                      </Badge>
+                      {user.role === 'student' && (
+                        <Badge className={`text-[9px] h-4 font-black tracking-tight px-1.5 ${isAlumni ? 'bg-primary/10 text-primary border-none' : 'bg-green-500/10 text-green-600 border-none'}`}>
+                          {isAlumni ? 'Alumnus' : 'Student'}
+                        </Badge>
+                      )}
+                    </div>
                 </div>
             </div>
             {user.role !== 'student' && user.feedbackRating && (

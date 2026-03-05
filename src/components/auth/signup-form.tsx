@@ -15,10 +15,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { signup } from '@/lib/actions';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, GraduationCap } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { signupSchema } from '@/lib/schemas';
@@ -28,6 +29,7 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
   const [state, dispatch] = useActionState(signup, undefined);
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const currentYear = new Date().getFullYear();
 
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -62,6 +64,7 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
   }, [state, toast, onSignupSuccess]);
 
   const role = form.watch('role');
+  const gradYear = form.watch('graduationYear');
 
   return (
     <Form {...form}>
@@ -169,19 +172,19 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
                     <FormControl>
                       <RadioGroupItem value="student" />
                     </FormControl>
-                    <FormLabel className="font-normal">Student</FormLabel>
+                    <FormLabel className="font-normal text-xs uppercase font-bold">Student / Alumnus</FormLabel>
                   </FormItem>
                   <FormItem className="flex items-center space-x-2 space-y-0">
                     <FormControl>
                       <RadioGroupItem value="professor" />
                     </FormControl>
-                    <FormLabel className="font-normal">Professor</FormLabel>
+                    <FormLabel className="font-normal text-xs uppercase font-bold">Professor</FormLabel>
                   </FormItem>
                    <FormItem className="flex items-center space-x-2 space-y-0">
                     <FormControl>
                       <RadioGroupItem value="non-teaching-staff" />
                     </FormControl>
-                    <FormLabel className="font-normal">Non-Teaching Staff</FormLabel>
+                    <FormLabel className="font-normal text-xs uppercase font-bold">Staff</FormLabel>
                   </FormItem>
                 </RadioGroup>
               </FormControl>
@@ -192,7 +195,7 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
         />
 
         {role === 'student' && (
-          <>
+          <div className="bg-primary/5 p-4 rounded-2xl space-y-4 border border-primary/10">
             <FormField
               control={form.control}
               name="major"
@@ -211,15 +214,25 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
               name="graduationYear"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Graduation Year</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Graduation Year</FormLabel>
+                    {gradYear && Number(gradYear) < currentYear && (
+                      <div className="flex items-center gap-1 text-[10px] font-black text-primary uppercase bg-primary/10 px-2 py-0.5 rounded-full">
+                        <GraduationCap className="h-3 w-3" /> Alumni Status
+                      </div>
+                    )}
+                  </div>
                   <FormControl>
-                    <Input type="number" placeholder="e.g. 2025" {...field} />
+                    <Input type="number" placeholder={currentYear.toString()} {...field} />
                   </FormControl>
+                  <FormDescription className="text-[10px] leading-tight">
+                    Years before {currentYear} will mark your profile as **Alumnus (Legacy)**.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </>
+          </div>
         )}
 
         {(role === 'professor' || role === 'non-teaching-staff') && (
@@ -264,7 +277,7 @@ function SubmitButton() {
     const { pending } = useFormStatus();
   
     return (
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full h-12 font-bold rounded-xl shadow-lg" disabled={pending}>
         {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Create Account
       </Button>
