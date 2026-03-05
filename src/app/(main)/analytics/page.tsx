@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -148,7 +147,9 @@ export default function AnalyticsPage() {
     statAlumniLabel: "Total Alumni",
     statJobsLabel: "Open Roles",
     statCountriesLabel: "Countries",
-    statEngagementLabel: "Engagement"
+    statCountriesValue: "12+",
+    statEngagementLabel: "Engagement",
+    statEngagementValue: "94%"
   };
 
   const defaultFooter = {
@@ -199,7 +200,7 @@ export default function AnalyticsPage() {
                     <Globe className="h-5 w-5 text-primary opacity-70" />
                     <span className="text-[10px] font-bold uppercase">{main.statCountriesLabel}</span>
                 </div>
-                <div className="text-3xl font-bold">12+</div>
+                <div className="text-3xl font-bold">{main.statCountriesValue}</div>
                 <p className="text-[10px] mt-1 text-muted-foreground">Global alumni reach</p>
             </CardContent>
         </Card>
@@ -209,7 +210,7 @@ export default function AnalyticsPage() {
                     <TrendingUp className="h-5 w-5 text-primary opacity-70" />
                     <span className="text-[10px] font-bold uppercase">{main.statEngagementLabel}</span>
                 </div>
-                <div className="text-3xl font-bold">94%</div>
+                <div className="text-3xl font-bold">{main.statEngagementValue}</div>
                 <p className="text-[10px] mt-1 text-muted-foreground">Monthly active alumni</p>
             </CardContent>
         </Card>

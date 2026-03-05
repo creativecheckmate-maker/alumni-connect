@@ -60,56 +60,79 @@ function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { s
           <DialogTitle>Edit {label}</DialogTitle>
         </DialogHeader>
         <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
-           {Object.keys(data).map((key) => (
-            <div key={key} className="space-y-2">
-              <label className="capitalize font-bold text-sm text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}</label>
-              {key.toLowerCase().includes('description') ? (
-                <Textarea 
-                  value={data[key]} 
-                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
-                />
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {key.toLowerCase().includes('url') && data[key] && (
-                    <div className="relative h-24 w-full rounded-xl overflow-hidden border bg-muted">
-                      <Image src={data[key]} alt="Preview" fill className="object-cover" />
+           {Object.keys(data).map((key) => {
+            if (key === 'stats' && Array.isArray(data[key])) {
+              return (
+                <div key={key} className="space-y-4">
+                  <label className="text-base font-bold block">Community Metrics</label>
+                  {data[key].map((stat: any, index: number) => (
+                    <div key={index} className="grid grid-cols-2 gap-2 p-2 border rounded-xl">
+                      <Input value={stat.label || ""} onChange={(e) => {
+                        const newStats = [...data.stats];
+                        newStats[index].label = e.target.value;
+                        setData({ ...data, stats: newStats });
+                      }} placeholder="Label" />
+                      <Input value={stat.value || ""} onChange={(e) => {
+                        const newStats = [...data.stats];
+                        newStats[index].value = e.target.value;
+                        setData({ ...data, stats: newStats });
+                      }} placeholder="Value" />
                     </div>
-                  )}
-                  <div className="flex gap-2">
-                    <Input 
-                      value={data[key]} 
-                      onChange={(e) => setData({ ...data, [key]: e.target.value })} 
-                    />
-                    {key.toLowerCase().includes('url') && (
-                      <CldUploadWidget 
-                        uploadPreset="ml_default"
-                        options={{ 
-                          cloudName: "dnex9nw0f",
-                          cropping: true,
-                          showSkipCropButton: true,
-                          singleUploadAutoClose: true,
-                          multiple: false,
-                          sources: ['local', 'url', 'camera']
-                        }}
-                        onSuccess={(res: any) => {
-                          const url = res?.info?.secure_url || res?.info?.url;
-                          if (url) {
-                            setData((prev: any) => ({ ...prev, [key]: url }));
-                          }
-                        }}
-                      >
-                        {({ open }) => (
-                          <Button variant="outline" size="icon" onClick={() => open()}>
-                            <Upload className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </CldUploadWidget>
-                    )}
-                  </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          ))}
+              );
+            }
+            return (
+              <div key={key} className="space-y-2">
+                <label className="capitalize font-bold text-sm text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}</label>
+                {key.toLowerCase().includes('description') ? (
+                  <Textarea 
+                    value={data[key]} 
+                    onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                  />
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {key.toLowerCase().includes('url') && data[key] && (
+                      <div className="relative h-24 w-full rounded-xl overflow-hidden border bg-muted">
+                        <Image src={data[key]} alt="Preview" fill className="object-cover" />
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Input 
+                        value={data[key]} 
+                        onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                      />
+                      {key.toLowerCase().includes('url') && (
+                        <CldUploadWidget 
+                          uploadPreset="ml_default"
+                          options={{ 
+                            cloudName: "dnex9nw0f",
+                            cropping: true,
+                            showSkipCropButton: true,
+                            singleUploadAutoClose: true,
+                            multiple: false,
+                            sources: ['local', 'url', 'camera']
+                          }}
+                          onSuccess={(res: any) => {
+                            const url = res?.info?.secure_url || res?.info?.url;
+                            if (url) {
+                              setData((prev: any) => ({ ...prev, [key]: url }));
+                            }
+                          }}
+                        >
+                          {({ open }) => (
+                            <Button variant="outline" size="icon" onClick={() => open()}>
+                              <Upload className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </CldUploadWidget>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+           })}
         </div>
         <DialogFooter>
           <Button onClick={handleSave} disabled={isSaving} className="w-full">
