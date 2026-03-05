@@ -37,6 +37,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ id: string 
   const [isCommsActive, setIsCommsActive] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [activeCallData, setActiveCallData] = useState<any>(null);
   const pc = useRef<RTCPeerConnection | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -51,6 +52,15 @@ export default function ChatRoomPage({ params }: { params: Promise<{ id: string 
     if (!authUser?.uid || !receiverId) return null;
     return [authUser.uid, receiverId].sort().join('_');
   }, [authUser?.uid, receiverId]);
+
+  // Listen for active call signaling
+  useEffect(() => {
+    if (!firestore || !chatId) return;
+    const unsub = onSnapshot(doc(firestore, 'calls', chatId), (snapshot) => {
+      setActiveCallData(snapshot.data());
+    });
+    return () => unsub();
+  }, [firestore, chatId]);
 
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !chatId) return null;
@@ -243,6 +253,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ id: string 
   }
 
   const isOnline = !!receiver?.isOnline;
+  const canJoin = !!activeCallData?.offer && !isCommsActive;
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] bg-card rounded-[2rem] shadow-2xl overflow-hidden border border-muted/30">
@@ -307,18 +318,12 @@ export default function ChatRoomPage({ params }: { params: Promise<{ id: string 
           ) : (
             <div className="flex items-center gap-2">
               <Button 
-                variant="secondary" 
-                className="h-9 gap-2 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-sm"
-                onClick={() => setupVoiceComms('offer')}
+                variant={canJoin ? "default" : "secondary"} 
+                className="h-9 gap-2 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-sm transition-all hover:scale-105 active:scale-95"
+                onClick={() => setupVoiceComms(canJoin ? 'answer' : 'offer')}
               >
-                <Zap className="h-3 w-3 fill-current" /> Commence Comms
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-9 gap-2 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest"
-                onClick={() => setupVoiceComms('answer')}
-              >
-                <Phone className="h-3 w-3" /> Join
+                <Zap className={`h-3 w-3 fill-current ${canJoin ? 'animate-pulse text-yellow-400' : ''}`} /> 
+                {canJoin ? 'Join Active Link' : 'Initiate Tactical Link'}
               </Button>
             </div>
           )}
