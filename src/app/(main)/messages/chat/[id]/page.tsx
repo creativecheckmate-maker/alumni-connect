@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -181,7 +182,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ id: string 
       </ScrollArea>
 
       <footer className="p-4 md:p-6 bg-muted/5 border-t shrink-0">
-        <form onSubmit={handleSendMessage} className="flex gap-3">
+        <form handleSendMessage={handleSendMessage} className="flex gap-3">
           <div className="relative flex-1">
              <Input 
                 value={content}
