@@ -1,7 +1,8 @@
 'use client';
 
+import React, { useState } from 'react';
 import type { User, Student, Professor, Friendship } from '@/lib/definitions';
-import { notFound, useParams, useRouter } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,13 +10,12 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2, UserPlus, UserCheck, XCircle, MessageSquare, Award, ShieldCheck } from 'lucide-react';
 import { Logo } from '@/components/logo';
-import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useFirebase, useCollection, setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase, useFirebase, useCollection, setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp, collection, query, where } from 'firebase/firestore';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { EditProfileForm } from '@/components/profile/edit-profile-form';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useState } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,9 +29,8 @@ const getInitials = (name: string) => {
     return names[0]?.substring(0, 2) || '';
 };
 
-export default function UserProfilePage() {
-  const params = useParams();
-  const userId = params.id as string;
+export default function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: userId } = React.use(params);
   const { toast } = useToast();
   const router = useRouter();
   const currentYear = new Date().getFullYear();
@@ -53,10 +52,8 @@ export default function UserProfilePage() {
   
   const { data: user, isLoading: isDocLoading, error } = useDoc<User>(userDocRef);
 
-  // Status helper
   const isAlumni = user?.role === 'student' && user.graduationYear && user.graduationYear < currentYear;
 
-  // Friendship state logic
   const friendshipQuery = useMemoFirebase(() => {
     if (!firestore || !authUser?.uid || !userId) return null;
     return query(collection(firestore, 'friendships'), where('uids', 'array-contains', authUser.uid));
@@ -89,7 +86,6 @@ export default function UserProfilePage() {
     const newCount = currentCount + 1;
     const newAverage = Math.round(newTotalPoints / newCount);
 
-    // 1. Update Faculty Profile
     updateDocumentNonBlocking(userDocRef, {
       feedbackRating: newAverage,
       feedbackCount: newCount,
@@ -97,7 +93,6 @@ export default function UserProfilePage() {
       updatedAt: serverTimestamp(),
     });
 
-    // 2. Log Individual Feedback Entry for AI processing
     const feedbacksCol = collection(userDocRef, 'feedbacks');
     addDocumentNonBlocking(feedbacksCol, {
       studentId: authUser.uid,

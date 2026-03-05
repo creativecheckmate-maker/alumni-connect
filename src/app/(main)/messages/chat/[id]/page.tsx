@@ -1,8 +1,9 @@
 'use client';
 
+import React from 'react';
 import { useDoc, useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, where, serverTimestamp, limit } from 'firebase/firestore';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,9 +12,8 @@ import { ArrowLeft, Send, Loader2, MoreVertical, Check, CheckCheck, Radio, Zap }
 import type { User, Message } from '@/lib/definitions';
 import { useState, useRef, useEffect, useMemo } from 'react';
 
-export default function ChatRoomPage() {
-  const params = useParams();
-  const receiverId = params.id as string;
+export default function ChatRoomPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: receiverId } = React.use(params);
   const { user: authUser } = useUser();
   const firestore = useFirestore();
   const router = useRouter();

@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ADMIN_EMAIL } from '@/lib/config';
@@ -83,17 +82,17 @@ export function PageHeader({ title: defaultTitle, description: defaultDescriptio
               <Edit className="h-4 w-4" />
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent onInteractOutside={(e) => e.preventDefault()}>
             <DialogHeader>
               <DialogTitle>Edit Header</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Page Title</Label>
+                <label className="text-xs font-bold uppercase text-muted-foreground">Page Title</label>
                 <Input value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Page Description</Label>
+                <label className="text-xs font-bold uppercase text-muted-foreground">Page Description</label>
                 <Textarea value={data.description} onChange={(e) => setData({ ...data, description: e.target.value })} />
               </div>
             </div>

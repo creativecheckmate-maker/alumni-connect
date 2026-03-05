@@ -5,19 +5,119 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bell, ArrowRight, Sparkles, BrainCircuit, Target } from 'lucide-react';
-import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, limit, where } from 'firebase/firestore';
-import type { User, Event, JobPosting } from '@/lib/definitions';
+import { Bell, ArrowRight, Sparkles, BrainCircuit, Target, Edit, Loader2, Zap, Shield } from 'lucide-react';
+import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection, useFirebase } from '@/firebase';
+import { doc, collection, query, limit, where, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { User, Event, JobPosting, SiteContent } from '@/lib/definitions';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getPersonalizedRecommendations, type PersonalizedRecommendationsOutput } from '@/ai/flows/recommendation-engine';
+import { ADMIN_EMAIL } from '@/lib/config';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+
+function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = false }: { pageId: string, sectionId: string, initialData: any, label: string, overlay?: boolean }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialData) setData(initialData);
+  }, [initialData]);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', `${pageId}_${sectionId}`), {
+        id: `${pageId}_${sectionId}`,
+        pageId,
+        sectionId,
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Updated", description: `${label} saved.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to update." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!data) return null;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="secondary" className={`${overlay ? 'absolute top-2 right-2 z-50' : 'ml-2'} h-8 w-8 rounded-full shadow-lg`}>
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Edit {label}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+          {Object.keys(data).map((key) => {
+            if (key === 'activities' && Array.isArray(data[key])) {
+                return (
+                    <div key={key} className="space-y-4">
+                        <label className="text-xs font-bold uppercase text-muted-foreground">Activity Log</label>
+                        {data[key].map((item: any, idx: number) => (
+                            <div key={idx} className="p-3 border rounded-xl space-y-2">
+                                <Input value={item.title} onChange={(e) => {
+                                    const next = [...data.activities];
+                                    next[idx].title = e.target.value;
+                                    setData({...data, activities: next});
+                                }} placeholder="Title" />
+                                <Textarea value={item.description} onChange={(e) => {
+                                    const next = [...data.activities];
+                                    next[idx].description = e.target.value;
+                                    setData({...data, activities: next});
+                                }} placeholder="Description" />
+                            </div>
+                        ))}
+                    </div>
+                );
+            }
+            return (
+              <div key={key} className="space-y-2">
+                <label className="capitalize text-sm font-bold text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</label>
+                {key.toLowerCase().includes('description') || key.toLowerCase().includes('subtext') ? (
+                  <Textarea value={data[key] || ""} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
+                ) : (
+                  <Input value={data[key] || ""} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving} className="w-full">
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function DashboardPage() {
-  const { user: authUser } = useUser();
+  const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const [recommendations, setRecommendations] = useState<PersonalizedRecommendationsOutput | null>(null);
   const [isAIOverviewLoading, setIsAIOverviewLoading] = useState(false);
+  const isAdmin = authUser?.email === ADMIN_EMAIL;
+
+  const contentDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'dashboard_main'), [firestore]);
+  const { data: dashboardContent } = useDoc<SiteContent>(contentDocRef);
+
+  const activityDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'dashboard_activity'), [firestore]);
+  const { data: activityContent } = useDoc<SiteContent>(activityDocRef);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !authUser?.uid) return null;
@@ -86,6 +186,25 @@ export default function DashboardPage() {
     fetchAIRecommendations();
   }, [currentUser, events, jobs, mentors, recommendations]);
 
+  const defaultMain = {
+    welcomeSubtext: "Welcome back to your professional hub.",
+    recommendationTitle: "AI Recommended For You",
+    spotlightTitle: "Alumni Spotlights",
+    eventsTitle: "Upcoming Events",
+    activityTitle: "Network Activity",
+    activityDescription: "Stay updated with latest interactions"
+  };
+
+  const defaultActivity = {
+    activities: [
+        { title: "New Connection", description: "Samara Patel matched with your profile.", icon: "Target" },
+        { title: "Skill Update", description: "Nexus AI found 2 new jobs matching your skills.", icon: "Sparkles" }
+    ]
+  };
+
+  const main = dashboardContent?.data || defaultMain;
+  const activityData = activityContent?.data || defaultActivity;
+
   if (!authUser) {
     return (
       <div className="max-w-4xl mx-auto space-y-8 pb-10">
@@ -95,28 +214,6 @@ export default function DashboardPage() {
             <Button size="sm">Log In</Button>
            </Link>
         </div>
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold font-headline text-primary">Alumni Spotlights</h2>
-            <Link href="/directory">
-              <Button variant="link" size="sm" className="text-muted-foreground p-0">View All</Button>
-            </Link>
-          </div>
-          <ScrollArea className="w-full whitespace-nowrap">
-            <div className="flex gap-4 pb-4">
-              {users?.map((u) => (
-                <Link key={u.id} href={`/users/${u.id}`} className="flex flex-col items-center gap-2 group cursor-pointer">
-                  <Avatar className="h-16 w-16 border-2 border-transparent group-hover:border-primary transition-all">
-                    <AvatarImage src={u.avatarUrl} />
-                    <AvatarFallback>{u.name?.[0] || 'U'}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">{u.name?.split(' ')[0]}</span>
-                </Link>
-              ))}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        </section>
         <Card className="max-w-md w-full text-center p-8 space-y-6 mx-auto">
           <CardHeader>
             <CardTitle>Personalize Your Experience</CardTitle>
@@ -138,9 +235,12 @@ export default function DashboardPage() {
             <AvatarImage src={currentUser?.avatarUrl} />
             <AvatarFallback>{currentUser?.name?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
-          <div>
+          <div className="relative">
             <h1 className="text-2xl font-bold font-headline leading-tight">Hello {currentUser?.name?.split(' ')[0]}</h1>
-            <p className="text-sm text-muted-foreground">Welcome back to your professional hub.</p>
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+                {main.welcomeSubtext}
+                {isAdmin && isEditMode && <AdminEditDialog pageId="dashboard" sectionId="main" initialData={main} label="Welcome Subtext" />}
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -156,7 +256,7 @@ export default function DashboardPage() {
       <section className="space-y-4">
         <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-            <h2 className="text-xl font-bold font-headline">AI Recommended For You</h2>
+            <h2 className="text-xl font-bold font-headline">{main.recommendationTitle}</h2>
         </div>
         
         {isAIOverviewLoading ? (
@@ -239,7 +339,7 @@ export default function DashboardPage() {
         <div className="md:col-span-2 space-y-8">
             <section>
                 <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold font-headline text-primary">Alumni Spotlights</h2>
+                <h2 className="text-lg font-bold font-headline text-primary">{main.spotlightTitle}</h2>
                 <Link href="/directory">
                     <Button variant="link" size="sm" className="text-muted-foreground p-0">View All</Button>
                 </Link>
@@ -261,7 +361,7 @@ export default function DashboardPage() {
             </section>
 
             <section>
-                <h2 className="text-lg font-bold font-headline text-primary mb-4">Upcoming Events</h2>
+                <h2 className="text-lg font-bold font-headline text-primary mb-4">{main.eventsTitle}</h2>
                 <div className="space-y-4">
                 {events && events.length > 0 ? (
                     events.map((event) => (
@@ -291,30 +391,29 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-6">
-            <Card className="border-none bg-card shadow-lg">
+            <Card className="border-none bg-card shadow-lg relative group">
+                {isAdmin && isEditMode && <AdminEditDialog pageId="dashboard" sectionId="activity" initialData={activityData} label="Network Activity Items" overlay />}
                 <CardHeader>
-                    <CardTitle className="text-lg">Network Activity</CardTitle>
-                    <CardDescription>Stay updated with latest interactions</CardDescription>
+                    <CardTitle className="text-lg">{main.activityTitle}</CardTitle>
+                    <CardDescription>{main.activityDescription}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex items-start gap-3">
-                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                            <Target className="h-4 w-4 text-blue-600" />
+                    {activityData.activities.map((act: any, i: number) => (
+                        <div key={i} className="flex items-start gap-3">
+                            <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
+                                i % 2 === 0 ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
+                            }`}>
+                                {act.icon === 'Target' && <Target className="h-4 w-4" />}
+                                {act.icon === 'Sparkles' && <Sparkles className="h-4 w-4" />}
+                                {act.icon === 'Zap' && <Zap className="h-4 w-4" />}
+                                {act.icon === 'Shield' && <Shield className="h-4 w-4" />}
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold">{act.title}</p>
+                                <p className="text-[10px] text-muted-foreground">{act.description}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-xs font-bold">New Connection</p>
-                            <p className="text-[10px] text-muted-foreground">Samara Patel matched with your profile.</p>
-                        </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                        <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-                            <Sparkles className="h-4 w-4 text-orange-600" />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold">Skill Update</p>
-                            <p className="text-[10px] text-muted-foreground">Nexus AI found 2 new jobs matching your skills.</p>
-                        </div>
-                    </div>
+                    ))}
                 </CardContent>
             </Card>
 
