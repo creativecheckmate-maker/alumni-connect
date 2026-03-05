@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import Image from 'next/image';
 import { CldUploadWidget } from 'next-cloudinary';
 
 function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { sectionId: string, initialData: any, label: string, overlay?: boolean }) {
@@ -63,39 +64,46 @@ function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { s
                   onChange={(e) => setData({ ...data, [key]: e.target.value })} 
                 />
               ) : (
-                <div className="flex gap-2">
-                  <Input 
-                    value={data[key]} 
-                    onChange={(e) => setData({ ...data, [key]: e.target.value })} 
-                  />
-                  {key.toLowerCase().includes('url') && (
-                    <CldUploadWidget 
-                      uploadPreset="ml_default"
-                      options={{ 
-                        cloudName: "dnex9nw0f",
-                        cropping: true,
-                        showSkipCropButton: true,
-                        singleUploadAutoClose: true,
-                        croppingDefaultSelection: 'transform',
-                        croppingShowBackButton: true,
-                        multiple: false
-                      }}
-                      onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
-                    >
-                      {({ open }) => (
-                        <Button variant="outline" size="icon" onClick={() => open()}>
-                          <Upload className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </CldUploadWidget>
+                <div className="flex flex-col gap-2">
+                  {key.toLowerCase().includes('url') && data[key] && (
+                    <div className="relative h-24 w-full rounded-xl overflow-hidden border bg-muted">
+                      <Image src={data[key]} alt="Preview" fill className="object-cover" />
+                    </div>
                   )}
+                  <div className="flex gap-2">
+                    <Input 
+                      value={data[key]} 
+                      onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                    />
+                    {key.toLowerCase().includes('url') && (
+                      <CldUploadWidget 
+                        uploadPreset="ml_default"
+                        options={{ 
+                          cloudName: "dnex9nw0f",
+                          cropping: true,
+                          showSkipCropButton: true,
+                          singleUploadAutoClose: true,
+                          croppingDefaultSelection: 'transform',
+                          croppingShowBackButton: true,
+                          multiple: false
+                        }}
+                        onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
+                      >
+                        {({ open }) => (
+                          <Button variant="outline" size="icon" onClick={() => open()}>
+                            <Upload className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </CldUploadWidget>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
           ))}
         </div>
         <DialogFooter>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button onClick={handleSave} disabled={isSaving} className="w-full">
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Changes
           </Button>
