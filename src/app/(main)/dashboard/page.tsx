@@ -237,10 +237,10 @@ export default function DashboardPage() {
           </Avatar>
           <div className="relative">
             <h1 className="text-2xl font-bold font-headline leading-tight">Hello {currentUser?.name?.split(' ')[0]}</h1>
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-                {main.welcomeSubtext}
-                {isAdmin && isEditMode && <AdminEditDialog pageId="dashboard" sectionId="main" initialData={main} label="Welcome Subtext" />}
-            </p>
+            <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground">{main.welcomeSubtext}</p>
+                {isAdmin && isEditMode && <AdminEditDialog pageId="dashboard" sectionId="main" initialData={main} label="Dashboard Text" />}
+            </div>
           </div>
         </div>
         <div className="flex gap-2">

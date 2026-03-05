@@ -1,21 +1,124 @@
 'use client';
 
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2, X, Loader2, Rss, ShieldAlert, Upload } from 'lucide-react';
+import { ThumbsUp, MessageSquare, Share2, Image as ImageIcon, Send, MoreVertical, Trash2, X, Loader2, Rss, ShieldAlert, Upload, Edit, Sparkles } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
-import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
-import type { FeedPost, User } from '@/lib/definitions';
+import { collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, doc, setDoc } from 'firebase/firestore';
+import type { FeedPost, User, SiteContent } from '@/lib/definitions';
 import { ADMIN_EMAIL, SECONDARY_ADMIN_EMAIL } from '@/lib/config';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { CldUploadWidget } from 'next-cloudinary';
 import { moderateContent } from '@/ai/flows/moderation';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+
+function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = false }: { pageId: string, sectionId: string, initialData: any, label: string, overlay?: boolean }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialData) setData(initialData);
+  }, [initialData]);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', `${pageId}_${sectionId}`), {
+        id: `${pageId}_${sectionId}`,
+        pageId,
+        sectionId,
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Updated", description: `${label} saved.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to update." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!data) return null;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="secondary" className={`${overlay ? 'absolute top-2 right-2 z-50' : 'ml-2'} h-8 w-8 rounded-full shadow-lg`}>
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Edit {label}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+          {Object.keys(data).map((key) => {
+            return (
+              <div key={key} className="space-y-2">
+                <label className="capitalize text-sm font-bold text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</label>
+                {key.toLowerCase().includes('description') || key.toLowerCase().includes('content') ? (
+                  <Textarea value={data[key] || ""} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {key.toLowerCase().includes('url') && data[key] && (
+                      <div className="relative h-24 w-full rounded-xl overflow-hidden border bg-muted">
+                        <Image src={data[key]} alt="Preview" fill className="object-cover" />
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Input value={data[key] || ""} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
+                      {key.toLowerCase().includes('url') && (
+                        <CldUploadWidget 
+                          uploadPreset="ml_default"
+                          options={{ 
+                            cloudName: "dnex9nw0f",
+                            cropping: true,
+                            showSkipCropButton: true,
+                            singleUploadAutoClose: true,
+                            multiple: false,
+                            sources: ['local', 'url', 'camera']
+                          }}
+                          onSuccess={(res: any) => {
+                            const url = res?.info?.secure_url || res?.info?.url;
+                            if (url) {
+                              setData((prev: any) => ({ ...prev, [key]: url }));
+                            }
+                          }}
+                        >
+                          {({ open }) => (
+                            <Button variant="outline" size="icon" onClick={() => open()}>
+                              <Upload className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </CldUploadWidget>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving} className="w-full">
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function FeedPage() {
   const { user, isEditMode } = useFirebase();
@@ -32,12 +135,23 @@ export default function FeedPage() {
   }, [firestore, user?.uid]);
   const { data: userProfile } = useDoc<User>(userProfileDocRef);
 
+  const introDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'feed_intro'), [firestore]);
+  const { data: introContent } = useDoc<SiteContent>(introDocRef);
+
   const feedQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'feed'), orderBy('createdAt', 'desc'));
   }, [firestore]);
 
   const { data: posts } = useCollection<FeedPost>(feedQuery);
+
+  const defaultIntro = {
+    title: "Community Feed",
+    description: "Real-time updates and memories from the Nexus network.",
+    moderationText: "AI Moderated Feed"
+  };
+
+  const intro = introContent?.data || defaultIntro;
 
   const handlePost = async () => {
     if (!firestore || !user || (!content.trim() && !imageUrl)) return;
@@ -78,7 +192,10 @@ export default function FeedPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <PageHeader title="Community Feed" description="Real-time updates and memories from the Nexus network." />
+      <div className="relative group">
+        <PageHeader title={intro.title} description={intro.description} />
+        {isAdmin && isEditMode && <AdminEditDialog pageId="feed" sectionId="intro" initialData={intro} label="Feed Info" />}
+      </div>
 
       {user ? (
         <Card className="border-none shadow-xl bg-card overflow-hidden">
@@ -91,7 +208,7 @@ export default function FeedPage() {
               <div className="flex-1 space-y-4">
                 <div className="flex items-center gap-2 mb-1">
                     <ShieldAlert className="h-3 w-3 text-primary opacity-50" />
-                    <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">AI Moderated Feed</span>
+                    <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">{intro.moderationText}</span>
                 </div>
                 <Textarea 
                     placeholder="Share a professional milestone..." 
