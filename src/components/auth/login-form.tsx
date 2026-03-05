@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -6,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -66,11 +67,35 @@ export function LoginForm() {
     }
     try {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
 
-      const userDocRef = doc(firestore, 'users', userCredential.user.uid);
+      const userDocRef = doc(firestore, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
-      if (userDoc.exists() && userDoc.data().status === 'deactivated') {
+      // Handle Limbo State: Credentials exist but Profile is missing (re-signup attempt workaround)
+      if (!userDoc.exists()) {
+        const initialRating = 75;
+        await setDoc(userDocRef, {
+          id: user.uid,
+          externalAuthId: user.uid,
+          name: user.displayName || 'Restored Alumnus',
+          email: user.email,
+          role: 'student',
+          university: 'Nexus University',
+          college: 'Not Specified',
+          isVisibleInDirectory: true,
+          isApproved: false,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          status: 'active',
+          feedbackRating: initialRating,
+          feedbackCount: 1,
+          totalFeedbackPoints: initialRating,
+          avatarUrl: user.photoURL || `https://picsum.photos/seed/${user.uid}/200/200`,
+          preferences: [],
+        });
+        toast({ title: "Profile Restored", description: "Your credentials were found but your profile was missing. A new profile has been provisioned." });
+      } else if (userDoc.data().status === 'deactivated') {
         await signOut(auth);
         toast({
             variant: 'destructive',

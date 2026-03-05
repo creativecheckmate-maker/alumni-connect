@@ -46,16 +46,17 @@ export default function SettingsPage() {
 
     setIsDeleting(true);
     try {
-      // 1. Initiate Firestore cleanup (Non-blocking as per guidelines)
+      // 1. Attempt Auth Deletion first (Requires recent login)
+      // This is the primary record. If this fails, we stop to prevent a missing-profile state.
+      await deleteUser(currentUser);
+
+      // 2. If Auth deletion succeeds, purge Firestore data
       const userDocRef = doc(firestore, 'users', currentUser.uid);
       deleteDocumentNonBlocking(userDocRef);
-
-      // 2. Delete Auth record (Requires recent login)
-      await deleteUser(currentUser);
       
       toast({ 
         title: "Account Purged", 
-        description: "All records have been permanently removed from the Nexus registry." 
+        description: "Your identity and credentials have been permanently removed from the network." 
       });
       router.push('/login');
     } catch (error: any) {
@@ -64,13 +65,13 @@ export default function SettingsPage() {
         toast({ 
           variant: 'destructive', 
           title: "Security Timeout", 
-          description: "For security, please log out and log back in before deleting your identity permanently." 
+          description: "For security, please sign out and sign back in immediately before attempting to delete your identity." 
         });
       } else {
         toast({ 
           variant: 'destructive', 
-          title: "Sync Error", 
-          description: "The purge was interrupted. Please try again or contact support." 
+          title: "Critical Error", 
+          description: "System failed to process account purge. Please contact an administrator." 
         });
       }
     } finally {

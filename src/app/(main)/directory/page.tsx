@@ -12,9 +12,10 @@ import { collection, doc, query, where, setDoc, serverTimestamp } from 'firebase
 import { Skeleton } from '@/components/ui/skeleton';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { Button } from '@/components/ui/button';
-import { Edit, Loader2, Search } from 'lucide-react';
+import { Edit, Loader2, Search, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: string, sectionId: string, initialData: any, label: string }) {
   const { toast } = useToast();
@@ -130,8 +131,8 @@ export default function DirectoryPage() {
     // Non-blocking purge as per performance guidelines
     deleteDocumentNonBlocking(userDocRef);
     toast({ 
-      title: "Identity Scrubbed", 
-      description: "User details removed from the network directory. Note: Auth records must be manually purged via Console for non-self deletions." 
+      title: "Firestore Purged", 
+      description: "User profile details removed. To allow re-signup with this email, you MUST manually delete their record in the Firebase Auth Console." 
     });
   };
 
@@ -192,6 +193,16 @@ export default function DirectoryPage() {
           )}
         </div>
       </PageHeader>
+
+      {isAdmin && (
+        <Alert className="bg-yellow-50 border-yellow-200">
+          <AlertCircle className="h-4 w-4 text-yellow-600" />
+          <AlertTitle className="text-yellow-800 font-bold">Administrative Notice</AlertTitle>
+          <AlertDescription className="text-yellow-700 text-xs">
+            Deleting users here only removes their public profile. To permanently allow an email to re-register, you must also delete the user from the <strong>Firebase Console &gt; Authentication</strong> tab.
+          </AlertDescription>
+        </Alert>
+      )}
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-muted/50 p-1 h-12 rounded-xl mb-8">

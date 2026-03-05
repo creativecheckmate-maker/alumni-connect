@@ -78,7 +78,7 @@ export async function signup(prevState: any, formData: FormData) {
 
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
-            return { message: 'Signup Failed: This email is already registered. If you previously deleted your profile but not your credentials, please log in or reset your password.' };
+            return { message: 'Signup Failed: This email is already registered. If you previously deleted your profile, please LOG IN instead to restore your access and start from scratch.' };
         }
         console.error("Signup error:", error);
         return { message: 'A system error occurred during registration. Please check your connection and try again.' };
