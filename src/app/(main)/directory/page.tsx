@@ -13,7 +13,6 @@ import { ADMIN_EMAIL } from '@/lib/config';
 import { Button } from '@/components/ui/button';
 import { Edit, Loader2, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
 function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: string, sectionId: string, initialData: any, label: string }) {
@@ -62,11 +61,10 @@ function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: st
           {Object.keys(data).map((key) => (
             <div key={key} className="space-y-2">
               <label className="capitalize text-xs font-bold text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</label>
-              {key.toLowerCase().includes('message') || key.toLowerCase().includes('description') ? (
-                <Textarea value={data[key] || ""} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
-              ) : (
-                <Input value={data[key] || ""} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
-              )}
+              <Input 
+                value={data[key] || ""} 
+                onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+              />
             </div>
           ))}
         </div>
