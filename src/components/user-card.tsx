@@ -25,9 +25,14 @@ import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 const getInitials = (name: string) => {
-  if (!name) return '';
-  const names = name.split(' ');
-  return names.map((n) => n[0]).join('');
+  if (!name) return 'U';
+  const names = name.trim().split(/\s+/);
+  if (names.length > 1) {
+    const firstInitial = names[0]?.[0] || '';
+    const lastInitial = names[names.length - 1]?.[0] || '';
+    return (firstInitial + lastInitial).toUpperCase();
+  }
+  return (names[0]?.substring(0, 2) || 'U').toUpperCase();
 };
 
 interface UserCardProps {

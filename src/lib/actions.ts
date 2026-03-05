@@ -1,10 +1,9 @@
-
 'use server';
 
 import { z } from 'zod';
 import { getApps, initializeApp, getApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 import { signupSchema } from '@/lib/schemas';
 
@@ -34,10 +33,25 @@ export async function signup(prevState: any, formData: FormData) {
     const { name, email, password, role } = validatedFields.data;
 
     try {
+        // 1. Create the Authentication entry first
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
         await updateProfile(user, { displayName: name });
+
+        // 2. STRICTURE: Purge any orphaned profiles with this email but different UIDs
+        // This prevents duplicate profiles if an account was previously partially deleted.
+        const usersRef = collection(firestore, 'users');
+        const q = query(usersRef, where('email', '==', email));
+        const querySnapshot = await getDocs(q);
+        
+        const deletePromises = querySnapshot.docs
+            .filter(d => d.id !== user.uid)
+            .map(d => deleteDoc(d.ref));
+        
+        if (deletePromises.length > 0) {
+            await Promise.all(deletePromises);
+        }
 
         const initialRating = Math.floor(Math.random() * 41) + 60; // Initial random rating
 

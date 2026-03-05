@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -22,12 +21,14 @@ import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 
 const getInitials = (name: string) => {
-    if (!name) return '';
-    const names = name.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`;
-    }
-    return names[0]?.substring(0, 2) || '';
+  if (!name) return 'U';
+  const names = name.trim().split(/\s+/);
+  if (names.length > 1) {
+    const firstInitial = names[0]?.[0] || '';
+    const lastInitial = names[names.length - 1]?.[0] || '';
+    return (firstInitial + lastInitial).toUpperCase();
+  }
+  return (names[0]?.substring(0, 2) || 'U').toUpperCase();
 };
 
 export default function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {

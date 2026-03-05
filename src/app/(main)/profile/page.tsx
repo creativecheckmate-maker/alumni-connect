@@ -16,12 +16,14 @@ import { useState } from 'react';
 import { moderateContent } from '@/ai/flows/moderation';
 
 const getInitials = (name: string) => {
-    if (!name) return '';
-    const names = name.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`;
-    }
-    return names[0]?.substring(0, 2) || '';
+  if (!name) return 'U';
+  const names = name.trim().split(/\s+/);
+  if (names.length > 1) {
+    const firstInitial = names[0]?.[0] || '';
+    const lastInitial = names[names.length - 1]?.[0] || '';
+    return (firstInitial + lastInitial).toUpperCase();
+  }
+  return (names[0]?.substring(0, 2) || 'U').toUpperCase();
 };
 
 export default function ProfilePage() {
@@ -95,20 +97,22 @@ export default function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20">
         <PageHeader title="Your Profile">
-             <Dialog>
-                <DialogTrigger asChild>
-                    <Button variant="outline" className="gap-2 rounded-xl h-11 font-bold shadow-sm">
-                      <Edit className="h-4 w-4"/> Edit Professional Details
-                    </Button>
-                </DialogTrigger>
-                <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-[625px]">
-                    <DialogHeader>
-                        <DialogTitle>Update Profile</DialogTitle>
-                        <DialogDescription>Refine your academic and professional data.</DialogDescription>
-                    </DialogHeader>
-                    <EditProfileForm currentUser={currentUser} />
-                </DialogContent>
-            </Dialog>
+             <div className="flex gap-2">
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="gap-2 rounded-xl h-11 font-bold shadow-sm">
+                        <Edit className="h-4 w-4"/> Edit Professional Details
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-[625px]">
+                        <DialogHeader>
+                            <DialogTitle>Update Profile</DialogTitle>
+                            <DialogDescription>Refine your academic and professional data.</DialogDescription>
+                        </DialogHeader>
+                        <EditProfileForm currentUser={currentUser} />
+                    </DialogContent>
+                </Dialog>
+             </div>
         </PageHeader>
         
         <Card className="overflow-hidden border-none shadow-2xl bg-card">
