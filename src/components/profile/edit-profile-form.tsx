@@ -82,31 +82,51 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
     }
 
     try {
-      const updatedData: any = {
-        ...data,
-        updatedAt: serverTimestamp(),
-      };
+      // 1. Sanitize the incoming data: remove internal fields and undefined values.
+      // Firestore throws synchronous errors if it encounters 'undefined' properties during update.
+      const rawData = { ...data };
+      delete rawData.id;
+      delete rawData.email;
+      delete rawData.createdAt;
+
+      const sanitizedData: any = {};
+      Object.entries(rawData).forEach(([key, value]) => {
+        // Only include fields that are defined. Empty strings are allowed.
+        if (value !== undefined) {
+          sanitizedData[key] = value;
+        }
+      });
       
-      if (typeof data.preferences === 'string') {
-        updatedData.preferences = data.preferences.split(',').map((p: string) => p.trim()).filter(Boolean);
+      // 2. Format specialized fields
+      if (typeof sanitizedData.preferences === 'string') {
+        sanitizedData.preferences = sanitizedData.preferences.split(',').map((p: string) => p.trim()).filter(Boolean);
       }
 
-      if (selectedRole === 'professor' && typeof (data as any).researchInterests === 'string') {
-          updatedData.researchInterests = (data as any).researchInterests.split(',').map((p: string) => p.trim()).filter(Boolean);
+      if (selectedRole === 'professor' && typeof sanitizedData.researchInterests === 'string') {
+          sanitizedData.researchInterests = sanitizedData.researchInterests.split(',').map((p: string) => p.trim()).filter(Boolean);
       }
       
-      // Prevent internal IDs and emails from being updated here
-      delete updatedData.id;
-      delete updatedData.email;
+      // 3. Add timestamp
+      sanitizedData.updatedAt = serverTimestamp();
 
-      updateDocumentNonBlocking(userDocRef, updatedData);
+      // 4. Fire the non-blocking update (Firestore handles offline queueing automatically)
+      updateDocumentNonBlocking(userDocRef, sanitizedData);
 
+      // 5. Provide immediate feedback
       toast({
         title: "Profile Updated",
         description: "Your professional details and category have been updated successfully.",
       });
+
+      // Reset form state to reflect saved changes
+      form.reset(data);
     } catch (e) {
-      toast({ variant: 'destructive', title: "Sync Error", description: "Database connection unstable. Changes queued." });
+      console.error("Profile update error:", e);
+      toast({ 
+        variant: 'destructive', 
+        title: "Update Error", 
+        description: "An error occurred while preparing your profile update. Please check your inputs." 
+      });
     } finally {
       setIsModerating(false);
     }
