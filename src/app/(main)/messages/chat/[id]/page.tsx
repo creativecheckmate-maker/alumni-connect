@@ -2,24 +2,43 @@
 'use client';
 
 import React from 'react';
-import { useDoc, useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { doc, collection, query, where, serverTimestamp, limit } from 'firebase/firestore';
+import { useDoc, useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { doc, collection, query, where, serverTimestamp, limit, onSnapshot, getDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Send, Loader2, MoreVertical, Check, CheckCheck, Radio, Zap } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Check, CheckCheck, Radio, Zap, Mic, MicOff, Phone, PhoneOff, Shield } from 'lucide-react';
 import type { User, Message } from '@/lib/definitions';
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useToast } from '@/hooks/use-toast';
+
+const servers = {
+  iceServers: [
+    {
+      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
+    },
+  ],
+  iceCandidatePoolSize: 10,
+};
 
 export default function ChatRoomPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: receiverId } = React.use(params);
   const { user: authUser } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
+  
   const [content, setContent] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Voice Chat State
+  const [isCommsActive, setIsCommsActive] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const pc = useRef<RTCPeerConnection | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const receiverDocRef = useMemoFirebase(() => {
     if (!firestore || !receiverId) return null;
@@ -82,6 +101,139 @@ export default function ChatRoomPage({ params }: { params: Promise<{ id: string 
     });
   };
 
+  // WebRTC Logic
+  const setupVoiceComms = async (mode: 'offer' | 'answer') => {
+    if (!firestore || !chatId) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      setLocalStream(stream);
+      setIsCommsActive(true);
+
+      const peerConnection = new RTCPeerConnection(servers);
+      pc.current = peerConnection;
+
+      stream.getTracks().forEach((track) => {
+        peerConnection.addTrack(track, stream);
+      });
+
+      const remoteStream = new MediaStream();
+      peerConnection.ontrack = (event) => {
+        event.streams[0].getTracks().forEach((track) => {
+          remoteStream.addTrack(track);
+        });
+        if (remoteAudioRef.current) {
+          remoteAudioRef.current.srcObject = remoteStream;
+        }
+      };
+
+      const callDoc = doc(firestore, 'calls', chatId);
+      const offerCandidates = collection(callDoc, 'offerCandidates');
+      const answerCandidates = collection(callDoc, 'answerCandidates');
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          const targetCol = mode === 'offer' ? offerCandidates : answerCandidates;
+          addDoc(targetCol, event.candidate.toJSON());
+        }
+      };
+
+      if (mode === 'offer') {
+        const offerDescription = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offerDescription);
+
+        const offer = {
+          sdp: offerDescription.sdp,
+          type: offerDescription.type,
+        };
+
+        await setDocumentNonBlocking(callDoc, { offer }, { merge: true });
+
+        onSnapshot(callDoc, (snapshot) => {
+          const data = snapshot.data();
+          if (!peerConnection.currentRemoteDescription && data?.answer) {
+            const answerDescription = new RTCSessionDescription(data.answer);
+            peerConnection.setRemoteDescription(answerDescription);
+          }
+        });
+
+        onSnapshot(answerCandidates, (snapshot) => {
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === 'added') {
+              const data = change.doc.data();
+              peerConnection.addIceCandidate(new RTCIceCandidate(data));
+            }
+          });
+        });
+      } else {
+        const callSnapshot = await getDoc(callDoc);
+        const callData = callSnapshot.data();
+
+        if (callData?.offer) {
+          const offerDescription = new RTCSessionDescription(callData.offer);
+          await peerConnection.setRemoteDescription(offerDescription);
+
+          const answerDescription = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answerDescription);
+
+          const answer = {
+            type: answerDescription.type,
+            sdp: answerDescription.sdp,
+          };
+
+          await updateDocumentNonBlocking(callDoc, { answer });
+
+          onSnapshot(offerCandidates, (snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+              if (change.type === 'added') {
+                const data = change.doc.data();
+                peerConnection.addIceCandidate(new RTCIceCandidate(data));
+              }
+            });
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Comms error:', error);
+      toast({ variant: 'destructive', title: 'Comms Failed', description: 'Could not establish tactical link.' });
+      endComms();
+    }
+  };
+
+  const endComms = async () => {
+    if (pc.current) {
+      pc.current.close();
+      pc.current = null;
+    }
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
+    setIsCommsActive(false);
+    setIsMuted(false);
+    
+    if (firestore && chatId) {
+      try {
+        await deleteDoc(doc(firestore, 'calls', chatId));
+      } catch (e) {}
+    }
+  };
+
+  const toggleMute = () => {
+    if (localStream) {
+      localStream.getAudioTracks().forEach(track => {
+        track.enabled = !track.enabled;
+      });
+      setIsMuted(!isMuted);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      endComms();
+    };
+  }, []);
+
   if (isReceiverLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -123,17 +275,58 @@ export default function ChatRoomPage({ params }: { params: Promise<{ id: string 
           </div>
         </div>
         
-        <div className="hidden lg:flex items-center gap-3 opacity-20">
-             <Radio className="h-4 w-4 text-primary" />
-             <span className="text-[8px] font-black uppercase tracking-widest">SQUAD COMMS READY</span>
+        <div className="hidden lg:flex items-center gap-3">
+             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 border border-primary/10 transition-all ${isCommsActive ? 'animate-pulse' : 'opacity-20'}`}>
+                <Radio className={`h-4 w-4 ${isCommsActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className="text-[8px] font-black uppercase tracking-widest">
+                  {isCommsActive ? 'SQUAD COMMS ACTIVE' : 'SQUAD COMMS READY'}
+                </span>
+             </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="rounded-full h-9 w-9"><MoreVertical className="h-4 w-4" /></Button>
+          {isCommsActive ? (
+            <div className="flex items-center gap-2 animate-in slide-in-from-right-4">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className={`rounded-full h-9 w-9 ${isMuted ? 'bg-destructive/10 text-destructive border-destructive/20' : ''}`}
+                onClick={toggleMute}
+              >
+                {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="icon" 
+                className="rounded-full h-9 w-9 shadow-lg shadow-destructive/20"
+                onClick={endComms}
+              >
+                <PhoneOff className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="secondary" 
+                className="h-9 gap-2 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-sm"
+                onClick={() => setupVoiceComms('offer')}
+              >
+                <Zap className="h-3 w-3 fill-current" /> Commence Comms
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-9 gap-2 px-4 rounded-xl font-black text-[10px] uppercase tracking-widest"
+                onClick={() => setupVoiceComms('answer')}
+              >
+                <Phone className="h-3 w-3" /> Join
+              </Button>
+            </div>
+          )}
         </div>
       </header>
 
       <ScrollArea className="flex-1 p-4 md:p-6">
+        <audio ref={remoteAudioRef} autoPlay />
         <div className="space-y-6">
           <div className="flex flex-col items-center py-10 space-y-3 opacity-20">
             <div className="relative">
