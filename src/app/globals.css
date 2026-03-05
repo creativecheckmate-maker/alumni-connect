@@ -50,8 +50,10 @@
 /* Fix for Cloudinary widget interaction when ShadCN/Radix Dialogs are open */
 .cloudinary-thumbnails, 
 .cloudinary-widget-instance,
-#cloudinary-widget-instance {
+#cloudinary-widget-instance,
+.ml_default {
   pointer-events: auto !important;
+  z-index: 99999 !important;
 }
 
 [data-radix-pointer-events-none] {

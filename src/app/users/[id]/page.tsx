@@ -240,7 +240,7 @@ export default function UserProfilePage() {
                                 <DialogTrigger asChild>
                                     <Button variant="outline"><Edit className="mr-2 h-4 w-4"/>Edit Profile</Button>
                                 </DialogTrigger>
-                                <DialogContent className="sm:max-w-[625px]">
+                                <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-[625px]">
                                     <DialogHeader>
                                         <DialogTitle>Edit Profile</DialogTitle>
                                         <DialogDescription>
@@ -282,7 +282,7 @@ export default function UserProfilePage() {
                                 <DialogTrigger asChild>
                                     <Button className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"><Star className="mr-2 h-4 w-4" /> Give Feedback</Button>
                                 </DialogTrigger>
-                                <DialogContent className="sm:max-w-[425px]">
+                                <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-[425px]">
                                     <DialogHeader>
                                         <DialogTitle>Nexus AI Reputation Audit</DialogTitle>
                                         <DialogDescription>
