@@ -2,25 +2,115 @@
 'use client';
 
 import { PageHeader } from '@/components/page-header';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, limit, doc, updateDoc } from 'firebase/firestore';
-import type { User, Professor } from '@/lib/definitions';
+import { useCollection, useFirestore, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
+import { collection, query, where, limit, doc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { User, Professor, SiteContent } from '@/lib/definitions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Star, Award, Medal, Loader2, TrendingUp, ShieldCheck, BrainCircuit, Sparkles } from 'lucide-react';
+import { Trophy, Star, Award, Medal, Loader2, TrendingUp, ShieldCheck, BrainCircuit, Sparkles, Edit } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { analyzeFacultyReputation } from '@/ai/flows/faculty-ranker';
 import { useToast } from '@/hooks/use-toast';
+import { ADMIN_EMAIL } from '@/lib/config';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+
+function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = false }: { pageId: string, sectionId: string, initialData: any, label: string, overlay?: boolean }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialData) setData(initialData);
+  }, [initialData]);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', `${pageId}_${sectionId}`), {
+        id: `${pageId}_${sectionId}`,
+        pageId,
+        sectionId,
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Updated", description: `${label} saved.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to update." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!data) return null;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="secondary" className={`${overlay ? 'absolute top-2 right-2 z-50' : 'ml-2'} h-8 w-8 rounded-full shadow-lg`}>
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Edit {label}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+          {Object.keys(data).map((key) => (
+            <div key={key} className="space-y-2">
+              <label className="capitalize text-sm font-bold text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</label>
+              {key.toLowerCase().includes('description') || key.toLowerCase().includes('summary') ? (
+                <Textarea value={data[key] || ""} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
+              ) : (
+                <Input value={data[key] || ""} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
+              )}
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving} className="w-full">
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function LeaderboardPage() {
+  const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isAuditing, setIsAuditing] = useState(false);
+  const isAdmin = authUser?.email === ADMIN_EMAIL;
 
-  // Fetching specifically professors without orderBy to avoid index requirements
+  const bannerDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'leaderboard_banner'), [firestore]);
+  const { data: bannerContent } = useDoc<SiteContent>(bannerDocRef);
+
+  const infoDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'leaderboard_info'), [firestore]);
+  const { data: infoContent } = useDoc<SiteContent>(infoDocRef);
+
+  const defaultBanner = {
+    statusText: "Live Real-Time Rankings",
+    aiText: "AI Analyzed Rankings"
+  };
+
+  const defaultInfo = {
+    title: "About Nexus AI Rankings",
+    description: "The **Faculty Excellence Leaderboard** is now powered by Nexus AI. Our system doesn't just look at stars; it analyzes mentor availability, research impact, and detailed student sentiment to determine a member's true academic reputation.",
+    buttonText: "Learn More About AI Reputation"
+  };
+
+  const banner = bannerContent?.data || defaultBanner;
+  const info = infoContent?.data || defaultInfo;
+
   const professorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -32,7 +122,6 @@ export default function LeaderboardPage() {
 
   const { data: rawProfessors, isLoading } = useCollection<User>(professorsQuery);
 
-  // Client-side sort by feedbackRating
   const professors = useMemo(() => {
     if (!rawProfessors) return [];
     return [...rawProfessors].sort((a, b) => (b.feedbackRating || 0) - (a.feedbackRating || 0));
@@ -54,7 +143,6 @@ export default function LeaderboardPage() {
         }))
       });
 
-      // Update Firestore with AI insights for top performers
       const updatePromises = result.analyzedFaculty.map(analysis => {
         const docRef = doc(firestore, 'users', analysis.id);
         return updateDoc(docRef, {
@@ -100,14 +188,17 @@ export default function LeaderboardPage() {
         </Button>
       </PageHeader>
 
-      <div className="flex items-center justify-between bg-primary/5 p-5 rounded-[1.5rem] border border-primary/10 shadow-sm">
+      <div className="flex items-center justify-between bg-primary/5 p-5 rounded-[1.5rem] border border-primary/10 shadow-sm relative">
         <div className="flex items-center gap-3">
             <TrendingUp className="h-6 w-6 text-primary animate-pulse" />
-            <p className="text-sm font-black text-primary uppercase tracking-tighter">Live Real-Time Rankings</p>
+            <p className="text-sm font-black text-primary uppercase tracking-tighter">
+              {banner.statusText}
+              {isAdmin && isEditMode && <AdminEditDialog pageId="leaderboard" sectionId="banner" initialData={banner} label="Banner Text" />}
+            </p>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
             <BrainCircuit className="h-4 w-4 text-primary" />
-            <span className="text-[10px] font-bold uppercase">AI Analyzed Rankings</span>
+            <span className="text-[10px] font-bold uppercase">{banner.aiText}</span>
         </div>
       </div>
 
@@ -204,16 +295,17 @@ export default function LeaderboardPage() {
 
       <Card className="border-none bg-zinc-900 text-white rounded-[2.5rem] shadow-2xl overflow-hidden relative">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl -mr-20 -mt-20 opacity-50" />
+        {isAdmin && isEditMode && <AdminEditDialog pageId="leaderboard" sectionId="info" initialData={info} label="Info Card Content" overlay />}
         <CardContent className="p-12 text-center space-y-6 relative z-10">
-          <h3 className="font-black text-3xl font-headline tracking-tighter">About Nexus AI Rankings</h3>
-          <p className="text-zinc-400 max-w-2xl mx-auto leading-relaxed font-medium text-lg">
-            The **Faculty Excellence Leaderboard** is now powered by Nexus AI. Our system doesn't just look at stars; 
-            it analyzes mentor availability, research impact, and detailed student sentiment to determine a 
-            member's true academic reputation.
+          <h3 className="font-black text-3xl font-headline tracking-tighter">{info.title}</h3>
+          <p className="text-zinc-400 max-w-2xl mx-auto leading-relaxed font-medium text-lg whitespace-pre-wrap">
+            {info.description}
           </p>
           <div className="pt-4">
              <Link href="/about">
-                <Button variant="secondary" className="font-black px-10 h-12 rounded-xl">Learn More About AI Reputation</Button>
+                <Button variant="secondary" className="font-black px-10 h-12 rounded-xl">
+                  {info.buttonText}
+                </Button>
              </Link>
           </div>
         </CardContent>
