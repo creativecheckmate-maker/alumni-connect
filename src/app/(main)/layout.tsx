@@ -3,17 +3,16 @@
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { Search, Settings2, Edit, Loader2, Upload, ExternalLink } from 'lucide-react';
+import { Search, Settings2, Edit, Loader2, Upload } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useFirebase, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { useState, useEffect } from 'react';
-import { doc, setDoc, serverTimestamp, query, collection, where, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { SiteContent } from '@/lib/definitions';
@@ -26,7 +25,7 @@ function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: st
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setData(initialData);
+    if (initialData) setData(initialData);
   }, [initialData]);
 
   const handleSave = async () => {
@@ -48,6 +47,8 @@ function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: st
     }
   };
 
+  if (!data) return null;
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -62,7 +63,7 @@ function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: st
         <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
           {Object.keys(data).map((key) => (
             <div key={key} className="space-y-2">
-              <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
+              <label className="capitalize text-sm font-bold text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}</label>
               <div className="flex flex-col gap-2">
                 {key.toLowerCase().includes('url') && data[key] && (
                   <div className="relative h-24 w-full rounded-xl overflow-hidden border bg-muted">
@@ -71,7 +72,7 @@ function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: st
                 )}
                 <div className="flex gap-2">
                   <Input 
-                    value={data[key]} 
+                    value={data[key] || ""} 
                     onChange={(e) => setData({ ...data, [key]: e.target.value })} 
                   />
                   {key.toLowerCase().includes('url') && (
@@ -82,8 +83,6 @@ function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: st
                         cropping: true,
                         showSkipCropButton: true,
                         singleUploadAutoClose: true,
-                        croppingDefaultSelection: 'transform',
-                        croppingShowBackButton: true,
                         multiple: false,
                         sources: ['local', 'url', 'camera']
                       }}
@@ -182,7 +181,7 @@ export default function MainLayout({
             <div className="flex items-center gap-2 mr-4 bg-muted/50 px-3 py-1.5 rounded-full border border-primary/20">
               {isEditMode && <AdminEditDialog pageId="global" sectionId="header" initialData={header} label="Header Settings" />}
               <Settings2 className="h-4 w-4 text-primary" />
-              <Label htmlFor="edit-mode" className="text-xs font-bold whitespace-nowrap">Edit Mode</Label>
+              <label htmlFor="edit-mode" className="text-xs font-bold whitespace-nowrap cursor-pointer">Edit Mode</label>
               <Switch 
                 id="edit-mode" 
                 checked={isEditMode} 
@@ -204,7 +203,7 @@ export default function MainLayout({
             </div>
           )}
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
           {children}
           
           <footer className="mt-auto pt-10 pb-6 border-t relative">
@@ -224,7 +223,7 @@ export default function MainLayout({
               </div>
             </div>
           </footer>
-        </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

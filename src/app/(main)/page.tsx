@@ -18,7 +18,6 @@ import { ADMIN_EMAIL } from '@/lib/config';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -67,7 +66,7 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setData(initialData);
+    if (initialData) setData(initialData);
   }, [initialData]);
 
   const handleSave = async () => {
@@ -89,6 +88,8 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
     }
   };
 
+  if (!data) return null;
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -105,15 +106,15 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
             if (key === 'stats' && Array.isArray(data[key])) {
               return (
                 <div key={key} className="space-y-4">
-                  <Label className="text-base font-bold">Metrics</Label>
+                  <label className="text-base font-bold block">Metrics</label>
                   {data[key].map((stat: any, index: number) => (
-                    <div key={index} className="grid grid-cols-2 gap-2 p-2 border rounded">
-                      <Input value={stat.label} onChange={(e) => {
+                    <div key={index} className="grid grid-cols-2 gap-2 p-2 border rounded-xl">
+                      <Input value={stat.label || ""} onChange={(e) => {
                         const newStats = [...data.stats];
                         newStats[index].label = e.target.value;
                         setData({ ...data, stats: newStats });
                       }} placeholder="Label" />
-                      <Input value={stat.value} onChange={(e) => {
+                      <Input value={stat.value || ""} onChange={(e) => {
                         const newStats = [...data.stats];
                         newStats[index].value = e.target.value;
                         setData({ ...data, stats: newStats });
@@ -125,9 +126,9 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
             }
             return (
               <div key={key} className="space-y-2">
-                <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
+                <label className="capitalize text-sm font-bold text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</label>
                 {key.toLowerCase().includes('description') ? (
-                  <Textarea value={data[key]} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
+                  <Textarea value={data[key] || ""} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
                 ) : (
                   <div className="flex flex-col gap-2">
                     {key.toLowerCase().includes('url') && data[key] && (
@@ -136,7 +137,7 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
                       </div>
                     )}
                     <div className="flex gap-2">
-                      <Input value={data[key]} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
+                      <Input value={data[key] || ""} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
                       {key.toLowerCase().includes('url') && (
                         <CldUploadWidget 
                           uploadPreset="ml_default" 
