@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2, UserPlus, UserCheck, XCircle, MessageSquare, Phone, Award, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2, UserPlus, UserCheck, XCircle, MessageSquare, Award, ShieldCheck } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useFirebase, useCollection, setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp, collection, query, where } from 'firebase/firestore';
@@ -262,11 +262,6 @@ export default function UserProfilePage() {
                                 <Link href={`/messages/chat/${user.id}`}>
                                   <Button variant="outline" className="gap-2">
                                     <MessageSquare className="h-4 w-4" /> Message
-                                  </Button>
-                                </Link>
-                                <Link href={`/messages/chat/${user.id}?autoCall=true`}>
-                                  <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                                    <Phone className="h-4 w-4" /> Live Call
                                   </Button>
                                 </Link>
                               </div>

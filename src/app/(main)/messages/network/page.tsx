@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, UserPlus, UserCheck, ShieldCheck, Loader2, Search, Phone } from 'lucide-react';
+import { MessageSquare, UserPlus, ShieldCheck, Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
@@ -88,11 +88,6 @@ export default function NetworkPage() {
                         <Link href={`/messages/chat/${user.id}`} className="flex-1">
                           <Button className="w-full h-10 gap-2 font-bold bg-muted/50 text-foreground hover:bg-muted">
                             <MessageSquare className="h-4 w-4" /> Message
-                          </Button>
-                        </Link>
-                        <Link href={`/messages/chat/${user.id}?autoCall=true`} className="flex-1">
-                          <Button className="w-full h-10 gap-2 font-bold bg-primary text-primary-foreground hover:bg-primary/90">
-                            <Phone className="h-4 w-4" /> Call
                           </Button>
                         </Link>
                       </>

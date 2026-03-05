@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, ArrowRight, Loader2, Phone } from 'lucide-react';
+import { MessageCircle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 
@@ -94,13 +94,6 @@ export default function ChatListPage() {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {isOnline && (
-                      <Link href={`/messages/chat/${friend.id}?autoCall=true`}>
-                        <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10 rounded-full h-10 w-10 shadow-sm border border-primary/5">
-                          <Phone className="h-5 w-5" />
-                        </Button>
-                      </Link>
-                    )}
                     <Link href={`/messages/chat/${friend.id}`}>
                       <Button variant="ghost" size="icon" className="text-muted-foreground group-hover:translate-x-1 transition-transform">
                         <ArrowRight className="h-5 w-5" />

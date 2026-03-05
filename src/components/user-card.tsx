@@ -18,7 +18,7 @@ import {
   AlertDialogFooter,
   AlertDialogDescription,
 } from '@/components/ui/alert-dialog';
-import { Edit, Trash2, GraduationCap, Building2, MapPin, MessageSquare, UserPlus, UserCheck, XCircle, Phone, Award } from 'lucide-react';
+import { Edit, Trash2, GraduationCap, Building2, MapPin, MessageSquare, UserPlus, UserCheck, XCircle, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, addDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
@@ -179,13 +179,8 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser, friendships }: UserC
             {isMutual ? (
               <>
                 <Link href={`/messages/chat/${user.id}`} className="flex-1">
-                  <Button size="sm" variant="outline" className="w-full font-bold h-9 gap-2">
-                    <MessageSquare className="h-4 w-4" /> Message
-                  </Button>
-                </Link>
-                <Link href={`/messages/chat/${user.id}?autoCall=true`} className="flex-1">
                   <Button size="sm" variant="default" className="w-full font-bold h-9 gap-2">
-                    <Phone className="h-4 w-4" /> Call
+                    <MessageSquare className="h-4 w-4" /> Message
                   </Button>
                 </Link>
               </>
