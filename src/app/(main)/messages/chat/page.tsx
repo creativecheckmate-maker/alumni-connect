@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { MessageCircle, ArrowRight, Loader2, Phone } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 
@@ -65,38 +65,50 @@ export default function ChatListPage() {
             const isOnline = !!friend.isOnline;
             
             return (
-              <Link key={friend.id} href={`/messages/chat/${friend.id}`}>
-                <Card className="border-none shadow-sm hover:shadow-md hover:bg-primary/5 transition-all group cursor-pointer overflow-hidden mb-3">
-                  <CardContent className="p-5 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <Avatar className={`h-14 w-14 ring-2 ${isOnline ? 'ring-green-500/20' : 'ring-primary/10'}`}>
-                          <AvatarImage src={friend.avatarUrl} alt={friend.name} />
-                          <AvatarFallback className="font-bold">{friend.name?.[0]}</AvatarFallback>
-                        </Avatar>
-                        {isOnline && (
-                          <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 bg-green-500 border-2 border-white rounded-full animate-in zoom-in duration-300 shadow-sm"></span>
-                        )}
-                      </div>
-                      <div className="space-y-0.5">
-                        <h3 className="font-black text-lg tracking-tight">{friend.name}</h3>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="text-[10px] h-4 font-black uppercase tracking-widest">{friend.role}</Badge>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-muted-foreground opacity-40'}`}></span>
-                            <p className={`text-xs font-bold ${isOnline ? 'text-green-600' : 'text-muted-foreground'}`}>
-                              {isOnline ? 'Online now' : 'Offline'}
-                            </p>
-                          </div>
+              <Card key={friend.id} className="border-none shadow-sm hover:shadow-md hover:bg-primary/5 transition-all group overflow-hidden mb-3">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Link href={`/messages/chat/${friend.id}`} className="relative cursor-pointer">
+                      <Avatar className={`h-14 w-14 ring-2 ${isOnline ? 'ring-green-500/20' : 'ring-primary/10'}`}>
+                        <AvatarImage src={friend.avatarUrl} alt={friend.name} />
+                        <AvatarFallback className="font-bold">{friend.name?.[0]}</AvatarFallback>
+                      </Avatar>
+                      {isOnline && (
+                        <span className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 bg-green-500 border-2 border-white rounded-full animate-in zoom-in duration-300 shadow-sm"></span>
+                      )}
+                    </Link>
+                    <div className="space-y-0.5">
+                      <Link href={`/messages/chat/${friend.id}`}>
+                        <h3 className="font-black text-lg tracking-tight hover:text-primary transition-colors">{friend.name}</h3>
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-[10px] h-4 font-black uppercase tracking-widest">{friend.role}</Badge>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-muted-foreground opacity-40'}`}></span>
+                          <p className={`text-xs font-bold ${isOnline ? 'text-green-600' : 'text-muted-foreground'}`}>
+                            {isOnline ? 'Online now' : 'Offline'}
+                          </p>
                         </div>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="text-primary group-hover:translate-x-1 transition-transform">
-                      <ArrowRight className="h-5 w-5" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {isOnline && (
+                      <Link href={`/messages/chat/${friend.id}?autoCall=true`}>
+                        <Button variant="ghost" size="icon" className="text-primary hover:bg-primary/10 rounded-full h-10 w-10 shadow-sm border border-primary/5">
+                          <Phone className="h-5 w-5" />
+                        </Button>
+                      </Link>
+                    )}
+                    <Link href={`/messages/chat/${friend.id}`}>
+                      <Button variant="ghost" size="icon" className="text-muted-foreground group-hover:translate-x-1 transition-transform">
+                        <ArrowRight className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
             );
           })
         ) : (

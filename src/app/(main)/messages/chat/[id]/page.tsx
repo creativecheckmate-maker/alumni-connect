@@ -2,12 +2,12 @@
 
 import { useDoc, useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, where, serverTimestamp, limit, onSnapshot, getDoc } from 'firebase/firestore';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Send, ShieldCheck, Loader2, MoreVertical, Phone, Check, CheckCheck, Mic, MicOff, PhoneOff, Volume2, Radio, Zap, Activity } from 'lucide-react';
+import { ArrowLeft, Send, ShieldCheck, Loader2, MoreVertical, Phone, Check, CheckCheck, Mic, MicOff, PhoneOff, Volume2, Radio, Zap, Activity, Signal } from 'lucide-react';
 import type { User, Message, Friendship } from '@/lib/definitions';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
@@ -86,7 +86,9 @@ function useStreamVolume(stream: MediaStream | null) {
 
 export default function ChatRoomPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const receiverId = params.id as string;
+  const autoCall = searchParams.get('autoCall') === 'true';
   const { user: authUser } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -295,6 +297,13 @@ export default function ChatRoomPage() {
     }
   };
 
+  // Auto-initiate call if param is present
+  useEffect(() => {
+    if (autoCall && receiver?.isOnline && !isCalling && !isIncomingCall && !pc) {
+      startCall();
+    }
+  }, [autoCall, receiver?.isOnline, isCalling, isIncomingCall, pc]);
+
   useEffect(() => {
     if (!firestore || !authUser?.uid || !messages || messages.length === 0) return;
     const unreadMessages = messages.filter(m => m.receiverId === authUser.uid && m.status !== 'read');
@@ -373,23 +382,31 @@ export default function ChatRoomPage() {
           </div>
         </div>
         
-        {/* PUBG HUD Center Section */}
-        {isCalling && (
-          <div className="hidden lg:flex items-center gap-8 bg-zinc-900/5 px-6 py-2 rounded-2xl border border-zinc-900/5">
+        {/* PUBG Tactical HUD Center Section */}
+        {isCalling ? (
+          <div className="hidden lg:flex items-center gap-8 bg-zinc-900/5 px-6 py-2 rounded-2xl border border-zinc-900/5 animate-in fade-in duration-500">
             <div className="flex flex-col gap-1 w-32">
                <div className="flex items-center justify-between text-[7px] font-black uppercase text-muted-foreground">
                   <span className="flex items-center gap-1"><Mic className="h-2 w-2" /> Your Mic</span>
-                  <span>{Math.round(localAudio.volume)}%</span>
+                  <span className={localAudio.isTalking ? "text-green-600" : ""}>{Math.round(localAudio.volume)}%</span>
                </div>
-               <Progress value={localAudio.volume * 1.5} className="h-1 bg-zinc-200" />
+               <Progress value={localAudio.volume * 1.5} className={`h-1 transition-colors ${localAudio.isTalking ? 'bg-green-500' : 'bg-zinc-200'}`} />
+            </div>
+            <div className="flex items-center gap-2 text-primary/40">
+               <Signal className="h-3 w-3 animate-pulse" />
             </div>
             <div className="flex flex-col gap-1 w-32">
                <div className="flex items-center justify-between text-[7px] font-black uppercase text-primary">
                   <span className="flex items-center gap-1"><Volume2 className="h-2 w-2" /> Team Audio</span>
-                  <span>{Math.round(remoteAudio.volume)}%</span>
+                  <span className={remoteAudio.isTalking ? "text-primary" : ""}>{Math.round(remoteAudio.volume)}%</span>
                </div>
-               <Progress value={remoteAudio.volume * 1.5} className="h-1 bg-primary/20" />
+               <Progress value={remoteAudio.volume * 1.5} className={`h-1 transition-colors ${remoteAudio.isTalking ? 'bg-primary' : 'bg-primary/20'}`} />
             </div>
+          </div>
+        ) : (
+          <div className="hidden lg:flex items-center gap-3 opacity-20">
+             <Radio className="h-4 w-4 text-primary" />
+             <span className="text-[8px] font-black uppercase tracking-widest">SQUAD COMMS READY</span>
           </div>
         )}
 

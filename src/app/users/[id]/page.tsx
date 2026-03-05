@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2, UserPlus, UserCheck, XCircle, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2, UserPlus, UserCheck, XCircle, MessageSquare, Phone } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { useDoc, useUser, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useFirebase, useCollection, setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp, collection, query, where } from 'firebase/firestore';
@@ -254,9 +254,18 @@ export default function UserProfilePage() {
                         {!isOwnProfile && authUser && (
                           <div className="flex gap-2">
                             {isMutual ? (
-                              <Button variant="outline" className="gap-2" disabled>
-                                <UserCheck className="h-4 w-4" /> Connected
-                              </Button>
+                              <div className="flex gap-2">
+                                <Link href={`/messages/chat/${user.id}`}>
+                                  <Button variant="outline" className="gap-2">
+                                    <MessageSquare className="h-4 w-4" /> Message
+                                  </Button>
+                                </Link>
+                                <Link href={`/messages/chat/${user.id}?autoCall=true`}>
+                                  <Button className="gap-2 bg-primary">
+                                    <Phone className="h-4 w-4" /> Live Call
+                                  </Button>
+                                </Link>
+                              </div>
                             ) : isRequestedByMe ? (
                               <Button variant="destructive" className="gap-2" onClick={handleCancelRequest}>
                                 <XCircle className="h-4 w-4" /> Cancel Request
@@ -385,19 +394,23 @@ export default function UserProfilePage() {
                                 <div className="p-2 rounded-lg bg-primary/10 text-primary">
                                   <GraduationCap className="h-6 w-6" />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Major Field of Study</h3>
-                                    <p className="font-medium text-lg">{(user as Student).major}</p>
-                                </div>
+                                {user.major && (
+                                  <div>
+                                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Major Field of Study</h3>
+                                      <p className="font-medium text-lg">{(user as Student).major}</p>
+                                  </div>
+                                )}
                             </div>
                             <div className="flex items-start gap-4">
                                 <div className="p-2 rounded-lg bg-primary/10 text-primary">
                                   <GraduationCap className="h-6 w-6" />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Graduation</h3>
-                                    <p className="font-medium text-lg">Class of {(user as Student).graduationYear}</p>
-                                </div>
+                                {user.graduationYear && (
+                                  <div>
+                                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Graduation</h3>
+                                      <p className="font-medium text-lg">Class of {(user as Student).graduationYear}</p>
+                                  </div>
+                                )}
                             </div>
                         </>
                         ) : (
@@ -406,19 +419,23 @@ export default function UserProfilePage() {
                                 <div className="p-2 rounded-lg bg-primary/10 text-primary">
                                   <Briefcase className="h-6 w-6" />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Department</h3>
-                                    <p className="font-medium text-lg">{(user as Professor).department}</p>
-                                </div>
+                                {user.department && (
+                                  <div>
+                                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Department</h3>
+                                      <p className="font-medium text-lg">{(user as Professor).department}</p>
+                                  </div>
+                                )}
                             </div>
                             <div className="flex items-start gap-4">
                                 <div className="p-2 rounded-lg bg-primary/10 text-primary">
                                   <BrainCircuit className="h-6 w-6" />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Research Specialization</h3>
-                                    <p className="font-medium text-lg">{(user as Professor).researchInterests?.join(', ')}</p>
-                                </div>
+                                {user.researchInterests && (
+                                  <div>
+                                      <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-1">Research Specialization</h3>
+                                      <p className="font-medium text-lg">{(user as Professor).researchInterests?.join(', ')}</p>
+                                  </div>
+                                )}
                             </div>
                         </>
                         )}

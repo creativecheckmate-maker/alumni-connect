@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Edit, Trash2, GraduationCap, Building2, MapPin, MessageSquare, UserPlus, UserCheck, XCircle } from 'lucide-react';
+import { Edit, Trash2, GraduationCap, Building2, MapPin, MessageSquare, UserPlus, UserCheck, XCircle, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, addDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
@@ -154,15 +154,24 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser, friendships }: UserC
         </div>
 
         <div className="pt-2 flex items-center gap-2">
-          <Link href={`/users/${user.id}`} className="flex-1">
-            <Button size="sm" variant="outline" className="w-full font-bold h-9">View Profile</Button>
+          <Link href={`/users/${user.id}`} className="shrink-0">
+            <Button size="sm" variant="outline" className="font-bold h-9">Profile</Button>
           </Link>
           
-          <div className="flex-1">
+          <div className="flex-1 flex gap-2">
             {isMutual ? (
-              <Button size="sm" variant="default" className="w-full font-bold h-9 gap-2" disabled>
-                <UserCheck className="h-4 w-4" /> Connected
-              </Button>
+              <>
+                <Link href={`/messages/chat/${user.id}`} className="flex-1">
+                  <Button size="sm" variant="outline" className="w-full font-bold h-9 gap-2">
+                    <MessageSquare className="h-4 w-4" /> Message
+                  </Button>
+                </Link>
+                <Link href={`/messages/chat/${user.id}?autoCall=true`} className="flex-1">
+                  <Button size="sm" variant="default" className="w-full font-bold h-9 gap-2">
+                    <Phone className="h-4 w-4" /> Call
+                  </Button>
+                </Link>
+              </>
             ) : isRequestedByMe ? (
               <Button size="sm" variant="destructive" className="w-full font-bold h-9 gap-2" onClick={handleCancelRequest}>
                 <XCircle className="h-4 w-4" /> Cancel
