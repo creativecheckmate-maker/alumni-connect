@@ -49,15 +49,26 @@ export default function ProfilePage() {
   const handleSaveAvatar = async () => {
     if (!userDocRef || !newAvatarUrl) return;
     setIsSavingAvatar(true);
+    let isSafe = true;
+    let moderationReason = "";
+
     try {
       const moderation = await moderateContent({ imageUrl: newAvatarUrl });
-      if (!moderation.isSafe) {
-        toast({ variant: 'destructive', title: "Policy Violation", description: moderation.reason || "Inappropriate imagery detected." });
-        setNewAvatarUrl(null);
-        setIsSavingAvatar(false);
-        return;
-      }
+      isSafe = moderation.isSafe;
+      moderationReason = moderation.reason || "Inappropriate imagery detected.";
+    } catch (e) {
+      console.warn("Avatar moderation unavailable, proceeding with standard upload.", e);
+      isSafe = true; // Fallback to allow upload if AI is down
+    }
 
+    if (!isSafe) {
+      toast({ variant: 'destructive', title: "Policy Violation", description: moderationReason });
+      setNewAvatarUrl(null);
+      setIsSavingAvatar(false);
+      return;
+    }
+
+    try {
       updateDocumentNonBlocking(userDocRef, { 
         avatarUrl: newAvatarUrl,
         updatedAt: serverTimestamp()
