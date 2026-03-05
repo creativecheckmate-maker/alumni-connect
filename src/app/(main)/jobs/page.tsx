@@ -87,9 +87,15 @@ export default function JobsPage() {
                         showSkipCropButton: true,
                         singleUploadAutoClose: true, 
                         croppingAspectRatio: 1, 
-                        multiple: false 
+                        multiple: false,
+                        sources: ['local', 'url', 'camera']
                       }} 
-                      onSuccess={(result: any) => setLogoUrl(result.info.secure_url)}
+                      onSuccess={(res: any) => {
+                        const url = res?.info?.secure_url || res?.info?.url;
+                        if (url) {
+                          setLogoUrl(url);
+                        }
+                      }}
                     >
                       {({ open }) => <Button type="button" variant="outline" onClick={() => open()}><Upload className="h-4 w-4" /></Button>}
                     </CldUploadWidget>

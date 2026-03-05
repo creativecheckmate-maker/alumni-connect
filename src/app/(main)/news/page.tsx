@@ -120,9 +120,15 @@ export default function NewsPage() {
                           showSkipCropButton: true,
                           singleUploadAutoClose: true,
                           croppingAspectRatio: 1.77,
-                          multiple: false
+                          multiple: false,
+                          sources: ['local', 'url', 'camera']
                         }}
-                        onSuccess={(result: any) => setNewsImageUrl(result.info.secure_url)}
+                        onSuccess={(res: any) => {
+                          const url = res?.info?.secure_url || res?.info?.url;
+                          if (url) {
+                            setNewsImageUrl(url);
+                          }
+                        }}
                       >
                         {({ open }) => (
                           <Button type="button" variant="outline" onClick={() => open()}>

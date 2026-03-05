@@ -88,9 +88,15 @@ export default function EventsPage() {
                         showSkipCropButton: true,
                         singleUploadAutoClose: true,
                         croppingAspectRatio: 1.77,
-                        multiple: false
+                        multiple: false,
+                        sources: ['local', 'url', 'camera']
                       }}
-                      onSuccess={(result: any) => setEventImageUrl(result.info.secure_url)}
+                      onSuccess={(res: any) => {
+                        const url = res?.info?.secure_url || res?.info?.url;
+                        if (url) {
+                          setEventImageUrl(url);
+                        }
+                      }}
                     >
                       {({ open }) => <Button type="button" variant="outline" className="gap-2 font-bold" onClick={() => open()}><Upload className="h-4 w-4" /> Upload</Button>}
                     </CldUploadWidget>

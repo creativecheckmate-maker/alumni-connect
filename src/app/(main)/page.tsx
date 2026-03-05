@@ -145,11 +145,15 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
                             cropping: true, 
                             showSkipCropButton: true,
                             singleUploadAutoClose: true, 
-                            croppingDefaultSelection: 'transform',
-                            croppingShowBackButton: true,
-                            multiple: false 
+                            multiple: false,
+                            sources: ['local', 'url', 'camera']
                           }}
-                          onSuccess={(res: any) => setData({ ...data, [key]: res.info.secure_url })}
+                          onSuccess={(res: any) => {
+                            const url = res?.info?.secure_url || res?.info?.url;
+                            if (url) {
+                              setData((prev: any) => ({ ...prev, [key]: url }));
+                            }
+                          }}
                         >
                           {({ open }) => <Button variant="outline" size="icon" onClick={() => open()}><Upload className="h-4 w-4" /></Button>}
                         </CldUploadWidget>
@@ -232,7 +236,7 @@ export default function HomePage() {
   const hero = heroContent?.data || defaultHero;
   const community = communityContent?.data || defaultCommunity;
   const banner = bannerContent?.data || defaultBanner;
-  const reconnect = reconnectDocRef?.data || defaultReconnect;
+  const reconnect = reconnectContent?.data || defaultReconnect;
   const stats = statsContent?.data?.stats || [
     { label: 'Global Alumni', value: '25K+', icon: 'Globe' },
     { label: 'Job Placements', value: '12K+', icon: 'Briefcase' },

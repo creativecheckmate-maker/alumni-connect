@@ -85,9 +85,15 @@ function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { s
                           singleUploadAutoClose: true,
                           croppingDefaultSelection: 'transform',
                           croppingShowBackButton: true,
-                          multiple: false
+                          multiple: false,
+                          sources: ['local', 'url', 'camera']
                         }}
-                        onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
+                        onSuccess={(res: any) => {
+                          const url = res?.info?.secure_url || res?.info?.url;
+                          if (url) {
+                            setData((prev: any) => ({ ...prev, [key]: url }));
+                          }
+                        }}
                       >
                         {({ open }) => (
                           <Button variant="outline" size="icon" onClick={() => open()}>
