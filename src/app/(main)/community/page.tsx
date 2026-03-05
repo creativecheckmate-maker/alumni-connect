@@ -3,7 +3,7 @@
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Globe, Users, MapPin, Share2, Edit, Loader2, Upload } from 'lucide-react';
+import { Globe, Users, MapPin, Share2, Edit, Loader2, Upload, Plus, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { ADMIN_EMAIL } from '@/lib/config';
@@ -13,7 +13,6 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -55,18 +54,18 @@ function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { s
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()} className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Edit {label}</DialogTitle>
         </DialogHeader>
-        <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+        <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
            {Object.keys(data).map((key) => {
             if (key === 'stats' && Array.isArray(data[key])) {
               return (
                 <div key={key} className="space-y-4">
-                  <label className="text-base font-bold block">Community Metrics</label>
+                  <label className="text-xs font-black uppercase text-primary tracking-widest block">Community Metrics</label>
                   {data[key].map((stat: any, index: number) => (
-                    <div key={index} className="grid grid-cols-2 gap-2 p-2 border rounded-xl">
+                    <div key={index} className="grid grid-cols-2 gap-2 p-3 border rounded-xl bg-muted/20">
                       <Input value={stat.label || ""} onChange={(e) => {
                         const newStats = [...data.stats];
                         newStats[index].label = e.target.value;
@@ -76,7 +75,48 @@ function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { s
                         const newStats = [...data.stats];
                         newStats[index].value = e.target.value;
                         setData({ ...data, stats: newStats });
-                      }} placeholder="Value" />
+                      }} placeholder="Value (Numeric)" />
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+            if (key === 'chapters' && Array.isArray(data[key])) {
+              return (
+                <div key={key} className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black uppercase text-primary tracking-widest block">Regional Chapters List</label>
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-[10px] font-black uppercase" onClick={() => {
+                      setData({...data, chapters: [...data.chapters, { city: 'New City', region: 'Global', members: '0' }]});
+                    }}>
+                      <Plus className="h-3 w-3 mr-1" /> Add Chapter
+                    </Button>
+                  </div>
+                  {data[key].map((chapter: any, index: number) => (
+                    <div key={index} className="space-y-2 p-3 border rounded-xl bg-muted/20 relative group/item">
+                      <div className="grid grid-cols-3 gap-2">
+                        <Input value={chapter.city} onChange={(e) => {
+                          const next = [...data.chapters];
+                          next[index].city = e.target.value;
+                          setData({...data, chapters: next});
+                        }} placeholder="City" />
+                        <Input value={chapter.region} onChange={(e) => {
+                          const next = [...data.chapters];
+                          next[index].region = e.target.value;
+                          setData({...data, chapters: next});
+                        }} placeholder="Region" />
+                        <Input value={chapter.members} onChange={(e) => {
+                          const next = [...data.chapters];
+                          next[index].members = e.target.value;
+                          setData({...data, chapters: next});
+                        }} placeholder="Member Count" />
+                      </div>
+                      <Button size="icon" variant="destructive" className="h-6 w-6 absolute -top-2 -right-2 opacity-0 group-hover/item:opacity-100 transition-opacity rounded-full" onClick={() => {
+                        const next = data.chapters.filter((_: any, i: number) => i !== index);
+                        setData({...data, chapters: next});
+                      }}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -84,7 +124,7 @@ function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { s
             }
             return (
               <div key={key} className="space-y-2">
-                <label className="capitalize font-bold text-sm text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}</label>
+                <label className="capitalize font-bold text-[10px] uppercase text-muted-foreground tracking-widest">{key.replace(/([A-Z])/g, ' $1')}</label>
                 {key.toLowerCase().includes('description') ? (
                   <Textarea 
                     value={data[key]} 
@@ -135,7 +175,7 @@ function AdminEditDialog({ sectionId, initialData, label, overlay = false }: { s
            })}
         </div>
         <DialogFooter>
-          <Button onClick={handleSave} disabled={isSaving} className="w-full">
+          <Button onClick={handleSave} disabled={isSaving} className="w-full h-12 font-black rounded-xl shadow-lg">
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save Changes
           </Button>
@@ -156,6 +196,9 @@ export default function CommunityHubPage() {
   const statsDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'community_stats'), [firestore]);
   const { data: statsContent } = useDoc<SiteContent>(statsDocRef);
 
+  const chaptersDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'community_chapters'), [firestore]);
+  const { data: chaptersContent } = useDoc<SiteContent>(chaptersDocRef);
+
   const volunteerDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'community_volunteer'), [firestore]);
   const { data: volunteerContent } = useDoc<SiteContent>(volunteerDocRef);
 
@@ -168,6 +211,18 @@ export default function CommunityHubPage() {
     { label: 'Regional Chapters', value: '45', icon: 'MapPin' },
   ];
 
+  const defaultChapters = {
+    title: 'Regional Chapters',
+    chapters: [
+      { city: 'San Francisco', members: '1,200', region: 'North America' },
+      { city: 'London', members: '850', region: 'Europe' },
+      { city: 'Bangalore', members: '2,100', region: 'Asia Pacific' },
+      { city: 'Dubai', members: '450', region: 'Middle East' },
+    ]
+  };
+
+  const chaptersData = chaptersContent?.data || defaultChapters;
+
   const defaultVolunteer = {
     title: 'Volunteer with Us',
     description: 'Help us grow the network by becoming a chapter lead or organizing local meetups in your city.',
@@ -176,13 +231,6 @@ export default function CommunityHubPage() {
   };
 
   const volunteer = volunteerContent?.data || defaultVolunteer;
-
-  const chapters = [
-    { city: 'San Francisco', members: '1,200', region: 'North America' },
-    { city: 'London', members: '850', region: 'Europe' },
-    { city: 'Bangalore', members: '2,100', region: 'Asia Pacific' },
-    { city: 'Dubai', members: '450', region: 'Middle East' },
-  ];
 
   return (
     <div className="max-w-4xl mx-auto space-y-12 pb-20">
@@ -207,30 +255,33 @@ export default function CommunityHubPage() {
                   {stat.icon === 'MapPin' && <MapPin className="h-5 w-5" />}
                 </div>
               </div>
-              <h3 className="text-3xl font-bold font-headline">{stat.value}</h3>
-              <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">{stat.label}</p>
+              <h3 className="text-3xl font-black font-headline tracking-tighter">{stat.value}</h3>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em]">{stat.label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 relative">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold font-headline">Regional Chapters</h2>
-          <Button variant="outline" size="sm" className="gap-2">
+          <h2 className="text-2xl font-black font-headline uppercase tracking-tight flex items-center gap-2">
+            {chaptersData.title}
+            {isAdmin && isEditMode && <AdminEditDialog sectionId="chapters" initialData={chaptersData} label="Chapters Section" />}
+          </h2>
+          <Button variant="outline" size="sm" className="gap-2 font-bold h-9">
             <Share2 className="h-4 w-4" /> Suggest a Chapter
           </Button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {chapters.map((chapter, index) => (
-            <Card key={index} className="group hover:border-primary/50 transition-colors shadow-sm cursor-pointer border-none bg-card">
+          {chaptersData.chapters.map((chapter: any, index: number) => (
+            <Card key={index} className="group hover:bg-primary/5 transition-all shadow-sm cursor-pointer border-none bg-card">
               <CardHeader className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <CardTitle className="text-lg font-bold">{chapter.city}</CardTitle>
-                    <p className="text-xs text-muted-foreground font-medium">{chapter.region}</p>
+                    <CardTitle className="text-lg font-black tracking-tight group-hover:text-primary transition-colors">{chapter.city}</CardTitle>
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{chapter.region}</p>
                   </div>
-                  <Badge variant="secondary" className="font-bold">
+                  <Badge variant="secondary" className="font-black text-[10px] uppercase">
                     {chapter.members} members
                   </Badge>
                 </div>
@@ -244,15 +295,15 @@ export default function CommunityHubPage() {
         {isAdmin && isEditMode && <AdminEditDialog sectionId="volunteer" initialData={volunteer} label="Volunteer Section" overlay />}
         <CardContent className="p-10 flex flex-col md:flex-row items-center gap-8">
           <div className="flex-1 space-y-4 text-center md:text-left">
-            <h2 className="text-2xl font-bold font-headline">{volunteer.title}</h2>
-            <p className="text-muted-foreground leading-relaxed">
+            <h2 className="text-2xl font-black font-headline uppercase tracking-tight">{volunteer.title}</h2>
+            <p className="text-muted-foreground leading-relaxed font-medium">
               {volunteer.description}
             </p>
             <Link href={volunteer.buttonUrl || "/about"}>
-              <Button className="font-bold px-8">{volunteer.buttonText || "Get Involved"}</Button>
+              <Button className="font-black px-10 h-12 rounded-xl shadow-lg uppercase tracking-widest text-xs">{volunteer.buttonText || "Get Involved"}</Button>
             </Link>
           </div>
-          <div className="h-40 w-40 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+          <div className="h-40 w-40 bg-primary/10 rounded-full flex items-center justify-center shrink-0 border-4 border-white shadow-xl">
              <Globe className="h-20 w-20 text-primary animate-pulse" />
           </div>
         </CardContent>
