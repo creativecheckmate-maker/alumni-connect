@@ -1,18 +1,11 @@
-
 'use client';
 
-import MainLayout from './(main)/layout';
 import HomePage from './(main)/page';
 
 /**
- * The root page component.
- * To ensure the sidebar and header are visible on the landing page, 
- * we explicitly wrap the homepage content with the MainLayout.
+ * Root page serving the home component.
+ * We rely on the App Router's folder-based layout system to handle MainLayout wrapping automatically.
  */
 export default function RootPage() {
-  return (
-    <MainLayout>
-      <HomePage />
-    </MainLayout>
-  );
+  return <HomePage />;
 }

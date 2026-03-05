@@ -56,14 +56,14 @@ function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: st
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Edit {label}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
           {Object.keys(data).map((key) => (
             <div key={key} className="space-y-2">
-              <label className="capitalize text-sm font-bold text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}</label>
+              <label className="capitalize text-sm font-bold text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</label>
               <div className="flex flex-col gap-2">
                 {key.toLowerCase().includes('url') && data[key] && (
                   <div className="relative h-24 w-full rounded-xl overflow-hidden border bg-muted">
@@ -203,7 +203,7 @@ export default function MainLayout({
             </div>
           )}
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
           {children}
           
           <footer className="mt-auto pt-10 pb-6 border-t relative">
@@ -223,7 +223,7 @@ export default function MainLayout({
               </div>
             </div>
           </footer>
-        </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

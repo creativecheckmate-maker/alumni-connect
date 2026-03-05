@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -46,4 +45,16 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
   }
+}
+
+/* Fix for Cloudinary widget interaction when ShadCN/Radix Dialogs are open */
+.cloudinary-thumbnails, 
+.cloudinary-widget-instance,
+#cloudinary-widget-instance {
+  pointer-events: auto !important;
+}
+
+[data-radix-pointer-events-none] {
+  pointer-events: auto !important;
+  user-select: auto !important;
 }
