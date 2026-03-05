@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -32,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
@@ -72,13 +71,14 @@ export function LoginForm() {
       const userDocRef = doc(firestore, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
-      // Handle Limbo State: Credentials exist but Profile is missing (re-signup attempt workaround)
+      // Limbo State Fix: If Auth record exists but Firestore profile was deleted (by admin or partial purge)
+      // We automatically re-provision a profile so the user can "start from scratch".
       if (!userDoc.exists()) {
         const initialRating = 75;
         await setDoc(userDocRef, {
           id: user.uid,
           externalAuthId: user.uid,
-          name: user.displayName || 'Restored Alumnus',
+          name: user.displayName || 'Restored User',
           email: user.email,
           role: 'student',
           university: 'Nexus University',
@@ -94,7 +94,7 @@ export function LoginForm() {
           avatarUrl: user.photoURL || `https://picsum.photos/seed/${user.uid}/200/200`,
           preferences: [],
         });
-        toast({ title: "Profile Restored", description: "Your credentials were found but your profile was missing. A new profile has been provisioned." });
+        toast({ title: "Profile Restored", description: "Your credentials were found but your profile was missing. A fresh profile has been provisioned." });
       } else if (userDoc.data().status === 'deactivated') {
         await signOut(auth);
         toast({
@@ -124,25 +124,15 @@ export function LoginForm() {
 
   async function handlePasswordReset() {
     if (!resetEmail) {
-      toast({
-        variant: 'destructive',
-        title: 'Email required',
-        description: 'Please enter your email address.',
-      });
+      toast({ variant: 'destructive', title: 'Email required', description: 'Please enter your email address.' });
       return;
     }
     setIsResettingPassword(true);
     try {
       await sendPasswordResetEmail(auth, resetEmail);
-      toast({
-        title: 'Password Reset Email Sent',
-        description: `If an account exists for ${resetEmail}, a password reset link has been sent.`,
-      });
+      toast({ title: 'Reset Email Sent', description: `Check ${resetEmail} for a link to update your password.` });
     } catch (error: any) {
-      toast({
-        title: 'Password Reset Email Sent',
-        description: `If an account exists for ${resetEmail}, a password reset link has been sent.`,
-      });
+      toast({ title: 'Request Handled', description: `If an account exists for ${resetEmail}, a reset link has been sent.` });
     } finally {
       setIsResettingPassword(false);
     }
