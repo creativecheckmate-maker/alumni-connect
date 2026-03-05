@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview AI-powered Faculty Reputation Intelligence.
@@ -66,7 +65,13 @@ const facultyRankerFlow = ai.defineFlow(
     outputSchema: FacultyReputationOutputSchema,
   },
   async (input) => {
-    const { output } = await reputationPrompt(input);
-    return output!;
+    try {
+      const { output } = await reputationPrompt(input);
+      return output!;
+    } catch (e) {
+      console.warn("AI Faculty Ranker quota hit or error:", e);
+      // Fallback: return empty analysis
+      return { analyzedFaculty: [] };
+    }
   }
 );
