@@ -210,7 +210,6 @@ export default function HomePage() {
     description: "The official portal for Nexus University graduates to stay connected, find opportunities, and empower the next generation.",
     imageUrl: "https://images.unsplash.com/photo-1541339907198-e08756cdfb3f?q=80&w=2070",
     primaryButton: "Join the Network",
-    secondaryButton: "Alumni Login"
   };
 
   const defaultCommunity = {
@@ -261,7 +260,6 @@ export default function HomePage() {
           <p className="max-w-xl text-lg md:text-2xl text-white/90 font-body leading-relaxed mb-10">{hero.description}</p>
           <div className="flex gap-4">
             <Link href="/login"><Button size="lg" variant="secondary" className="h-16 px-10 text-xl font-bold rounded-2xl shadow-xl">{hero.primaryButton}</Button></Link>
-            <Link href="/login"><Button size="lg" variant="outline" className="h-16 px-10 text-xl font-bold rounded-2xl border-white/50 text-white hover:bg-white hover:text-primary">{hero.secondaryButton}</Button></Link>
           </div>
         </div>
       </section>
