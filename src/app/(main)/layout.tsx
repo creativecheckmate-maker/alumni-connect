@@ -3,7 +3,7 @@
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { Search, Settings2, Edit, Loader2, Upload } from 'lucide-react';
+import { Search, Settings2, Edit, Loader2, Upload, ShieldAlert, Lock, Unlock, Zap } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useFirebase, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -131,6 +131,9 @@ export default function MainLayout({
   const footerDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_footer'), [firestore]);
   const { data: footerContent } = useDoc<SiteContent>(footerDocRef);
 
+  const configDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_config'), [firestore]);
+  const { data: globalConfig, isLoading: isConfigLoading } = useDoc<SiteContent>(configDocRef);
+
   const defaultHeader = {
     logoPart1: "Alumni",
     logoPart2: "Connect",
@@ -148,6 +151,7 @@ export default function MainLayout({
 
   const header = headerContent?.data || defaultHeader;
   const footer = footerContent?.data || defaultFooter;
+  const isPlatformLocked = globalConfig?.data?.isBlocked === true;
 
   useEffect(() => {
     if (!firestore || !user?.uid) return;
@@ -157,6 +161,56 @@ export default function MainLayout({
       updateDocumentNonBlocking(userRef, { isOnline: false, lastSeen: serverTimestamp() });
     };
   }, [firestore, user?.uid]);
+
+  if (isConfigLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-zinc-950">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // PLATFORM LOCKOUT LOGIC
+  // If locked AND user is NOT admin (or not logged in), show lockout screen
+  if (isPlatformLocked && !isAdmin) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-zinc-950 p-4 font-headline overflow-hidden relative">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-50" />
+        
+        <div className="max-w-md w-full space-y-8 relative z-10 text-center">
+          <div className="inline-flex p-6 rounded-[2.5rem] bg-primary/5 border border-primary/20 shadow-2xl shadow-primary/10 animate-pulse">
+            <Lock className="h-16 w-16 text-primary" />
+          </div>
+          
+          <div className="space-y-3">
+            <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">Access Denied</h1>
+            <div className="flex items-center justify-center gap-2 text-primary font-black text-xs uppercase tracking-[0.3em]">
+              <Zap className="h-3 w-3 fill-current" />
+              <span>Sector Locked: Administrative Restriction</span>
+            </div>
+          </div>
+
+          <p className="text-zinc-400 text-sm leading-relaxed font-medium">
+            The Nexus Alumni platform is currently in a high-security private state. 
+            All public and authorized member access has been suspended by command.
+          </p>
+
+          <div className="pt-6 space-y-4">
+            <Link href="/login">
+              <Button variant="outline" className="w-full h-14 rounded-2xl border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 font-black uppercase tracking-widest text-[10px]">
+                System Override (Admin Only)
+              </Button>
+            </Link>
+            
+            <div className="flex items-center justify-center gap-2 opacity-30">
+              <ShieldAlert className="h-4 w-4 text-primary" />
+              <span className="text-[10px] text-zinc-500 font-black uppercase">Global Site Permissions: Restricted</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
