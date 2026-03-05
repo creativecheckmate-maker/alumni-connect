@@ -37,15 +37,17 @@ function UserRatingCard({ user }: { user: User }) {
             <p className="text-sm text-muted-foreground truncate">{user.college}</p>
           </div>
         </div>
-        <div className="space-y-3">
-          <div className="flex justify-between items-center text-sm font-bold">
-            <span className="text-muted-foreground">Reputation Score</span>
-            <span className="text-primary flex items-center gap-1">
-              {user.feedbackRating || 0}/100 <Star className="h-3 w-3 fill-current" />
-            </span>
+        {user.role !== 'student' && (
+          <div className="space-y-3">
+            <div className="flex justify-between items-center text-sm font-bold">
+              <span className="text-muted-foreground">Reputation Score</span>
+              <span className="text-primary flex items-center gap-1">
+                {user.feedbackRating || 0}/100 <Star className="h-3 w-3 fill-current" />
+              </span>
+            </div>
+            <Progress value={user.feedbackRating || 0} className="h-2.5 bg-primary/10" />
           </div>
-          <Progress value={user.feedbackRating || 0} className="h-2.5 bg-primary/10" />
-        </div>
+        )}
         <div className="mt-6">
              <Link href={`/users/${user.id}`}>
                 <Button variant="outline" size="sm" className="w-full font-bold h-10 hover:bg-primary hover:text-white transition-colors">

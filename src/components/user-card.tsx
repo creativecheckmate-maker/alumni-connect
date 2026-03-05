@@ -120,7 +120,7 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser, friendships }: UserC
                     </Badge>
                 </div>
             </div>
-            {user.feedbackRating && (
+            {user.role !== 'student' && user.feedbackRating && (
                 <div className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[10px] font-bold">
                     <span>★</span> {user.feedbackRating}
                 </div>
