@@ -1,21 +1,94 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'; 
-import type { User, Friendship } from '@/lib/definitions';
+import type { User, Friendship, SiteContent } from '@/lib/definitions';
 import { UserCard } from '@/components/user-card';
-import { useCollection, useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, deleteDoc, query, where } from 'firebase/firestore';
+import { useCollection, useUser, useFirestore, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
+import { collection, doc, deleteDoc, query, where, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ADMIN_EMAIL } from '@/lib/config';
+import { Button } from '@/components/ui/button';
+import { Edit, Loader2, Search } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+
+function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: string, sectionId: string, initialData: any, label: string }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [data, setData] = useState(initialData);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialData) setData(initialData);
+  }, [initialData]);
+
+  const handleSave = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'siteContent', `${pageId}_${sectionId}`), {
+        id: `${pageId}_${sectionId}`,
+        pageId,
+        sectionId,
+        data,
+        updatedAt: serverTimestamp(),
+      });
+      toast({ title: "Updated", description: `${label} saved.` });
+    } catch (e) {
+      toast({ variant: 'destructive', title: "Error", description: "Failed to update." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!data) return null;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-lg">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Edit {label}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+          {Object.keys(data).map((key) => (
+            <div key={key} className="space-y-2">
+              <label className="capitalize text-xs font-bold text-muted-foreground block">{key.replace(/([A-Z])/g, ' $1')}</label>
+              {key.toLowerCase().includes('message') || key.toLowerCase().includes('description') ? (
+                <Textarea value={data[key] || ""} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
+              ) : (
+                <Input value={data[key] || ""} onChange={(e) => setData({ ...data, [key]: e.target.value })} />
+              )}
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave} disabled={isSaving} className="w-full">
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function DirectoryPage() {
-  const { user: authUser } = useUser();
+  const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const isAdmin = authUser?.email === ADMIN_EMAIL;
   
+  const contentDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'directory_main'), [firestore]);
+  const { data: directoryContent } = useDoc<SiteContent>(contentDocRef);
+
   const usersCollectionRef = useMemoFirebase(
     () => {
         if (!firestore) return null;
@@ -31,7 +104,6 @@ export default function DirectoryPage() {
   
   const { data: users, isLoading } = useCollection<User>(usersCollectionRef);
 
-  // Optimization: Fetch all friendships for the current user once
   const friendshipQuery = useMemoFirebase(() => {
     if (!firestore || !authUser?.uid) return null;
     return query(collection(firestore, 'friendships'), where('uids', 'array-contains', authUser.uid));
@@ -41,6 +113,16 @@ export default function DirectoryPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+
+  const defaultContent = {
+    tabAll: "All Alumni",
+    tabStudent: "Students",
+    tabProfessor: "Professors",
+    tabStaff: "Staff",
+    emptyMessage: "No alumni found matching your criteria."
+  };
+
+  const content = directoryContent?.data || defaultContent;
 
   const handleDeleteUser = async (userId: string) => {
     if (!firestore || !isAdmin) return;
@@ -67,7 +149,7 @@ export default function DirectoryPage() {
     if (!usersToRender || usersToRender.length === 0) {
         return (
           <div className="text-center py-20 bg-muted/20 rounded-2xl border-2 border-dashed">
-            <p className="text-muted-foreground font-medium">No alumni found matching your criteria.</p>
+            <p className="text-muted-foreground font-medium">{content.emptyMessage}</p>
           </div>
         );
     }
@@ -90,22 +172,28 @@ export default function DirectoryPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-20">
       <PageHeader title="Alumni Directory" description="Connect with fellow graduates and explore our global network."> 
-        <div className="relative">
-          <Input 
-            placeholder="Search by name..." 
-            className="w-64 pl-4 bg-card" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search by name..." 
+              className="w-64 pl-9 bg-card" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          {isAdmin && isEditMode && (
+            <AdminEditDialog pageId="directory" sectionId="main" initialData={content} label="Directory Content" />
+          )}
         </div>
       </PageHeader>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-muted/50 p-1 h-12 rounded-xl mb-8">
-          <TabsTrigger value="all" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">All Alumni</TabsTrigger>
-          <TabsTrigger value="student" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">Students</TabsTrigger>
-          <TabsTrigger value="professor" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">Professors</TabsTrigger>
-          <TabsTrigger value="non-teaching-staff" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">Staff</TabsTrigger>
+          <TabsTrigger value="all" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabAll}</TabsTrigger>
+          <TabsTrigger value="student" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabStudent}</TabsTrigger>
+          <TabsTrigger value="professor" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabProfessor}</TabsTrigger>
+          <TabsTrigger value="non-teaching-staff" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabStaff}</TabsTrigger>
         </TabsList>
         <TabsContent value="all" className="focus-visible:ring-0">
           {renderUserGrid(filteredUsers)}

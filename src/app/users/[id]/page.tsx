@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -287,7 +286,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                                     <div className="py-6 space-y-8">
                                         <div className="space-y-4">
                                             <div className="flex justify-between items-center px-2">
-                                                <span className="text-xs font-bold uppercase text-muted-foreground">Rating Quality</span>
+                                                <label className="text-xs font-bold uppercase text-muted-foreground">Rating Quality</label>
                                                 <span className="text-3xl font-black text-primary">{ratingValue}</span>
                                             </div>
                                             <Slider
