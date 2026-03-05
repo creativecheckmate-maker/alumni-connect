@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -6,8 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'; 
 import type { User, Friendship, SiteContent } from '@/lib/definitions';
 import { UserCard } from '@/components/user-card';
-import { useCollection, useUser, useFirestore, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
-import { collection, doc, deleteDoc, query, where, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useCollection, useUser, useFirestore, useMemoFirebase, useFirebase, useDoc, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc, query, where, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,7 @@ function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: st
 export default function DirectoryPage() {
   const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const isAdmin = authUser?.email === ADMIN_EMAIL;
   
   const contentDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'directory_main'), [firestore]);
@@ -122,10 +124,15 @@ export default function DirectoryPage() {
 
   const content = directoryContent?.data || defaultContent;
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = (userId: string) => {
     if (!firestore || !isAdmin) return;
     const userDocRef = doc(firestore, 'users', userId);
-    await deleteDoc(userDocRef);
+    // Non-blocking purge as per performance guidelines
+    deleteDocumentNonBlocking(userDocRef);
+    toast({ 
+      title: "Identity Scrubbed", 
+      description: "User details removed from the network directory. Note: Auth records must be manually purged via Console for non-self deletions." 
+    });
   };
 
   const filteredUsers = users
