@@ -50,6 +50,7 @@ export async function signup(prevState: any, formData: FormData) {
             university: validatedFields.data.university,
             college: validatedFields.data.college,
             isVisibleInDirectory: true,
+            isApproved: false, // New users require admin approval
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             status: 'active',
@@ -73,13 +74,13 @@ export async function signup(prevState: any, formData: FormData) {
         
         await setDoc(doc(firestore, 'users', user.uid), userProfileForDb);
         
-        return { success: true, message: 'Signup successful! Please log in.' };
+        return { success: true, message: 'Account created successfully! Your profile is now awaiting administrative verification.' };
 
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
-            return { message: 'This email is already in use.' };
+            return { message: 'This email is already registered. Please log in or use the forgot password option.' };
         }
         console.error("Signup error:", error);
-        return { message: 'An error occurred during sign up. Please try again.' };
+        return { message: 'A system error occurred during registration. Please check your connection and try again.' };
     }
 }

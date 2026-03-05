@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormStatus } from 'react-dom';
@@ -19,7 +20,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { signup } from '@/lib/actions';
-import { Loader2, Eye, EyeOff, GraduationCap } from 'lucide-react';
+import { Loader2, Eye, EyeOff, GraduationCap, ShieldAlert } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { signupSchema } from '@/lib/schemas';
@@ -50,14 +51,15 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
   useEffect(() => {
     if (state?.success) {
       toast({
-        title: "Account Created!",
+        title: "Account Registered",
         description: state.message,
       });
       onSignupSuccess();
     } else if (state?.message) {
+      const isEmailError = state.message.toLowerCase().includes('already registered');
       toast({
-        variant: "destructive",
-        title: "Signup Failed",
+        variant: isEmailError ? "default" : "destructive",
+        title: isEmailError ? "Notice" : "Signup Failed",
         description: state.message,
       });
     }
@@ -72,6 +74,11 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
         action={dispatch}
         className="space-y-4"
       >
+        <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-xl mb-2 border border-primary/10">
+            <ShieldAlert className="h-4 w-4 text-primary" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">New accounts require admin verification</p>
+        </div>
+
         <FormField
           control={form.control}
           name="name"
