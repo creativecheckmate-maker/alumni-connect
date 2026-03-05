@@ -10,7 +10,7 @@ import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc, useFireb
 import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { User, SiteContent } from '@/lib/definitions';
 import { ADMIN_EMAIL } from '@/lib/config';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Edit, Loader2, Search, GraduationCap, Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,6 +25,10 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
   const firestore = useFirestore();
   const [data, setData] = useState(initialData);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialData) setData(initialData);
+  }, [initialData]);
 
   const handleSave = async () => {
     if (!firestore) return;
@@ -57,9 +61,9 @@ function AdminEditDialog({ sectionId, initialData, label }: { sectionId: string,
           <DialogTitle>Edit {label}</DialogTitle>
         </DialogHeader>
         <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
-          {Object.keys(initialData).map((key) => (
+          {Object.keys(data).map((key) => (
             <div key={key} className="space-y-2">
-              <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
+              <label className="capitalize font-bold text-sm text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}</label>
               {key.toLowerCase().includes('description') ? (
                 <Textarea 
                   value={data[key]} 

@@ -58,11 +58,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   });
 
   const [isEditMode, setIsEditMode] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Use useEffect to handle hydration-safe localStorage access
   useEffect(() => {
-    setMounted(true);
+    setIsMounted(true);
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('nexus_admin_edit_mode') === 'true';
       setIsEditMode(saved);
@@ -105,10 +104,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       user: userAuthState.user,
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
-      isEditMode: mounted ? isEditMode : false, // Prevent hydration mismatch
+      isEditMode: isMounted ? isEditMode : false,
       setIsEditMode: handleSetEditMode,
     };
-  }, [firebaseApp, firestore, auth, userAuthState, isEditMode, mounted]);
+  }, [firebaseApp, firestore, auth, userAuthState, isEditMode, isMounted]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
