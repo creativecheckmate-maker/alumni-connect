@@ -3,7 +3,7 @@
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { Search, Settings2, Edit, Loader2 } from 'lucide-react';
+import { Search, Settings2, Edit, Loader2, Upload, ExternalLink } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useFirebase, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -16,27 +16,32 @@ import { doc, setDoc, serverTimestamp, query, collection, where, onSnapshot } fr
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { SiteContent } from '@/lib/definitions';
+import { CldUploadWidget } from 'next-cloudinary';
 
-function HeaderEditDialog({ initialData }: { initialData: any }) {
+function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: string, sectionId: string, initialData: any, label: string }) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [data, setData] = useState(initialData);
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+
   const handleSave = async () => {
     if (!firestore) return;
     setIsSaving(true);
     try {
-      await setDoc(doc(firestore, 'siteContent', 'global_header'), {
-        id: 'global_header',
-        pageId: 'global',
-        sectionId: 'header',
+      await setDoc(doc(firestore, 'siteContent', `${pageId}_${sectionId}`), {
+        id: `${pageId}_${sectionId}`,
+        pageId,
+        sectionId,
         data,
         updatedAt: serverTimestamp(),
       });
-      toast({ title: "Header Updated", description: "Global header settings saved." });
+      toast({ title: "Updated", description: `${label} saved.` });
     } catch (e) {
-      toast({ variant: 'destructive', title: "Error", description: "Failed to save settings." });
+      toast({ variant: 'destructive', title: "Error", description: "Failed to save." });
     } finally {
       setIsSaving(false);
     }
@@ -51,23 +56,37 @@ function HeaderEditDialog({ initialData }: { initialData: any }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Header Settings</DialogTitle>
+          <DialogTitle>Edit {label}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          {Object.keys(initialData).map((key) => (
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+          {Object.keys(data).map((key) => (
             <div key={key} className="space-y-2">
               <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
-              <Input 
-                value={data[key]} 
-                onChange={(e) => setData({ ...data, [key]: e.target.value })} 
-              />
+              <div className="flex gap-2">
+                <Input 
+                  value={data[key]} 
+                  onChange={(e) => setData({ ...data, [key]: e.target.value })} 
+                />
+                {key.toLowerCase().includes('url') && (
+                  <CldUploadWidget 
+                    uploadPreset="ml_default"
+                    onSuccess={(result: any) => setData({ ...data, [key]: result.info.secure_url })}
+                  >
+                    {({ open }) => (
+                      <Button variant="outline" size="icon" onClick={() => open()}>
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </CldUploadWidget>
+                )}
+              </div>
             </div>
           ))}
         </div>
         <DialogFooter>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button onClick={handleSave} disabled={isSaving} className="w-full">
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Header
+            Save Changes
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -87,6 +106,9 @@ export default function MainLayout({
   const headerDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_header'), [firestore]);
   const { data: headerContent } = useDoc<SiteContent>(headerDocRef);
 
+  const footerDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_footer'), [firestore]);
+  const { data: footerContent } = useDoc<SiteContent>(footerDocRef);
+
   const defaultHeader = {
     logoPart1: "Alumni",
     logoPart2: "Connect",
@@ -95,64 +117,28 @@ export default function MainLayout({
     signupButton: "Join Today"
   };
 
-  const currentHeader = headerContent?.data || defaultHeader;
+  const defaultFooter = {
+    copyright: "© 2024 Nexus University Alumni Network",
+    tagline: "Empowering our global community.",
+    link1: "Privacy Policy",
+    link2: "Terms of Service"
+  };
 
-  // Background message delivery listener
+  const header = headerContent?.data || defaultHeader;
+  const footer = footerContent?.data || defaultFooter;
+
   useEffect(() => {
     if (!firestore || !user?.uid) return;
-
-    const q = query(
-      collection(firestore, 'messages'),
-      where('receiverId', '==', user.uid),
-      where('status', '==', 'sent')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      snapshot.docs.forEach((d) => {
-        updateDocumentNonBlocking(d.ref, { status: 'delivered' });
-      });
-    });
-
-    return () => unsubscribe();
-  }, [firestore, user?.uid]);
-
-  // Real-time Presence Sync
-  useEffect(() => {
-    if (!firestore || !user?.uid) return;
-
     const userRef = doc(firestore, 'users', user.uid);
-
-    const setPresence = (isOnline: boolean) => {
-      updateDocumentNonBlocking(userRef, {
-        isOnline,
-        lastSeen: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    };
-
-    setPresence(true);
-
-    const handleVisibilityChange = () => {
-      setPresence(document.visibilityState === 'visible');
-    };
-
-    const handleBeforeUnload = () => {
-      setPresence(false);
-    };
-
-    window.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
+    updateDocumentNonBlocking(userRef, { isOnline: true, lastSeen: serverTimestamp() });
     return () => {
-      setPresence(false);
-      window.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      updateDocumentNonBlocking(userRef, { isOnline: false, lastSeen: serverTimestamp() });
     };
   }, [firestore, user?.uid]);
 
   return (
     <SidebarProvider>
-      <MainNav logoPart1={currentHeader.logoPart1} logoPart2={currentHeader.logoPart2} />
+      <MainNav logoPart1={header.logoPart1} logoPart2={header.logoPart2} />
       <SidebarInset>
         <header className="flex sticky top-0 z-30 h-14 items-center gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
           <SidebarTrigger className="-ml-1" />
@@ -162,7 +148,7 @@ export default function MainLayout({
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder={currentHeader.searchPlaceholder}
+                  placeholder={header.searchPlaceholder}
                   className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
                 />
               </div>
@@ -170,8 +156,8 @@ export default function MainLayout({
           </div>
           
           {isAdmin && (
-            <div className="flex items-center gap-2 mr-4 bg-muted/50 px-3 py-1.5 rounded-full border border-primary/20 animate-in fade-in slide-in-from-right-2">
-              {isEditMode && <HeaderEditDialog initialData={currentHeader} />}
+            <div className="flex items-center gap-2 mr-4 bg-muted/50 px-3 py-1.5 rounded-full border border-primary/20">
+              {isEditMode && <AdminEditDialog pageId="global" sectionId="header" initialData={header} label="Header Settings" />}
               <Settings2 className="h-4 w-4 text-primary" />
               <Label htmlFor="edit-mode" className="text-xs font-bold whitespace-nowrap">Edit Mode</Label>
               <Switch 
@@ -187,17 +173,35 @@ export default function MainLayout({
           ) : (
             <div className="flex items-center gap-2">
               <Link href="/login">
-                <Button variant="ghost" size="sm">{currentHeader.loginButton}</Button>
+                <Button variant="ghost" size="sm">{header.loginButton}</Button>
               </Link>
               <Link href="/login">
-                <Button size="sm">{currentHeader.signupButton}</Button>
+                <Button size="sm">{header.signupButton}</Button>
               </Link>
             </div>
           )}
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
           {children}
-        </div>
+          
+          <footer className="mt-auto pt-10 pb-6 border-t relative">
+            {isAdmin && isEditMode && (
+              <div className="absolute top-0 right-0 p-2">
+                <AdminEditDialog pageId="global" sectionId="footer" initialData={footer} label="Footer Settings" />
+              </div>
+            )}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
+              <div className="space-y-1 text-center md:text-left">
+                <p className="font-bold text-foreground">{footer.copyright}</p>
+                <p>{footer.tagline}</p>
+              </div>
+              <div className="flex gap-6">
+                <Link href="#" className="hover:text-primary transition-colors">{footer.link1}</Link>
+                <Link href="#" className="hover:text-primary transition-colors">{footer.link2}</Link>
+              </div>
+            </div>
+          </footer>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

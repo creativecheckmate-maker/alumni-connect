@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { Edit, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,16 +25,24 @@ export function PageHeader({ title: defaultTitle, description: defaultDescriptio
   const { toast } = useToast();
   const isAdmin = user?.email === ADMIN_EMAIL;
 
-  // Derive a stable ID from the title for CMS lookups
   const pageId = defaultTitle.toLowerCase().replace(/\s+/g, '_');
   const headerDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', `header_${pageId}`), [firestore, pageId]);
   const { data: headerContent } = useDoc<SiteContent>(headerDocRef);
 
   const [isSaving, setIsSaving] = useState(false);
   const [data, setData] = useState({ 
-    title: headerContent?.data?.title || defaultTitle, 
-    description: headerContent?.data?.description || defaultDescription || "" 
+    title: defaultTitle, 
+    description: defaultDescription || "" 
   });
+
+  useEffect(() => {
+    if (headerContent?.data) {
+      setData({
+        title: headerContent.data.title || defaultTitle,
+        description: headerContent.data.description || defaultDescription || ""
+      });
+    }
+  }, [headerContent, defaultTitle, defaultDescription]);
 
   const handleSave = async () => {
     if (!firestore) return;
@@ -47,23 +55,23 @@ export function PageHeader({ title: defaultTitle, description: defaultDescriptio
         data,
         updatedAt: serverTimestamp(),
       });
-      toast({ title: "Header Updated", description: "Custom header content has been saved." });
+      toast({ title: "Header Updated", description: "Title and description saved." });
     } catch (e) {
-      toast({ variant: 'destructive', title: "Error", description: "Failed to update header." });
+      toast({ variant: 'destructive', title: "Error", description: "Failed to update." });
     } finally {
       setIsSaving(false);
     }
   };
 
-  const title = headerContent?.data?.title || defaultTitle;
-  const description = headerContent?.data?.description || defaultDescription;
+  const displayTitle = headerContent?.data?.title || defaultTitle;
+  const displayDescription = headerContent?.data?.description || defaultDescription;
 
   return (
     <div className="mb-8 relative group">
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold font-headline tracking-tight">{title}</h1>
-          {description && <p className="text-muted-foreground text-sm max-w-xl">{description}</p>}
+          <h1 className="text-3xl font-bold font-headline tracking-tight">{displayTitle}</h1>
+          {displayDescription && <p className="text-muted-foreground text-sm max-w-xl">{displayDescription}</p>}
         </div>
         {children && <div className="flex items-center gap-2">{children}</div>}
       </div>
@@ -77,7 +85,7 @@ export function PageHeader({ title: defaultTitle, description: defaultDescriptio
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit Page Header</DialogTitle>
+              <DialogTitle>Edit Header</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -90,7 +98,7 @@ export function PageHeader({ title: defaultTitle, description: defaultDescriptio
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleSave} disabled={isSaving}>
+              <Button onClick={handleSave} disabled={isSaving} className="w-full">
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Changes
               </Button>
