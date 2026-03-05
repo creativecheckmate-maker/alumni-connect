@@ -97,7 +97,7 @@ function AdminEditDialog({ pageId, sectionId, initialData, label, overlay = fals
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Edit {label}</DialogTitle>
         </DialogHeader>

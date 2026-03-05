@@ -91,7 +91,7 @@ export default function NewsPage() {
                   <Plus className="h-4 w-4" /> Add Article
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent onInteractOutside={(e) => e.preventDefault()}>
                 <DialogHeader>
                   <DialogTitle>Publish News Article</DialogTitle>
                 </DialogHeader>

@@ -203,7 +203,7 @@ export default function MainLayout({
             </div>
           )}
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
           {children}
           
           <footer className="mt-auto pt-10 pb-6 border-t relative">
@@ -223,7 +223,7 @@ export default function MainLayout({
               </div>
             </div>
           </footer>
-        </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

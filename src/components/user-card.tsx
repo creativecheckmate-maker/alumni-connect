@@ -12,11 +12,11 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
+  AlertDialogFooter,
+  AlertDialogDescription,
 } from '@/components/ui/alert-dialog';
 import { Edit, Trash2, GraduationCap, Building2, MapPin, MessageSquare, UserPlus, UserCheck, XCircle, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
