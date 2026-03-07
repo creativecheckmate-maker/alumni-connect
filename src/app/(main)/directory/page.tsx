@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -121,13 +122,11 @@ export default function DirectoryPage() {
     tabAll: "All Alumni",
     tabStudent: "Students",
     tabProfessor: "Professors",
-    tabStaff: "Staff",
     emptyMessage: "No alumni found matching your criteria."
   };
 
   const content = directoryContent?.data || defaultContent;
   const hideProfessors = globalConfig?.data?.hideProfessors === true;
-  const hideStaff = globalConfig?.data?.hideStaff === true;
 
   const handleDeleteUser = (userId: string) => {
     if (!firestore || !isAdmin) return;
@@ -144,10 +143,8 @@ export default function DirectoryPage() {
         const matchesSearch = (user.name || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesTab = activeTab === 'all' || user.role === activeTab;
         
-        // Admin always sees everything. Other users respect global hide flags.
         if (!isAdmin) {
           if (hideProfessors && user.role === 'professor') return false;
-          if (hideStaff && user.role === 'non-teaching-staff') return false;
         }
 
         return matchesSearch && matchesTab;
@@ -223,10 +220,6 @@ export default function DirectoryPage() {
           {(isAdmin || !hideProfessors) && (
             <TabsTrigger value="professor" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabProfessor}</TabsTrigger>
           )}
-          
-          {(isAdmin || !hideStaff) && (
-            <TabsTrigger value="non-teaching-staff" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabStaff}</TabsTrigger>
-          )}
         </TabsList>
         <TabsContent value="all" className="focus-visible:ring-0">
           {renderUserGrid(filteredUsers)}
@@ -237,9 +230,6 @@ export default function DirectoryPage() {
         <TabsContent value="professor" className="focus-visible:ring-0">
           {renderUserGrid(filteredUsers.filter(u => u.role === 'professor'))}
         </TabsContent> 
-        <TabsContent value="non-teaching-staff" className="focus-visible:ring-0">
-          {renderUserGrid(filteredUsers.filter(u => u.role === 'non-teaching-staff'))}
-        </TabsContent>
       </Tabs>
     </div>
   );

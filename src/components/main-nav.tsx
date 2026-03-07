@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -215,7 +216,6 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
         description: "Global system configuration has been modified." 
       });
     } catch (e) {
-      // Create if doesn't exist
       await setDoc(doc(firestore, 'siteContent', 'global_config'), {
         id: 'global_config',
         pageId: 'global',
@@ -296,14 +296,6 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
                   <Switch 
                     checked={globalConfig?.data?.hideProfessors === true}
                     onCheckedChange={(val) => handleToggleSetting('hideProfessors', val)}
-                    className="data-[state=checked]:bg-primary"
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-white">Hide Staff</span>
-                  <Switch 
-                    checked={globalConfig?.data?.hideStaff === true}
-                    onCheckedChange={(val) => handleToggleSetting('hideStaff', val)}
                     className="data-[state=checked]:bg-primary"
                   />
                 </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -249,10 +250,8 @@ export default function HomePage() {
 
   const students = allUsers?.filter(u => u.role === 'student').slice(0, 3) || [];
   const professors = allUsers?.filter(u => u.role === 'professor').slice(0, 3) || [];
-  const staff = allUsers?.filter(u => u.role === 'non-teaching-staff').slice(0, 3) || [];
 
   const hideProfessors = globalConfig?.data?.hideProfessors === true;
-  const hideStaff = globalConfig?.data?.hideStaff === true;
 
   return (
     <div className="flex-1 space-y-20 pb-20">
@@ -307,15 +306,13 @@ export default function HomePage() {
               ) : (
                   <Tabs defaultValue="students" className="w-full">
                       <div className="flex justify-center mb-10">
-                          <TabsList className={`grid w-full max-w-lg h-14 p-1 bg-muted/50 rounded-2xl ${(!hideProfessors && !hideStaff) ? 'grid-cols-3' : (hideProfessors && hideStaff) ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                          <TabsList className={`grid w-full max-w-lg h-14 p-1 bg-muted/50 rounded-2xl ${(!hideProfessors) ? 'grid-cols-2' : 'grid-cols-1'}`}>
                               <TabsTrigger value="students" className="rounded-xl font-bold gap-2">Students</TabsTrigger>
                               {(isAdmin || !hideProfessors) && <TabsTrigger value="professors" className="rounded-xl font-bold gap-2">Professors</TabsTrigger>}
-                              {(isAdmin || !hideStaff) && <TabsTrigger value="staff" className="rounded-xl font-bold gap-2">Staff</TabsTrigger>}
                           </TabsList>
                       </div>
                       <TabsContent value="students" className="grid gap-6 md:grid-cols-3">{students.map(u => <UserRatingCard key={u.id} user={u} />)}</TabsContent>
                       <TabsContent value="professors" className="grid gap-6 md:grid-cols-3">{professors.map(u => <UserRatingCard key={u.id} user={u} />)}</TabsContent>
-                      <TabsContent value="staff" className="grid gap-6 md:grid-cols-3">{staff.map(u => <UserRatingCard key={u.id} user={u} />)}</TabsContent>
                   </Tabs>
               )}
           </div>

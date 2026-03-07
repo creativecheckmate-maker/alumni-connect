@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,7 +126,6 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
   };
 
   const hideProfessors = !isAdmin && globalConfig?.data?.hideProfessors === true;
-  const hideStaff = !isAdmin && globalConfig?.data?.hideStaff === true;
 
   return (
     <Form {...form}>
@@ -147,7 +147,7 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
                         <RadioGroup
                             onValueChange={field.onChange}
                             defaultValue={field.value}
-                            className="grid grid-cols-1 sm:grid-cols-3 gap-2"
+                            className="grid grid-cols-1 sm:grid-cols-2 gap-2"
                         >
                             <FormItem className="flex items-center space-x-2 space-y-0 p-3 rounded-xl border bg-card hover:bg-muted/50 transition-colors">
                                 <FormControl>
@@ -162,15 +162,6 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
                                       <RadioGroupItem value="professor" />
                                   </FormControl>
                                   <FormLabel className="font-bold text-xs cursor-pointer">Professor</FormLabel>
-                              </FormItem>
-                            )}
-                            
-                            {(isAdmin || !hideStaff) && (
-                              <FormItem className="flex items-center space-x-2 space-y-0 p-3 rounded-xl border bg-card hover:bg-muted/50 transition-colors">
-                                  <FormControl>
-                                      <RadioGroupItem value="non-teaching-staff" />
-                                  </FormControl>
-                                  <FormLabel className="font-bold text-xs cursor-pointer">Staff</FormLabel>
                               </FormItem>
                             )}
                         </RadioGroup>
@@ -262,7 +253,7 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
             </div>
         )}
 
-        {(selectedRole === 'professor' || selectedRole === 'non-teaching-staff') && (
+        {selectedRole === 'professor' && (
             <div className="bg-primary/5 p-4 rounded-2xl space-y-4 border border-primary/10 animate-in fade-in slide-in-from-top-2">
                 <FormField
                     control={form.control}
@@ -277,22 +268,20 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
                         </FormItem>
                     )}
                 />
-                {selectedRole === 'professor' && (
-                    <FormField
-                        control={form.control}
-                        name="researchInterests"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Research Interests</FormLabel>
-                            <FormControl>
-                                <Input {...field as any} placeholder="AI, Machine Learning, Signal Processing" />
-                            </FormControl>
-                            <FormDescription className="text-[10px]">Separate interests with commas.</FormDescription>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                )}
+                <FormField
+                    control={form.control}
+                    name="researchInterests"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Research Interests</FormLabel>
+                        <FormControl>
+                            <Input {...field as any} placeholder="AI, Machine Learning, Signal Processing" />
+                        </FormControl>
+                        <FormDescription className="text-[10px]">Separate interests with commas.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
             </div>
         )}
 

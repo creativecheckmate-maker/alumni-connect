@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -138,14 +139,14 @@ export default function MentorshipPage() {
     if (!firestore) return null;
     return query(
       collection(firestore, 'users'), 
-      where('role', 'in', ['professor', 'non-teaching-staff']),
+      where('role', '==', 'professor'),
       where('isVisibleInDirectory', '==', true)
     );
   }, [firestore]);
 
   const { data: mentors, isLoading: isLoading } = useCollection<User>(mentorsQuery);
 
-  const defaultDescription = "Find and connect with experienced alumni and faculty members who are ready to guide your professional journey.";
+  const defaultDescription = "Find and connect with experienced faculty members who are ready to guide your professional journey.";
   const description = mainContent?.data?.description || defaultDescription;
 
   const filteredMentors = mentors?.filter(m => 
@@ -204,15 +205,11 @@ export default function MentorshipPage() {
                 </Avatar>
                 <h3 className="text-xl font-bold mb-1 group-hover:text-primary transition-colors">{mentor.name}</h3>
                 <p className="text-sm text-muted-foreground font-medium mb-4 flex items-center justify-center gap-1">
-                  {mentor.role === 'professor' ? (
-                    <>
-                      <GraduationCap className="h-3.5 w-3.5" /> {mentor.department}
-                    </>
-                  ) : 'Nexus Alumnus'}
+                  <GraduationCap className="h-3.5 w-3.5" /> {mentor.department}
                 </p>
                 <div className="flex flex-wrap justify-center gap-2">
                   <Badge variant="secondary" className="capitalize font-bold px-3 py-1">
-                    {mentor.role === 'non-teaching-staff' ? 'Staff' : mentor.role}
+                    {mentor.role}
                   </Badge>
                 </div>
               </CardContent>

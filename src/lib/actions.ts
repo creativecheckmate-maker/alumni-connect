@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -8,7 +9,6 @@ import { firebaseConfig } from '@/firebase/config';
 import { signupSchema } from '@/lib/schemas';
 
 export async function signup(prevState: any, formData: FormData) {
-    // 1. FRESH INITIALIZATION: Initialize Firebase INSIDE the action to prevent stale sessions
     let firebaseApp;
     if (!getApps().length) {
       firebaseApp = initializeApp(firebaseConfig);
@@ -19,32 +19,26 @@ export async function signup(prevState: any, formData: FormData) {
     const auth = getAuth(firebaseApp);
     const firestore = getFirestore(firebaseApp);
 
-    // 2. SHIELD: Clear any existing server-side auth state
     try {
         await signOut(auth);
-    } catch (e) {
-        // Ignore signout errors
-    }
+    } catch (e) {}
 
     const validatedFields = signupSchema.safeParse(Object.fromEntries(formData));
 
     if (!validatedFields.success) {
         const fieldErrors = validatedFields.error.flatten().fieldErrors;
         const firstError = Object.values(fieldErrors)[0]?.[0];
-        const errorMessage = firstError || 'Invalid form data. Please check all fields.';
-        return { message: errorMessage };
+        return { message: firstError || 'Invalid form data. Please check all fields.' };
     }
     
     const { name, email, password, role } = validatedFields.data;
 
     try {
-        // 3. ATTEMPT CREATION: If this fails with 'email-already-in-use', the record is definitively in the Firebase Auth database.
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
         await updateProfile(user, { displayName: name });
 
-        // 4. CLEANUP: Purge any orphaned profiles from Firestore to ensure uniqueness
         const usersRef = collection(firestore, 'users');
         const q = query(usersRef, where('email', '==', email));
         const querySnapshot = await getDocs(q);
@@ -86,8 +80,6 @@ export async function signup(prevState: any, formData: FormData) {
         } else if (validatedFields.data.role === 'professor') {
             userProfileForDb.department = validatedFields.data.department;
             userProfileForDb.researchInterests = validatedFields.data.researchInterests?.split(',').map(i => i.trim()).filter(Boolean) || [];
-        } else if (validatedFields.data.role === 'non-teaching-staff') {
-            userProfileForDb.department = validatedFields.data.department;
         }
         
         await setDoc(doc(firestore, 'users', user.uid), userProfileForDb);
@@ -96,8 +88,8 @@ export async function signup(prevState: any, formData: FormData) {
 
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
-            return { message: 'Signup Failed: This email is already registered in the Firebase Authentication system. If you recently deleted your credentials from the console, please wait 30 seconds for propagation or try logging in to restore your profile automatically.' };
+            return { message: 'Signup Failed: This email is already registered. If you recently deleted credentials, please wait 30s for propagation or try logging in.' };
         }
-        return { message: error.message || 'A system error occurred during registration. Please check your connection and try again.' };
+        return { message: error.message || 'A system error occurred during registration.' };
     }
 }
