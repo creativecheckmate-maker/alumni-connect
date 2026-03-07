@@ -124,8 +124,8 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
     }
   };
 
-  const hideProfessors = globalConfig?.data?.hideProfessors === true;
-  const hideStaff = globalConfig?.data?.hideStaff === true;
+  const hideProfessors = !isAdmin && globalConfig?.data?.hideProfessors === true;
+  const hideStaff = !isAdmin && globalConfig?.data?.hideStaff === true;
 
   return (
     <Form {...form}>

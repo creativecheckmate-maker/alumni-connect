@@ -23,9 +23,10 @@ import { Loader2, Eye, EyeOff, GraduationCap, ShieldAlert } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { signupSchema } from '@/lib/schemas';
-import { useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { useFirestore, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { SiteContent } from '@/lib/definitions';
+import { ADMIN_EMAIL } from '@/lib/config';
 
 export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void }) {
   const [state, dispatch] = useActionState(signup, undefined);
@@ -33,6 +34,8 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
   const [showPassword, setShowPassword] = useState(false);
   const currentYear = new Date().getFullYear();
   const firestore = useFirestore();
+  const { user: authUser } = useFirebase();
+  const isAdmin = authUser?.email === ADMIN_EMAIL;
 
   const configDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_config'), [firestore]);
   const { data: globalConfig } = useDoc<SiteContent>(configDocRef);
@@ -73,8 +76,8 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
   const role = form.watch('role');
   const gradYear = form.watch('graduationYear');
   
-  const hideProfessors = globalConfig?.data?.hideProfessors === true;
-  const hideStaff = globalConfig?.data?.hideStaff === true;
+  const hideProfessors = !isAdmin && globalConfig?.data?.hideProfessors === true;
+  const hideStaff = !isAdmin && globalConfig?.data?.hideStaff === true;
 
   return (
     <Form {...form}>
