@@ -2,24 +2,41 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+
+interface FirebaseSdks {
+  firebaseApp: FirebaseApp;
+  auth: Auth;
+  firestore: Firestore;
+}
+
+let cachedSdks: FirebaseSdks | null = null;
 
 /**
  * Initializes Firebase App and returns the core SDK instances.
- * We use the config object directly to ensure production stability and 
- * avoid network request failures associated with automatic environment detection.
+ * Uses a singleton pattern to prevent multiple initializations of Firestore,
+ * which can lead to INTERNAL ASSERTION FAILED errors (Unexpected state ID: ca9).
  */
-export function initializeFirebase() {
-  if (!getApps().length) {
-    const firebaseApp = initializeApp(firebaseConfig);
-    return getSdks(firebaseApp);
-  }
+export function initializeFirebase(): FirebaseSdks {
+  if (cachedSdks) return cachedSdks;
 
-  return getSdks(getApp());
+  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  
+  cachedSdks = {
+    firebaseApp: app,
+    auth: getAuth(app),
+    firestore: getFirestore(app)
+  };
+
+  return cachedSdks;
 }
 
-export function getSdks(firebaseApp: FirebaseApp) {
+/**
+ * Returns SDK instances for a given Firebase App.
+ * Prefers initializeFirebase() for standard application use to ensure singleton stability.
+ */
+export function getSdks(firebaseApp: FirebaseApp): FirebaseSdks {
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
