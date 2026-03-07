@@ -1,39 +1,43 @@
-# Nexus Alumni Network - Development Guide
+# Nexus Alumni Network - One-Click Deployment Guide
 
-This is a modern Alumni Management System built with **Next.js**, **Firebase**, and **Tailwind CSS**. It is fully automated for a **Zero-Config, One-Click** start.
+This platform is fully automated for a **Zero-Config, One-Click** development experience. All Firebase database connections and Gemini AI intelligence features are pre-configured and live.
 
 ---
 
-## ⚡ One-Click Startup (Already Set Up)
+## ⚡ One-Click Startup (Automated)
 
-This project is fully automated. You do not need to enter any credentials manually.
+You do not need to enter any credentials or run manual commands.
 
-### 1. Automated Start
-When you open this folder in VS Code, a background task will automatically run the development server. Check the **Terminal** at the bottom of your screen. 
+### 1. The Automated Method
+When you open this project folder in **VS Code**, a background task will automatically trigger. 
+*   Check the **Terminal** at the bottom of your screen. 
+*   Wait for the "Ready" message.
+*   The site will be live at: [http://localhost:9002](http://localhost:9002)
 
-### 2. The "Play Button"
+### 2. The "Play Button" Method (Manual Start)
+If the auto-start doesn't trigger for any reason:
 *   Open the **Explorer** (left sidebar).
-*   At the bottom, expand the **NPM SCRIPTS** section.
+*   Scroll to the bottom to find the **NPM SCRIPTS** section.
 *   Click the **Play icon (▶️)** next to **dev**.
 
 ---
 
-## 🚀 Environment Details
+## 🚀 Pre-Configured Services
 
-### Firebase & Gemini AI (Live)
-The platform is pre-configured with all necessary keys.
-*   **Database**: Connection to Firebase Firestore and Auth is live.
-*   **AI Engine**: Nexus AI (Gemini) is active for recommendations and audits.
+### 🔒 Firebase Database & Auth
+The system is already connected to the Nexus production database. User registration, profile management, and the community feed are active.
 
-### 🌐 Accessing the Site
-Once the terminal shows "Ready," you can view the platform at:
-[http://localhost:9002](http://localhost:9002)
-
----
-
-## 🔒 Security & Protection
-*   **Logic Shield**: Critical database operations (like profile restoration and ratings) are handled via Server Actions (`src/lib/actions.ts`) and are invisible to the browser.
-*   **License**: This software is protected by a Proprietary License. Unauthorized redistribution is prohibited.
+### 🧠 Nexus AI (Gemini)
+The **Gemini 2.5 Flash** engine is live. The following features are currently active:
+*   **Personalized Recommendations**: Career and event suggestions on your dashboard.
+*   **Faculty Reputation Audit**: AI-driven ranking of faculty based on sentiment.
+*   **Content Moderation**: Automatic shielding against unprofessional content.
 
 ---
-© 2024 Nexus University Alumni Network. All rights reserved.
+
+## 🛡️ Security & Protection
+*   **Logic Shield**: Critical operations (Profile Restoration, Feedback Math) are hidden in Server Actions and are invisible to browser inspection.
+*   **Proprietary License**: All rights reserved. Unauthorized redistribution or reverse engineering is prohibited.
+
+---
+© 2024 Nexus University Alumni Network. Internal Development Build.
