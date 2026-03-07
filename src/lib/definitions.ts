@@ -1,4 +1,3 @@
-
 export type UserRole = 'student' | 'professor';
 
 export type UserProfile = {
@@ -110,6 +109,15 @@ export type Message = {
   content: string;
   status: MessageStatus;
   createdAt: any;
+};
+
+export type NewsUpdate = {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  category: string;
+  date?: string;
 };
 
 export type SiteContent = {

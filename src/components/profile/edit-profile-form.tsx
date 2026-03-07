@@ -1,4 +1,3 @@
-
 'use client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,11 +129,6 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
   return (
     <Form {...form}>
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[75vh] overflow-y-auto p-1 pr-3">
-        <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-xl mb-2 border border-primary/10">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Professional Standards: Category changes are subject to verification</p>
-        </div>
-
         <FormField
             control={form.control}
             name="role"
