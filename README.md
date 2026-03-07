@@ -41,12 +41,12 @@ If you see an error saying "Need to specify how to reconcile divergent branches"
 *   Click the **Sync/Publish** button again. This tells Git to merge changes automatically.
 
 ### 2. Vercel Build Fixes (ENOENT)
-If you encounter `ENOENT: page_client-reference-manifest.js` during a Vercel build:
-*   **Fix File Casing**: Run these commands in your terminal:
+If you encounter `ENOENT: page_client-reference-manifest.js` during a Vercel build, it is usually due to Git case-sensitivity issues with the `(main)` route group.
+*   **CRITICAL FIX**: Run these commands in your local VS Code terminal to reset Git's file index:
     ```bash
     git rm -r --cached .
     git add .
-    git commit -m "Fixing file casing for deployment"
+    git commit -m "Fixing file casing and manifest conflicts for deployment"
     git push
     ```
 *   **Environment Variables**: Ensure all keys from the `.env` file are added to **Vercel Project Settings**.
