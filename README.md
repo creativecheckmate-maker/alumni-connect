@@ -42,6 +42,7 @@ If you see an error saying "Need to specify how to reconcile divergent branches"
 
 ### 2. Vercel Build Fixes (ENOENT)
 If you encounter `ENOENT: page_client-reference-manifest.js` during a Vercel build, it is usually due to Git case-sensitivity issues with the `(main)` route group.
+
 *   **CRITICAL FIX**: Run these commands in your local VS Code terminal to reset Git's file index:
     ```bash
     git rm -r --cached .
