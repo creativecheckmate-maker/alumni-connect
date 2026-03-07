@@ -28,31 +28,28 @@ If the auto-start doesn't trigger for any reason:
 The system is already connected to the Nexus production database. User registration, profile management, and the community feed are active.
 
 ### 🧠 Nexus AI (Gemini)
-The **Gemini 2.5 Flash** engine is live. The following features are currently active:
-*   **Personalized Recommendations**: Career and event suggestions on your dashboard.
-*   **Faculty Reputation Audit**: AI-driven ranking of faculty based on sentiment.
-*   **Content Moderation**: Automatic shielding against unprofessional content.
+The **Gemini 2.5 Flash** engine is live. All AI features (Recommendations, Reputation Audit, Moderation) are pre-configured with the provided key.
 
 ---
 
-## 🛠️ Vercel Deployment & Build Fixes
+## 🛠️ Troubleshooting & Fixes
 
-If you encounter an error like `ENOENT: page_client-reference-manifest.js` during a Vercel build, follow these steps:
+### 1. Git "Divergent Branches" Error
+If you see an error saying "Need to specify how to reconcile divergent branches" or see `1 ↓ 7 ↑` in your status bar:
+*   Open the **Terminal**.
+*   Run: `git config pull.rebase false`
+*   Click the **Sync/Publish** button again. This tells Git to merge changes automatically.
 
-### 1. Fix File Casing (Git Cache)
-Vercel is case-sensitive. If you renamed folders (e.g., `Firebase` to `firebase`), Git might still remember the old name. Run these commands in your terminal:
-```bash
-git rm -r --cached .
-git add .
-git commit -m "Fixing file casing for deployment"
-git push
-```
-
-### 2. Environment Variables
-Ensure all keys from the `.env` file are added to your **Vercel Project Settings > Environment Variables**. Redeploy with the "Clear Cache" option if needed.
-
-### 3. Server vs. Client Components
-All pages using Firebase hooks must start with `"use client";`. We have already configured this for you, but keep this in mind if adding new pages.
+### 2. Vercel Build Fixes (ENOENT)
+If you encounter `ENOENT: page_client-reference-manifest.js` during a Vercel build:
+*   **Fix File Casing**: Run these commands in your terminal:
+    ```bash
+    git rm -r --cached .
+    git add .
+    git commit -m "Fixing file casing for deployment"
+    git push
+    ```
+*   **Environment Variables**: Ensure all keys from the `.env` file are added to **Vercel Project Settings**.
 
 ---
 
