@@ -1,9 +1,9 @@
 'use client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useMemoFirebase, updateDocumentNonBlocking, useDoc, useFirebase } from '@/firebase';
 import { doc, serverTimestamp } from 'firebase/firestore';
-import type { User, Student, Professor } from '@/lib/definitions';
+import type { User, Student, Professor, SiteContent } from '@/lib/definitions';
 import { useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -19,11 +19,17 @@ import {
 } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { moderateContent } from '@/ai/flows/moderation';
+import { ADMIN_EMAIL } from '@/lib/config';
 
 export function EditProfileForm({ currentUser }: { currentUser: User }) {
   const firestore = useFirestore();
+  const { user: authUser } = useFirebase();
   const { toast } = useToast();
   const [isModerating, setIsModerating] = useState(false);
+  const isAdmin = authUser?.email === ADMIN_EMAIL;
+
+  const configDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_config'), [firestore]);
+  const { data: globalConfig } = useDoc<SiteContent>(configDocRef);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !currentUser?.id) return null;
@@ -57,17 +63,12 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
     let moderationReason = "";
 
     try {
-      // Aggregate all text for AI moderation
       const textToModerate = `${data.name || ''} ${data.university || ''} ${data.college || ''} ${data.preferences || ''} ${(data as any).researchInterests || ''}`;
-      
-      // Attempt AI Moderation with a short timeout/error handling
       const moderation = await moderateContent({ text: textToModerate });
       isSafe = moderation.isSafe;
       moderationReason = moderation.reason || "Content policy violation.";
     } catch (e) {
       console.warn("Moderation service unavailable, falling back to manual standards.", e);
-      // We don't block the user if the moderation service is down, we allow the update
-      // but log it for background verification.
       isSafe = true;
     }
 
@@ -82,8 +83,6 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
     }
 
     try {
-      // 1. Sanitize the incoming data: remove internal fields and undefined values.
-      // Firestore throws synchronous errors if it encounters 'undefined' properties during update.
       const rawData = { ...data };
       delete rawData.id;
       delete rawData.email;
@@ -91,13 +90,11 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
 
       const sanitizedData: any = {};
       Object.entries(rawData).forEach(([key, value]) => {
-        // Only include fields that are defined. Empty strings are allowed.
         if (value !== undefined) {
           sanitizedData[key] = value;
         }
       });
       
-      // 2. Format specialized fields
       if (typeof sanitizedData.preferences === 'string') {
         sanitizedData.preferences = sanitizedData.preferences.split(',').map((p: string) => p.trim()).filter(Boolean);
       }
@@ -106,31 +103,29 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
           sanitizedData.researchInterests = sanitizedData.researchInterests.split(',').map((p: string) => p.trim()).filter(Boolean);
       }
       
-      // 3. Add timestamp
       sanitizedData.updatedAt = serverTimestamp();
-
-      // 4. Fire the non-blocking update (Firestore handles offline queueing automatically)
       updateDocumentNonBlocking(userDocRef, sanitizedData);
 
-      // 5. Provide immediate feedback
       toast({
         title: "Profile Updated",
         description: "Your professional details and category have been updated successfully.",
       });
 
-      // Reset form state to reflect saved changes
       form.reset(data);
     } catch (e) {
       console.error("Profile update error:", e);
       toast({ 
         variant: 'destructive', 
         title: "Update Error", 
-        description: "An error occurred while preparing your profile update. Please check your inputs." 
+        description: "An error occurred while preparing your profile update." 
       });
     } finally {
       setIsModerating(false);
     }
   };
+
+  const hideProfessors = globalConfig?.data?.hideProfessors === true;
+  const hideStaff = globalConfig?.data?.hideStaff === true;
 
   return (
     <Form {...form}>
@@ -160,18 +155,24 @@ export function EditProfileForm({ currentUser }: { currentUser: User }) {
                                 </FormControl>
                                 <FormLabel className="font-bold text-xs cursor-pointer">Student/Alumni</FormLabel>
                             </FormItem>
-                            <FormItem className="flex items-center space-x-2 space-y-0 p-3 rounded-xl border bg-card hover:bg-muted/50 transition-colors">
-                                <FormControl>
-                                    <RadioGroupItem value="professor" />
-                                </FormControl>
-                                <FormLabel className="font-bold text-xs cursor-pointer">Professor</FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-2 space-y-0 p-3 rounded-xl border bg-card hover:bg-muted/50 transition-colors">
-                                <FormControl>
-                                    <RadioGroupItem value="non-teaching-staff" />
-                                </FormControl>
-                                <FormLabel className="font-bold text-xs cursor-pointer">Staff</FormLabel>
-                            </FormItem>
+                            
+                            {(isAdmin || !hideProfessors) && (
+                              <FormItem className="flex items-center space-x-2 space-y-0 p-3 rounded-xl border bg-card hover:bg-muted/50 transition-colors">
+                                  <FormControl>
+                                      <RadioGroupItem value="professor" />
+                                  </FormControl>
+                                  <FormLabel className="font-bold text-xs cursor-pointer">Professor</FormLabel>
+                              </FormItem>
+                            )}
+                            
+                            {(isAdmin || !hideStaff) && (
+                              <FormItem className="flex items-center space-x-2 space-y-0 p-3 rounded-xl border bg-card hover:bg-muted/50 transition-colors">
+                                  <FormControl>
+                                      <RadioGroupItem value="non-teaching-staff" />
+                                  </FormControl>
+                                  <FormLabel className="font-bold text-xs cursor-pointer">Staff</FormLabel>
+                              </FormItem>
+                            )}
                         </RadioGroup>
                     </FormControl>
                     <FormMessage />

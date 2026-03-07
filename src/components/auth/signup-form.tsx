@@ -23,13 +23,19 @@ import { Loader2, Eye, EyeOff, GraduationCap, ShieldAlert } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { signupSchema } from '@/lib/schemas';
-
+import { useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { SiteContent } from '@/lib/definitions';
 
 export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void }) {
   const [state, dispatch] = useActionState(signup, undefined);
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const currentYear = new Date().getFullYear();
+  const firestore = useFirestore();
+
+  const configDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_config'), [firestore]);
+  const { data: globalConfig } = useDoc<SiteContent>(configDocRef);
 
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -66,6 +72,9 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
 
   const role = form.watch('role');
   const gradYear = form.watch('graduationYear');
+  
+  const hideProfessors = globalConfig?.data?.hideProfessors === true;
+  const hideStaff = globalConfig?.data?.hideStaff === true;
 
   return (
     <Form {...form}>
@@ -180,18 +189,24 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
                     </FormControl>
                     <FormLabel className="font-normal text-xs uppercase font-bold">Student / Alumnus</FormLabel>
                   </FormItem>
-                  <FormItem className="flex items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="professor" />
-                    </FormControl>
-                    <FormLabel className="font-normal text-xs uppercase font-bold">Professor</FormLabel>
-                  </FormItem>
-                   <FormItem className="flex items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="non-teaching-staff" />
-                    </FormControl>
-                    <FormLabel className="font-normal text-xs uppercase font-bold">Staff</FormLabel>
-                  </FormItem>
+                  
+                  {!hideProfessors && (
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value="professor" />
+                      </FormControl>
+                      <FormLabel className="font-normal text-xs uppercase font-bold">Professor</FormLabel>
+                    </FormItem>
+                  )}
+                  
+                  {!hideStaff && (
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value="non-teaching-staff" />
+                      </FormControl>
+                      <FormLabel className="font-normal text-xs uppercase font-bold">Staff</FormLabel>
+                    </FormItem>
+                  )}
                 </RadioGroup>
               </FormControl>
               <input type="hidden" name={field.name} value={field.value} />

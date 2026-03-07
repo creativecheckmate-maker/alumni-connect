@@ -89,6 +89,9 @@ export default function DirectoryPage() {
   const contentDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'directory_main'), [firestore]);
   const { data: directoryContent } = useDoc<SiteContent>(contentDocRef);
 
+  const configDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_config'), [firestore]);
+  const { data: globalConfig } = useDoc<SiteContent>(configDocRef);
+
   const usersCollectionRef = useMemoFirebase(
     () => {
         if (!firestore) return null;
@@ -123,23 +126,32 @@ export default function DirectoryPage() {
   };
 
   const content = directoryContent?.data || defaultContent;
+  const hideProfessors = globalConfig?.data?.hideProfessors === true;
+  const hideStaff = globalConfig?.data?.hideStaff === true;
 
   const handleDeleteUser = (userId: string) => {
     if (!firestore || !isAdmin) return;
     const userDocRef = doc(firestore, 'users', userId);
-    // Non-blocking purge as per performance guidelines
     deleteDocumentNonBlocking(userDocRef);
     toast({ 
       title: "Firestore Purged", 
-      description: "User profile details removed. To allow re-signup with this email, you MUST manually delete their record in the Firebase Auth Console." 
+      description: "User profile details removed. Auth console manual removal required for complete reset." 
     });
   };
 
   const filteredUsers = users
-    ? users.filter(user =>
-        (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) &&
-        (activeTab === 'all' || user.role === activeTab)
-      )
+    ? users.filter(user => {
+        const matchesSearch = (user.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesTab = activeTab === 'all' || user.role === activeTab;
+        
+        // Admin always sees everything. Other users respect global hide flags.
+        if (!isAdmin) {
+          if (hideProfessors && user.role === 'professor') return false;
+          if (hideStaff && user.role === 'non-teaching-staff') return false;
+        }
+
+        return matchesSearch && matchesTab;
+      })
     : [];
 
   const renderUserGrid = (usersToRender: User[]) => {
@@ -207,8 +219,14 @@ export default function DirectoryPage() {
         <TabsList className="bg-muted/50 p-1 h-12 rounded-xl mb-8">
           <TabsTrigger value="all" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabAll}</TabsTrigger>
           <TabsTrigger value="student" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabStudent}</TabsTrigger>
-          <TabsTrigger value="professor" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabProfessor}</TabsTrigger>
-          <TabsTrigger value="non-teaching-staff" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabStaff}</TabsTrigger>
+          
+          {(isAdmin || !hideProfessors) && (
+            <TabsTrigger value="professor" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabProfessor}</TabsTrigger>
+          )}
+          
+          {(isAdmin || !hideStaff) && (
+            <TabsTrigger value="non-teaching-staff" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabStaff}</TabsTrigger>
+          )}
         </TabsList>
         <TabsContent value="all" className="focus-visible:ring-0">
           {renderUserGrid(filteredUsers)}

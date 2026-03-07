@@ -182,6 +182,9 @@ export default function HomePage() {
   const firestore = useFirestore();
   const isAdmin = authUser?.email === ADMIN_EMAIL;
 
+  const configDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_config'), [firestore]);
+  const { data: globalConfig } = useDoc<SiteContent>(configDocRef);
+
   const heroDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'home_hero'), [firestore]);
   const { data: heroContent } = useDoc<SiteContent>(heroDocRef);
 
@@ -248,6 +251,9 @@ export default function HomePage() {
   const professors = allUsers?.filter(u => u.role === 'professor').slice(0, 3) || [];
   const staff = allUsers?.filter(u => u.role === 'non-teaching-staff').slice(0, 3) || [];
 
+  const hideProfessors = globalConfig?.data?.hideProfessors === true;
+  const hideStaff = globalConfig?.data?.hideStaff === true;
+
   return (
     <div className="flex-1 space-y-20 pb-20">
       <section className="relative h-[70vh] min-h-[600px] w-full rounded-[2rem] overflow-hidden shadow-2xl">
@@ -301,10 +307,10 @@ export default function HomePage() {
               ) : (
                   <Tabs defaultValue="students" className="w-full">
                       <div className="flex justify-center mb-10">
-                          <TabsList className="grid w-full max-w-lg grid-cols-3 h-14 p-1 bg-muted/50 rounded-2xl">
+                          <TabsList className={`grid w-full max-w-lg h-14 p-1 bg-muted/50 rounded-2xl ${(!hideProfessors && !hideStaff) ? 'grid-cols-3' : (hideProfessors && hideStaff) ? 'grid-cols-1' : 'grid-cols-2'}`}>
                               <TabsTrigger value="students" className="rounded-xl font-bold gap-2">Students</TabsTrigger>
-                              <TabsTrigger value="professors" className="rounded-xl font-bold gap-2">Professors</TabsTrigger>
-                              <TabsTrigger value="staff" className="rounded-xl font-bold gap-2">Staff</TabsTrigger>
+                              {(isAdmin || !hideProfessors) && <TabsTrigger value="professors" className="rounded-xl font-bold gap-2">Professors</TabsTrigger>}
+                              {(isAdmin || !hideStaff) && <TabsTrigger value="staff" className="rounded-xl font-bold gap-2">Staff</TabsTrigger>}
                           </TabsList>
                       </div>
                       <TabsContent value="students" className="grid gap-6 md:grid-cols-3">{students.map(u => <UserRatingCard key={u.id} user={u} />)}</TabsContent>
