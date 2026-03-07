@@ -35,6 +35,27 @@ The **Gemini 2.5 Flash** engine is live. The following features are currently ac
 
 ---
 
+## 🛠️ Vercel Deployment & Build Fixes
+
+If you encounter an error like `ENOENT: page_client-reference-manifest.js` during a Vercel build, follow these steps:
+
+### 1. Fix File Casing (Git Cache)
+Vercel is case-sensitive. If you renamed folders (e.g., `Firebase` to `firebase`), Git might still remember the old name. Run these commands in your terminal:
+```bash
+git rm -r --cached .
+git add .
+git commit -m "Fixing file casing for deployment"
+git push
+```
+
+### 2. Environment Variables
+Ensure all keys from the `.env` file are added to your **Vercel Project Settings > Environment Variables**. Redeploy with the "Clear Cache" option if needed.
+
+### 3. Server vs. Client Components
+All pages using Firebase hooks must start with `"use client";`. We have already configured this for you, but keep this in mind if adding new pages.
+
+---
+
 ## 🛡️ Security & Protection
 *   **Logic Shield**: Critical operations (Profile Restoration, Feedback Math) are hidden in Server Actions and are invisible to browser inspection.
 *   **Proprietary License**: All rights reserved. Unauthorized redistribution or reverse engineering is prohibited.
