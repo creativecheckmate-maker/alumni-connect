@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +33,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { restoreProfile } from '@/lib/actions';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -71,30 +72,9 @@ export function LoginForm() {
       const userDocRef = doc(firestore, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
-      // Limbo State Fix: If Auth record exists but Firestore profile was deleted (by admin or partial purge)
-      // We automatically re-provision a profile so the user can "start from scratch".
+      // HIDDEN LOGIC: Auto-provisioning moved to server action 'restoreProfile'
       if (!userDoc.exists()) {
-        const initialRating = 75;
-        await setDoc(userDocRef, {
-          id: user.uid,
-          externalAuthId: user.uid,
-          name: user.displayName || 'Restored User',
-          email: user.email,
-          role: 'student',
-          university: 'Nexus University',
-          college: 'Not Specified',
-          isVisibleInDirectory: true,
-          isApproved: false,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          status: 'active',
-          feedbackRating: initialRating,
-          feedbackCount: 1,
-          totalFeedbackPoints: initialRating,
-          avatarUrl: user.photoURL || `https://picsum.photos/seed/${user.uid}/200/200`,
-          preferences: [],
-          networkActivity: '',
-        });
+        await restoreProfile(user.uid, user.email!, user.displayName!, user.photoURL || undefined);
         toast({ title: "Profile Restored", description: "Your credentials were found but your profile was missing. A fresh profile has been provisioned." });
       } else if (userDoc.data().status === 'deactivated') {
         await signOut(auth);

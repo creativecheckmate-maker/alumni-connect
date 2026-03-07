@@ -1,12 +1,25 @@
-
 'use server';
 
 import { z } from 'zod';
 import { getApps, initializeApp, getApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
-import { getFirestore, doc, setDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc, getDoc, addDoc } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 import { signupSchema } from '@/lib/schemas';
+
+/**
+ * Shared utility to get a fresh Firestore instance on the server.
+ * This hides the logic from the client-side bundle.
+ */
+async function getAdminFirestore() {
+    let firebaseApp;
+    if (!getApps().length) {
+      firebaseApp = initializeApp(firebaseConfig);
+    } else {
+      firebaseApp = getApp();
+    }
+    return getFirestore(firebaseApp);
+}
 
 export async function signup(prevState: any, formData: FormData) {
     let firebaseApp;
@@ -92,4 +105,75 @@ export async function signup(prevState: any, formData: FormData) {
         }
         return { message: error.message || 'A system error occurred during registration.' };
     }
+}
+
+/**
+ * SECURE SERVER ACTION: restoreProfile
+ * Logic for re-provisioning profiles is hidden from the browser.
+ */
+export async function restoreProfile(uid: string, email: string, displayName: string, photoURL?: string) {
+    const firestore = await getAdminFirestore();
+    const userDocRef = doc(firestore, 'users', uid);
+    const initialRating = 75;
+
+    await setDoc(userDocRef, {
+        id: uid,
+        externalAuthId: uid,
+        name: displayName || 'Restored User',
+        email: email,
+        role: 'student',
+        university: 'Nexus University',
+        college: 'Not Specified',
+        isVisibleInDirectory: true,
+        isApproved: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        status: 'active',
+        feedbackRating: initialRating,
+        feedbackCount: 1,
+        totalFeedbackPoints: initialRating,
+        avatarUrl: photoURL || `https://picsum.photos/seed/${uid}/200/200`,
+        preferences: [],
+        networkActivity: '',
+    });
+
+    return { success: true };
+}
+
+/**
+ * SECURE SERVER ACTION: submitFacultyFeedback
+ * Math and database structure for feedback is hidden from the browser.
+ */
+export async function submitFacultyFeedback(facultyId: string, studentId: string, rating: number, comment: string) {
+    const firestore = await getAdminFirestore();
+    const facultyDocRef = doc(firestore, 'users', facultyId);
+    
+    const facultySnap = await getDoc(facultyDocRef);
+    if (!facultySnap.exists()) throw new Error('Faculty not found');
+    
+    const data = facultySnap.data();
+    const currentPoints = data.totalFeedbackPoints || data.feedbackRating || 0;
+    const currentCount = data.feedbackCount || 1;
+
+    const newTotalPoints = currentPoints + rating;
+    const newCount = currentCount + 1;
+    const newAverage = Math.round(newTotalPoints / newCount);
+
+    await setDoc(facultyDocRef, {
+        feedbackRating: newAverage,
+        feedbackCount: newCount,
+        totalFeedbackPoints: newTotalPoints,
+        updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    const feedbacksCol = collection(facultyDocRef, 'feedbacks');
+    await addDoc(feedbacksCol, {
+        studentId,
+        facultyId,
+        rating,
+        comment,
+        createdAt: serverTimestamp(),
+    });
+
+    return { success: true };
 }
