@@ -85,11 +85,6 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
         action={dispatch}
         className="space-y-4"
       >
-        <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-xl mb-2 border border-primary/10">
-            <ShieldAlert className="h-4 w-4 text-primary" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">New accounts require admin verification</p>
-        </div>
-
         <FormField
           control={form.control}
           name="name"

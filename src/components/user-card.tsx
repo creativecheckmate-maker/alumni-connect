@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { User, Friendship } from '@/lib/definitions';
@@ -132,7 +133,7 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser, friendships }: UserC
                     <h3 className="text-lg font-bold leading-none group-hover:text-primary transition-colors">{user.name}</h3>
                     <div className="flex items-center gap-1.5 mt-1">
                       <Badge variant={user.role === 'student' ? 'secondary' : 'outline'} className="capitalize text-[9px] h-4 font-black tracking-tight px-1.5">
-                          {user.role === 'non-teaching-staff' ? 'Staff' : user.role}
+                          {user.role}
                       </Badge>
                       {user.role === 'student' && (
                         <Badge className={`text-[9px] h-4 font-black tracking-tight px-1.5 ${isAlumni ? 'bg-primary/10 text-primary border-none' : 'bg-green-500/10 text-green-600 border-none'}`}>
