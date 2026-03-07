@@ -1,12 +1,12 @@
 # Nexus Alumni Network - Development Guide
 
-This is a modern Alumni Management System built with **Next.js**, **Firebase**, and **Tailwind CSS**. It is pre-configured for a **Zero-Config** start.
+This is a modern Alumni Management System built with **Next.js**, **Firebase**, and **Tailwind CSS**. It is fully automated for a **Zero-Config, One-Click** start.
 
 ---
 
 ## ⚡ One-Click Startup (Already Set Up)
 
-This project is fully automated. You do not need to enter Firebase credentials manually.
+This project is fully automated. You do not need to enter any credentials manually.
 
 ### 1. Automated Start
 When you open this folder in VS Code, a background task will automatically run the development server. Check the **Terminal** at the bottom of your screen. 
@@ -20,14 +20,14 @@ When you open this folder in VS Code, a background task will automatically run t
 
 ## 🚀 Environment Details
 
-### Firebase (Pre-Configured)
-The Firebase connection is already live. I have pre-filled the `.env` and `src/firebase/config.ts` files with the necessary keys. 
+### Firebase & Gemini AI (Live)
+The platform is pre-configured with all necessary keys.
+*   **Database**: Connection to Firebase Firestore and Auth is live.
+*   **AI Engine**: Nexus AI (Gemini) is active for recommendations and audits.
 
-### Gemini AI (Optional)
-To enable AI-powered recommendations and reputation audits:
-1.  Go to [Google AI Studio](https://aistudio.google.com/).
-2.  Get your API key.
-3.  Open the `.env` file in this folder and paste it into `GEMINI_API_KEY=`.
+### 🌐 Accessing the Site
+Once the terminal shows "Ready," you can view the platform at:
+[http://localhost:9002](http://localhost:9002)
 
 ---
 
