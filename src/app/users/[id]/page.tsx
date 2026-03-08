@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -9,9 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2, UserPlus, UserCheck, XCircle, MessageSquare, Award, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Briefcase, GraduationCap, Mail, BrainCircuit, School, Edit, Star, Loader2, UserPlus, UserCheck, XCircle, MessageSquare, Award } from 'lucide-react';
 import { Logo } from '@/components/logo';
-import { useDoc, useFirestore, useMemoFirebase, useFirebase, useCollection, setDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase, useFirebase, useCollection, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp, collection, query, where } from 'firebase/firestore';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -20,14 +19,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
+import { submitFacultyFeedback } from '@/lib/actions';
 
 const getInitials = (name: string) => {
-    if (!name) return '';
-    const names = name.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`;
-    }
-    return names[0]?.substring(0, 2) || '';
+  if (!name) return 'U';
+  const names = name.trim().split(/\s+/);
+  if (names.length > 1) {
+    const firstInitial = names[0]?.[0] || '';
+    const lastInitial = names[names.length - 1]?.[0] || '';
+    return (firstInitial + lastInitial).toUpperCase();
+  }
+  return (names[0]?.substring(0, 2) || 'U').toUpperCase();
 };
 
 export default function UserProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -74,43 +76,28 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
   const isAdmin = authUser?.email === ADMIN_EMAIL;
   const isOwnProfile = authUser?.uid === userId;
   const isStudentViewer = viewerProfile?.role === 'student';
-  const isProfessorOrStaffTarget = user?.role === 'professor' || user?.role === 'non-teaching-staff';
+  const isProfessorTarget = user?.role === 'professor';
 
   const handleFeedbackSubmit = async () => {
-    if (!userDocRef || !user || !firestore || !authUser) return;
+    if (!user || !authUser) return;
     setIsSubmittingFeedback(true);
 
-    const currentPoints = user.totalFeedbackPoints || user.feedbackRating || 0;
-    const currentCount = user.feedbackCount || 1;
+    try {
+        // HIDDEN LOGIC: Math and Firestore write moved to server action 'submitFacultyFeedback'
+        await submitFacultyFeedback(userId, authUser.uid, ratingValue, feedbackComment);
+        
+        toast({
+            title: "Feedback Submitted!",
+            description: `Your review for ${user.name} has been processed.`,
+        });
 
-    const newTotalPoints = currentPoints + ratingValue;
-    const newCount = currentCount + 1;
-    const newAverage = Math.round(newTotalPoints / newCount);
-
-    updateDocumentNonBlocking(userDocRef, {
-      feedbackRating: newAverage,
-      feedbackCount: newCount,
-      totalFeedbackPoints: newTotalPoints,
-      updatedAt: serverTimestamp(),
-    });
-
-    const feedbacksCol = collection(userDocRef, 'feedbacks');
-    addDocumentNonBlocking(feedbacksCol, {
-      studentId: authUser.uid,
-      facultyId: userId,
-      rating: ratingValue,
-      comment: feedbackComment,
-      createdAt: serverTimestamp(),
-    });
-
-    toast({
-      title: "Feedback Submitted!",
-      description: `Your review for ${user.name} has been processed.`,
-    });
-
-    setIsSubmittingFeedback(false);
-    setIsFeedbackDialogOpen(false);
-    setFeedbackComment('');
+        setIsFeedbackDialogOpen(false);
+        setFeedbackComment('');
+    } catch (e) {
+        toast({ variant: 'destructive', title: "Error", description: "Failed to submit feedback." });
+    } finally {
+        setIsSubmittingFeedback(false);
+    }
   };
 
   const handleCancelRequest = async () => {
@@ -272,16 +259,16 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                             )}
                           </div>
                         )}
-                        {authUser && isStudentViewer && isProfessorOrStaffTarget && !isOwnProfile && (
+                        {authUser && isStudentViewer && isProfessorTarget && !isOwnProfile && (
                             <Dialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"><Star className="mr-2 h-4 w-4" /> Give Feedback</Button>
                                 </DialogTrigger>
                                 <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-[425px]">
                                     <DialogHeader>
-                                        <DialogTitle>Nexus AI Reputation Audit</DialogTitle>
+                                        <DialogTitle>Academic Reputation Audit</DialogTitle>
                                         <DialogDescription>
-                                            Submit your rating and detailed comments. Nexus AI will analyze your feedback to rank {user.name} accurately within the community.
+                                            Submit your rating and detailed comments. The system will analyze your feedback to rank {user.name} accurately within the community.
                                         </DialogDescription>
                                     </DialogHeader>
                                     <div className="py-6 space-y-8">
@@ -301,7 +288,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                                         
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                                <MessageSquare className="h-3 w-3" /> Detailed Commentary (AI Analyzed)
+                                                <MessageSquare className="h-3 w-3" /> Detailed Commentary
                                             </label>
                                             <Textarea 
                                                 placeholder="Describe your academic experience with this faculty member..." 
@@ -317,7 +304,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                                             className="w-full h-12 font-black rounded-xl"
                                             disabled={isSubmittingFeedback}
                                         >
-                                            {isSubmittingFeedback ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Submit AI-Powered Rating"}
+                                            {isSubmittingFeedback ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Submit Secure Rating"}
                                         </Button>
                                     </DialogFooter>
                                 </DialogContent>
@@ -342,7 +329,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                   <div className="space-y-2">
                     <div className="flex items-center justify-center gap-2">
                         <CardTitle className="text-4xl font-bold font-headline">{user.name}</CardTitle>
-                        {isProfessorOrStaffTarget && (
+                        {isProfessorTarget && (
                             <Badge className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
                                 <Star className="h-3 w-3 fill-current" /> {user.feedbackRating || 0}
                             </Badge>
@@ -366,7 +353,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
                                 <Star className="h-12 w-12 text-primary" />
                             </div>
                             <div className="flex items-center gap-2 mb-3">
-                                <Badge className="bg-primary text-white font-black uppercase text-[9px] tracking-tighter">AI Reputation Insight</Badge>
+                                <Badge className="bg-primary text-white font-black uppercase text-[9px] tracking-tighter">Professional Insight</Badge>
                                 {user.aiReputationPersona && <span className="text-sm font-black text-primary uppercase tracking-widest">{user.aiReputationPersona}</span>}
                             </div>
                             <p className="text-muted-foreground italic leading-relaxed text-base">

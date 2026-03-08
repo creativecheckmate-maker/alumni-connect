@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -6,14 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'; 
 import type { User, Friendship, SiteContent } from '@/lib/definitions';
 import { UserCard } from '@/components/user-card';
-import { useCollection, useUser, useFirestore, useMemoFirebase, useFirebase, useDoc } from '@/firebase';
-import { collection, doc, deleteDoc, query, where, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useCollection, useUser, useFirestore, useMemoFirebase, useFirebase, useDoc, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc, query, where, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { Button } from '@/components/ui/button';
-import { Edit, Loader2, Search } from 'lucide-react';
+import { Edit, Loader2, Search, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: string, sectionId: string, initialData: any, label: string }) {
   const { toast } = useToast();
@@ -82,10 +84,14 @@ function AdminEditDialog({ pageId, sectionId, initialData, label }: { pageId: st
 export default function DirectoryPage() {
   const { user: authUser, isEditMode } = useFirebase();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const isAdmin = authUser?.email === ADMIN_EMAIL;
   
   const contentDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'directory_main'), [firestore]);
   const { data: directoryContent } = useDoc<SiteContent>(contentDocRef);
+
+  const configDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_config'), [firestore]);
+  const { data: globalConfig } = useDoc<SiteContent>(configDocRef);
 
   const usersCollectionRef = useMemoFirebase(
     () => {
@@ -116,23 +122,33 @@ export default function DirectoryPage() {
     tabAll: "All Alumni",
     tabStudent: "Students",
     tabProfessor: "Professors",
-    tabStaff: "Staff",
     emptyMessage: "No alumni found matching your criteria."
   };
 
   const content = directoryContent?.data || defaultContent;
+  const hideProfessors = globalConfig?.data?.hideProfessors === true;
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = (userId: string) => {
     if (!firestore || !isAdmin) return;
     const userDocRef = doc(firestore, 'users', userId);
-    await deleteDoc(userDocRef);
+    deleteDocumentNonBlocking(userDocRef);
+    toast({ 
+      title: "Firestore Purged", 
+      description: "User profile details removed. Auth console manual removal required for complete reset." 
+    });
   };
 
   const filteredUsers = users
-    ? users.filter(user =>
-        (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) &&
-        (activeTab === 'all' || user.role === activeTab)
-      )
+    ? users.filter(user => {
+        const matchesSearch = (user.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesTab = activeTab === 'all' || user.role === activeTab;
+        
+        if (!isAdmin) {
+          if (hideProfessors && user.role === 'professor') return false;
+        }
+
+        return matchesSearch && matchesTab;
+      })
     : [];
 
   const renderUserGrid = (usersToRender: User[]) => {
@@ -185,13 +201,25 @@ export default function DirectoryPage() {
           )}
         </div>
       </PageHeader>
+
+      {isAdmin && (
+        <Alert className="bg-yellow-50 border-yellow-200">
+          <AlertCircle className="h-4 w-4 text-yellow-600" />
+          <AlertTitle className="text-yellow-800 font-bold">Administrative Notice</AlertTitle>
+          <AlertDescription className="text-yellow-700 text-xs">
+            Deleting users here only removes their public profile. To permanently allow an email to re-register, you must also delete the user from the <strong>Firebase Console &gt; Authentication</strong> tab.
+          </AlertDescription>
+        </Alert>
+      )}
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-muted/50 p-1 h-12 rounded-xl mb-8">
           <TabsTrigger value="all" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabAll}</TabsTrigger>
           <TabsTrigger value="student" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabStudent}</TabsTrigger>
-          <TabsTrigger value="professor" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabProfessor}</TabsTrigger>
-          <TabsTrigger value="non-teaching-staff" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabStaff}</TabsTrigger>
+          
+          {(isAdmin || !hideProfessors) && (
+            <TabsTrigger value="professor" className="rounded-lg px-6 font-bold data-[state=active]:bg-white data-[state=active]:text-primary">{content.tabProfessor}</TabsTrigger>
+          )}
         </TabsList>
         <TabsContent value="all" className="focus-visible:ring-0">
           {renderUserGrid(filteredUsers)}
@@ -202,9 +230,6 @@ export default function DirectoryPage() {
         <TabsContent value="professor" className="focus-visible:ring-0">
           {renderUserGrid(filteredUsers.filter(u => u.role === 'professor'))}
         </TabsContent> 
-        <TabsContent value="non-teaching-staff" className="focus-visible:ring-0">
-          {renderUserGrid(filteredUsers.filter(u => u.role === 'non-teaching-staff'))}
-        </TabsContent>
       </Tabs>
     </div>
   );

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageHeader } from '@/components/page-header';
@@ -8,18 +7,75 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { LogOut, Trash2, Shield, Bell } from 'lucide-react';
-import { useAuth } from '@/firebase';
-import { signOut } from 'firebase/auth';
+import { LogOut, Trash2, Shield, Bell, Loader2, AlertTriangle } from 'lucide-react';
+import { useAuth, useFirestore, useUser, deleteDocumentNonBlocking } from '@/firebase';
+import { signOut, deleteUser } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function SettingsPage() {
   const auth = useAuth();
+  const firestore = useFirestore();
+  const { user } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/login');
+  };
+
+  const handleDeleteAccount = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !firestore) return;
+
+    setIsDeleting(true);
+    try {
+      // 1. Attempt Auth Deletion first (Requires recent login)
+      // This is the primary record. If this fails, we stop to prevent a missing-profile state.
+      await deleteUser(currentUser);
+
+      // 2. If Auth deletion succeeds, purge Firestore data
+      const userDocRef = doc(firestore, 'users', currentUser.uid);
+      deleteDocumentNonBlocking(userDocRef);
+      
+      toast({ 
+        title: "Account Purged", 
+        description: "Your identity and credentials have been permanently removed from the network." 
+      });
+      router.push('/login');
+    } catch (error: any) {
+      console.error("Deletion error:", error);
+      if (error.code === 'auth/requires-recent-login') {
+        toast({ 
+          variant: 'destructive', 
+          title: "Security Timeout", 
+          description: "For security, please sign out and sign back in immediately before attempting to delete your identity." 
+        });
+      } else {
+        toast({ 
+          variant: 'destructive', 
+          title: "Critical Error", 
+          description: "System failed to process account purge. Please contact an administrator." 
+        });
+      }
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -89,13 +145,35 @@ export default function SettingsPage() {
           <LogOut className="h-5 w-5" />
         </Button>
 
-        <Button 
-            variant="ghost" 
-            className="w-full justify-between h-12 rounded-xl text-destructive hover:bg-destructive/5 hover:text-destructive"
-        >
-          <span className="font-bold">Delete Account Permanently</span>
-          <Trash2 className="h-5 w-5" />
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+                variant="ghost" 
+                disabled={isDeleting}
+                className="w-full justify-between h-12 rounded-xl text-destructive hover:bg-destructive/5 hover:text-destructive"
+            >
+              <span className="font-bold">Delete Account Permanently</span>
+              {isDeleting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" /> Irreversible Operation
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently scrub your profile and credentials from the Nexus network. 
+                You will be able to sign up again with the same email, but all your history will be lost.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-white hover:bg-destructive/90">
+                Confirm Purge
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </section>
     </div>
   );

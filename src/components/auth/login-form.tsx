@@ -33,6 +33,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { restoreProfile } from '@/lib/actions';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -66,11 +67,16 @@ export function LoginForm() {
     }
     try {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
 
-      const userDocRef = doc(firestore, 'users', userCredential.user.uid);
+      const userDocRef = doc(firestore, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
 
-      if (userDoc.exists() && userDoc.data().status === 'deactivated') {
+      // HIDDEN LOGIC: Auto-provisioning moved to server action 'restoreProfile'
+      if (!userDoc.exists()) {
+        await restoreProfile(user.uid, user.email!, user.displayName!, user.photoURL || undefined);
+        toast({ title: "Profile Restored", description: "Your credentials were found but your profile was missing. A fresh profile has been provisioned." });
+      } else if (userDoc.data().status === 'deactivated') {
         await signOut(auth);
         toast({
             variant: 'destructive',
@@ -99,25 +105,15 @@ export function LoginForm() {
 
   async function handlePasswordReset() {
     if (!resetEmail) {
-      toast({
-        variant: 'destructive',
-        title: 'Email required',
-        description: 'Please enter your email address.',
-      });
+      toast({ variant: 'destructive', title: 'Email required', description: 'Please enter your email address.' });
       return;
     }
     setIsResettingPassword(true);
     try {
       await sendPasswordResetEmail(auth, resetEmail);
-      toast({
-        title: 'Password Reset Email Sent',
-        description: `If an account exists for ${resetEmail}, a password reset link has been sent.`,
-      });
+      toast({ title: 'Reset Email Sent', description: `Check ${resetEmail} for a link to update your password.` });
     } catch (error: any) {
-      toast({
-        title: 'Password Reset Email Sent',
-        description: `If an account exists for ${resetEmail}, a password reset link has been sent.`,
-      });
+      toast({ title: 'Request Handled', description: `If an account exists for ${resetEmail}, a reset link has been sent.` });
     } finally {
       setIsResettingPassword(false);
     }

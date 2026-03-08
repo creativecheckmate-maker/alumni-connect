@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { User, Friendship } from '@/lib/definitions';
@@ -25,9 +26,14 @@ import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 const getInitials = (name: string) => {
-  if (!name) return '';
-  const names = name.split(' ');
-  return names.map((n) => n[0]).join('');
+  if (!name) return 'U';
+  const names = name.trim().split(/\s+/);
+  if (names.length > 1) {
+    const firstInitial = names[0]?.[0] || '';
+    const lastInitial = names[names.length - 1]?.[0] || '';
+    return (firstInitial + lastInitial).toUpperCase();
+  }
+  return (names[0]?.substring(0, 2) || 'U').toUpperCase();
 };
 
 interface UserCardProps {
@@ -127,7 +133,7 @@ export const UserCard = ({ user, isAdmin, handleDeleteUser, friendships }: UserC
                     <h3 className="text-lg font-bold leading-none group-hover:text-primary transition-colors">{user.name}</h3>
                     <div className="flex items-center gap-1.5 mt-1">
                       <Badge variant={user.role === 'student' ? 'secondary' : 'outline'} className="capitalize text-[9px] h-4 font-black tracking-tight px-1.5">
-                          {user.role === 'non-teaching-staff' ? 'Staff' : user.role}
+                          {user.role}
                       </Badge>
                       {user.role === 'student' && (
                         <Badge className={`text-[9px] h-4 font-black tracking-tight px-1.5 ${isAlumni ? 'bg-primary/10 text-primary border-none' : 'bg-green-500/10 text-green-600 border-none'}`}>

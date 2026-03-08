@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useFormStatus } from 'react-dom';
@@ -19,17 +20,26 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { signup } from '@/lib/actions';
-import { Loader2, Eye, EyeOff, GraduationCap } from 'lucide-react';
+import { Loader2, Eye, EyeOff, GraduationCap, ShieldAlert } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { signupSchema } from '@/lib/schemas';
-
+import { useFirestore, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { SiteContent } from '@/lib/definitions';
+import { ADMIN_EMAIL } from '@/lib/config';
 
 export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void }) {
   const [state, dispatch] = useActionState(signup, undefined);
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const currentYear = new Date().getFullYear();
+  const firestore = useFirestore();
+  const { user: authUser } = useFirebase();
+  const isAdmin = authUser?.email === ADMIN_EMAIL;
+
+  const configDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_config'), [firestore]);
+  const { data: globalConfig } = useDoc<SiteContent>(configDocRef);
 
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -50,14 +60,15 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
   useEffect(() => {
     if (state?.success) {
       toast({
-        title: "Account Created!",
+        title: "Account Registered",
         description: state.message,
       });
       onSignupSuccess();
     } else if (state?.message) {
+      const isEmailError = state.message.toLowerCase().includes('already registered');
       toast({
-        variant: "destructive",
-        title: "Signup Failed",
+        variant: isEmailError ? "default" : "destructive",
+        title: isEmailError ? "Notice" : "Signup Failed",
         description: state.message,
       });
     }
@@ -65,6 +76,8 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
 
   const role = form.watch('role');
   const gradYear = form.watch('graduationYear');
+  
+  const hideProfessors = !isAdmin && globalConfig?.data?.hideProfessors === true;
 
   return (
     <Form {...form}>
@@ -174,18 +187,15 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
                     </FormControl>
                     <FormLabel className="font-normal text-xs uppercase font-bold">Student / Alumnus</FormLabel>
                   </FormItem>
-                  <FormItem className="flex items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="professor" />
-                    </FormControl>
-                    <FormLabel className="font-normal text-xs uppercase font-bold">Professor</FormLabel>
-                  </FormItem>
-                   <FormItem className="flex items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <RadioGroupItem value="non-teaching-staff" />
-                    </FormControl>
-                    <FormLabel className="font-normal text-xs uppercase font-bold">Staff</FormLabel>
-                  </FormItem>
+                  
+                  {!hideProfessors && (
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value="professor" />
+                      </FormControl>
+                      <FormLabel className="font-normal text-xs uppercase font-bold">Professor</FormLabel>
+                    </FormItem>
+                  )}
                 </RadioGroup>
               </FormControl>
               <input type="hidden" name={field.name} value={field.value} />
@@ -235,36 +245,35 @@ export function SignupForm({ onSignupSuccess }: { onSignupSuccess: () => void })
           </div>
         )}
 
-        {(role === 'professor' || role === 'non-teaching-staff') && (
-          <FormField
-            control={form.control}
-            name="department"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Department</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g. Electrical Engineering" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
         {role === 'professor' && (
-          <FormField
-            control={form.control}
-            name="researchInterests"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Research Interests (comma-separated)</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g. Signal Processing, AI" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="bg-primary/5 p-4 rounded-2xl space-y-4 border border-primary/10">
+            <FormField
+              control={form.control}
+              name="department"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Department</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Electrical Engineering" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="researchInterests"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Research Interests (comma-separated)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Signal Processing, AI" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         )}
         
         <SubmitButton />

@@ -10,7 +10,7 @@ import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection, useFireb
 import { doc, collection, query, limit, where, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { User, Event, JobPosting, SiteContent } from '@/lib/definitions';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getPersonalizedRecommendations, type PersonalizedRecommendationsOutput } from '@/ai/flows/recommendation-engine';
 import { ADMIN_EMAIL } from '@/lib/config';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -111,6 +111,7 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const [recommendations, setRecommendations] = useState<PersonalizedRecommendationsOutput | null>(null);
   const [isAIOverviewLoading, setIsAIOverviewLoading] = useState(false);
+  const [hasAIFailed, setHasAIError] = useState(false);
   const isAdmin = authUser?.email === ADMIN_EMAIL;
 
   const contentDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'dashboard_main'), [firestore]);
@@ -156,35 +157,43 @@ export default function DashboardPage() {
   }, [firestore]);
   const { data: mentors } = useCollection<User>(mentorsQuery);
 
-  useEffect(() => {
-    async function fetchAIRecommendations() {
-      if (!currentUser || !events || !jobs || !mentors || recommendations) return;
-      setIsAIOverviewLoading(true);
-      try {
-        const result = await getPersonalizedRecommendations({
-          userProfile: {
-            userId: currentUser.id,
-            userType: currentUser.role === 'student' ? 'student' : 'professor',
-            university: currentUser.university,
-            college: currentUser.college,
-            major: currentUser.major,
-            graduationYear: currentUser.graduationYear,
-            preferences: currentUser.preferences || [],
-          },
-          availableEvents: events.map(e => ({ id: e.id, name: e.name, description: e.description, university: e.university, college: e.college })),
-          availableJobOpportunities: jobs.map(j => ({ id: j.id, title: j.title, company: j.company, industry: j.industry })),
-          availableMentors: mentors.map(m => ({ id: m.id, name: m.name, expertise: m.researchInterests?.join(', '), university: m.university, college: m.college }))
-        });
+  const fetchAIRecommendations = useCallback(async () => {
+    if (!currentUser || !events || !jobs || !mentors || recommendations || hasAIFailed) return;
+    
+    setIsAIOverviewLoading(true);
+    try {
+      const result = await getPersonalizedRecommendations({
+        userProfile: {
+          userId: currentUser.id,
+          userType: currentUser.role === 'student' ? 'student' : 'professor',
+          university: currentUser.university,
+          college: currentUser.college,
+          major: currentUser.major,
+          graduationYear: currentUser.graduationYear,
+          preferences: currentUser.preferences || [],
+        },
+        availableEvents: events.map(e => ({ id: e.id, name: e.name, description: e.description, university: e.university, college: e.college })),
+        availableJobOpportunities: jobs.map(j => ({ id: j.id, title: j.title, company: j.company, industry: j.industry })),
+        availableMentors: mentors.map(m => ({ id: m.id, name: m.name, expertise: m.researchInterests?.join(', '), university: m.university, college: m.college }))
+      });
+      
+      // If result is empty, it means the flow hit a fallback (likely quota)
+      if (result.recommendedEvents.length === 0 && result.recommendedJobOpportunities.length === 0 && result.recommendedMentors.length === 0) {
+        setHasAIError(true);
+      } else {
         setRecommendations(result);
-      } catch (e) {
-        console.error("AI Recommendation error:", e);
-      } finally {
-        setIsAIOverviewLoading(false);
       }
+    } catch (e) {
+      console.error("AI Recommendation error:", e);
+      setHasAIError(true);
+    } finally {
+      setIsAIOverviewLoading(false);
     }
+  }, [currentUser, events, jobs, mentors, recommendations, hasAIFailed]);
 
+  useEffect(() => {
     fetchAIRecommendations();
-  }, [currentUser, events, jobs, mentors, recommendations]);
+  }, [fetchAIRecommendations]);
 
   const defaultMain = {
     welcomeSubtext: "Welcome back to your professional hub.",
@@ -227,6 +236,12 @@ export default function DashboardPage() {
     );
   }
 
+  const hasAnyRecommendations = recommendations && (
+    recommendations.recommendedJobOpportunities.length > 0 ||
+    recommendations.recommendedEvents.length > 0 ||
+    recommendations.recommendedMentors.length > 0
+  );
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-10">
       <div className="flex items-center justify-between">
@@ -265,7 +280,7 @@ export default function DashboardPage() {
                     <div key={i} className="h-32 bg-muted animate-pulse rounded-2xl" />
                 ))}
             </div>
-        ) : recommendations ? (
+        ) : hasAnyRecommendations ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {recommendations.recommendedJobOpportunities?.[0] && (
                     <Card className="border-none bg-primary/5 shadow-none overflow-hidden group">
@@ -330,7 +345,9 @@ export default function DashboardPage() {
             </div>
         ) : (
             <div className="p-8 text-center bg-muted/20 rounded-2xl border-2 border-dashed">
-                <p className="text-sm text-muted-foreground">Updating AI highlights for you...</p>
+                <p className="text-sm text-muted-foreground">
+                  {hasAIFailed ? "AI insights are temporarily unavailable. Check back soon." : "Personalizing your highlights..."}
+                </p>
             </div>
         )}
       </section>

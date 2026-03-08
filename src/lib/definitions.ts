@@ -1,5 +1,4 @@
-
-export type UserRole = 'student' | 'professor' | 'non-teaching-staff';
+export type UserRole = 'student' | 'professor';
 
 export type UserProfile = {
   id: string;
@@ -26,7 +25,7 @@ export type UserProfile = {
   updatedAt: any;
   major?: string; // for students
   graduationYear?: number; // for students
-  department?: string; // for staff/professors
+  department?: string; // for professors
   researchInterests?: string[]; // for professors
   preferences?: string[];
   networkActivity?: string;
@@ -110,6 +109,15 @@ export type Message = {
   content: string;
   status: MessageStatus;
   createdAt: any;
+};
+
+export type NewsUpdate = {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  category: string;
+  date?: string;
 };
 
 export type SiteContent = {

@@ -138,7 +138,17 @@ const personalizedRecommendationsFlow = ai.defineFlow(
     outputSchema: PersonalizedRecommendationsOutputSchema,
   },
   async (input) => {
-    const { output } = await recommendationPrompt(input);
-    return output!;
+    try {
+      const { output } = await recommendationPrompt(input);
+      return output!;
+    } catch (e) {
+      console.warn("AI Recommendation Engine quota hit or error:", e);
+      // Fallback: return empty recommendations instead of crashing
+      return {
+        recommendedEvents: [],
+        recommendedJobOpportunities: [],
+        recommendedMentors: []
+      };
+    }
   }
 );

@@ -28,16 +28,7 @@ const professorSchema = baseSchema.extend({
   graduationYear: z.any().optional(),
 });
 
-const staffSchema = baseSchema.extend({
-  role: z.literal('non-teaching-staff'),
-  department: z.string({ required_error: 'Department is required.' }).min(1, { message: 'Department is required.' }),
-  major: z.string().optional(),
-  graduationYear: z.any().optional(),
-  researchInterests: z.string().optional(),
-});
-
 export const signupSchema = z.discriminatedUnion('role', [
   studentSchema,
   professorSchema,
-  staffSchema,
 ]);

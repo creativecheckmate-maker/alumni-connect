@@ -1,17 +1,14 @@
-'use client';
-
-import HomePage from './(main)/page';
-import MainLayout from './(main)/layout';
+import HomeClient from './home-client';
+import { NexusShell } from '@/components/layout/shell/nexus-shell';
 
 /**
- * Root page serving the home component.
- * We wrap HomePage in MainLayout to ensure consistent sidebar/header navigation 
- * and prevent route conflicts between the root and group layouts.
+ * Root Page Entry Point.
+ * Uses the independent NexusShell to avoid route-group manifest conflicts.
  */
 export default function RootPage() {
   return (
-    <MainLayout>
-      <HomePage />
-    </MainLayout>
+    <NexusShell>
+      <HomeClient />
+    </NexusShell>
   );
 }

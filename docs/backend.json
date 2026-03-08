@@ -8,7 +8,7 @@
       "properties": {
         "id": { "type": "string" },
         "externalAuthId": { "type": "string" },
-        "role": { "type": "string", "enum": ["student", "professor", "non-teaching-staff"] },
+        "role": { "type": "string", "enum": ["student", "professor"] },
         "name": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "avatarUrl": { "type": "string", "format": "uri" },

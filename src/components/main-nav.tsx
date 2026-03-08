@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -31,7 +32,10 @@ import {
   MessageSquare,
   Network,
   Eye,
-  EyeOff
+  EyeOff,
+  ShieldCheck,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { Logo } from './logo';
 import { usePathname, useRouter } from 'next/navigation';
@@ -40,7 +44,7 @@ import { useAuth, useFirebase, useFirestore, useDoc, useMemoFirebase } from '@/f
 import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 import { useState, useEffect } from 'react';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -160,10 +164,14 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
   const { user, isEditMode } = useFirebase();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   const sidebarDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_sidebar'), [firestore]);
   const { data: sidebarContent } = useDoc<SiteContent>(sidebarDocRef);
+
+  const configDocRef = useMemoFirebase(() => doc(firestore, 'siteContent', 'global_config'), [firestore]);
+  const { data: globalConfig } = useDoc<SiteContent>(configDocRef);
 
   const defaultSidebar = {
     labels: {
@@ -193,9 +201,32 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
   const config = sidebarContent?.data || defaultSidebar;
   const labels = config.labels || defaultSidebar.labels;
   const visibility = config.visibility || {};
+  const isPlatformLocked = globalConfig?.data?.isBlocked === true;
+
+  const handleToggleSetting = async (key: string, val: boolean) => {
+    if (!firestore || !isAdmin) return;
+    try {
+      const configRef = doc(firestore, 'siteContent', 'global_config');
+      await updateDoc(configRef, {
+        [`data.${key}`]: val,
+        updatedAt: serverTimestamp()
+      });
+      toast({ 
+        title: "Setting Updated", 
+        description: "Global system configuration has been modified." 
+      });
+    } catch (e) {
+      await setDoc(doc(firestore, 'siteContent', 'global_config'), {
+        id: 'global_config',
+        pageId: 'global',
+        sectionId: 'config',
+        data: { [key]: val },
+        updatedAt: serverTimestamp()
+      });
+    }
+  };
 
   const isVisible = (key: string) => {
-    // Admin in Edit Mode sees everything
     if (isAdmin && isEditMode) return true;
     return visibility[key] !== false;
   };
@@ -241,6 +272,38 @@ export function MainNav({ logoPart1, logoPart2 }: MainNavProps) {
       </SidebarHeader>
       <SidebarContent className="px-3">
         <SidebarMenu>
+          {isAdmin && (
+            <div className="px-4 py-4 mb-4 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Global Security</span>
+                </div>
+                {isPlatformLocked ? <Lock className="h-3 w-3 text-primary animate-pulse" /> : <Unlock className="h-3 w-3 text-green-500" />}
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-white">Block Platform</span>
+                  <Switch 
+                    checked={isPlatformLocked}
+                    onCheckedChange={(val) => handleToggleSetting('isBlocked', val)}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                </div>
+                <div className="flex items-center justify-between border-t border-zinc-800 pt-3">
+                  <span className="text-[11px] font-bold text-white">Hide Professors</span>
+                  <Switch 
+                    checked={globalConfig?.data?.hideProfessors === true}
+                    onCheckedChange={(val) => handleToggleSetting('hideProfessors', val)}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                </div>
+              </div>
+              <p className="text-[9px] text-zinc-500 mt-2 font-medium">Controls site access and professional role visibility instantly.</p>
+            </div>
+          )}
+
           {(filteredMenuItems.length > 0 || (isAdmin && isEditMode)) && (
             <>
               <div className="px-4 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
