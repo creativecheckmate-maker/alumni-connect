@@ -1,17 +1,14 @@
 import HomeClient from './home-client';
-import MainLayout from './(main)/layout';
+import { NexusShell } from '@/components/layout/shell/nexus-shell';
 
 /**
- * Root page serving the home component.
- * This file is now the ONLY entry point for the '/' route.
- * By using RootPage as a Server Component wrapper and moving 
- * Client logic to home-client.tsx, we resolve the Vercel 
- * manifest race condition (ENOENT: page_client-reference-manifest.js).
+ * Root Page Entry Point.
+ * Uses the independent NexusShell to avoid route-group manifest conflicts.
  */
 export default function RootPage() {
   return (
-    <MainLayout>
+    <NexusShell>
       <HomeClient />
-    </MainLayout>
+    </NexusShell>
   );
 }

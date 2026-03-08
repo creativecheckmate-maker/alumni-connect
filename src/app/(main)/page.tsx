@@ -1,7 +1,7 @@
 /**
- * Server Component Placeholder.
- * This file is empty to prevent route collision with the root page.tsx.
- * By making it a plain Server Component, we avoid the client-reference manifest error on Vercel.
+ * Neutral Page Placeholder.
+ * Emptied to ensure no client-reference-manifest is generated for this route segment,
+ * preventing build-time race conditions on Vercel.
  */
 export default function PlaceholderPage() {
   return null;
